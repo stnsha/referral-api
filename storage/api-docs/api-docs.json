@@ -87,12 +87,349 @@
                     }
                 ]
             }
+        },
+        "/api/form": {
+            "post": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Create a new form of business unit",
+                "description": "Creates a new form with the given business unit ID, label name, and visibility.",
+                "operationId": "7d550a8c14af6b5501ed1331bbb6a41e",
+                "requestBody": {
+                    "description": "Form data to be created",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_unit_id",
+                                    "label_name"
+                                ],
+                                "properties": {
+                                    "business_unit_id": {
+                                        "description": "The ID of the business unit",
+                                        "type": "integer"
+                                    },
+                                    "label_name": {
+                                        "description": "The label name of the form",
+                                        "type": "string"
+                                    },
+                                    "is_hidden": {
+                                        "description": "Whether the form is hidden or not",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Form created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form created successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form creation failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form creation failed"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "apiKeyAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/form/show/{business_unit_id}": {
+            "get": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Get list of forms by business unit",
+                "description": "Retrieve a list of forms associated with a specific business unit ID.",
+                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
+                "parameters": [
+                    {
+                        "name": "business_unit_id",
+                        "in": "path",
+                        "description": "The business unit ID to filter forms by.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Forms retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "business_unit_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "label_name": {
+                                                        "type": "string"
+                                                    },
+                                                    "is_hidden": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve forms",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to retrieve form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/form/{id}": {
+            "put": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Update an existing form of a business unit",
+                "description": "Updates the form with the given ID and provided data (business unit ID, label name, and visibility).",
+                "operationId": "7c9c4e22851c4757a8352dd2a6f05f1e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The ID of the form to be updated",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Form data to be updated",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_unit_id",
+                                    "label_name"
+                                ],
+                                "properties": {
+                                    "business_unit_id": {
+                                        "description": "The ID of the business unit",
+                                        "type": "integer"
+                                    },
+                                    "label_name": {
+                                        "description": "The label name of the form",
+                                        "type": "string"
+                                    },
+                                    "is_hidden": {
+                                        "description": "Whether the form is hidden or not",
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Form updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form updated successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Update failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Update failed"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/form/{form}": {
+            "delete": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Delete a form of a business unit",
+                "description": "Delete a specific form by its ID.",
+                "operationId": "be84502d0c043af16325cb48e41bee12",
+                "parameters": [
+                    {
+                        "name": "form",
+                        "in": "path",
+                        "description": "The ID of the form to be deleted.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form deleted successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete form",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to delete form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "tags": [
         {
             "name": "Business Units",
             "description": "Business Units"
+        },
+        {
+            "name": "Forms",
+            "description": "Forms"
         }
     ],
     "components": {

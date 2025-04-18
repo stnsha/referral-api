@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BusinessUnitController;
+use App\Http\Controllers\FormController;
 use App\Http\Controllers\ReferralController;
 use App\Models\BusinessUnit;
 use App\Models\Referral;
@@ -24,4 +25,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::middleware('token.auth')->group(function () {
     Route::resource('business-units', BusinessUnitController::class);
+
+    Route::resource('form', FormController::class)->only(['create', 'update', 'destroy']);
+
+    Route::prefix('form')->controller(FormController::class)->group(function () {
+        Route::get('show/{business_unit_id}', 'show');
+    });
 });
