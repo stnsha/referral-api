@@ -420,6 +420,100 @@
                     }
                 }
             }
+        },
+        "/api/form/createFormDetails": {
+            "post": {
+                "tags": [
+                    "Form Details"
+                ],
+                "summary": "Create form details of a form in a business unit",
+                "description": "Create details for a specific form, including fields like field name, field type, and required status.",
+                "operationId": "7feaf8e682b29d7c961a1cc639a53af2",
+                "requestBody": {
+                    "description": "Form details to be created",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "form_id",
+                                    "form_details"
+                                ],
+                                "properties": {
+                                    "form_id": {
+                                        "description": "The ID of the form",
+                                        "type": "integer"
+                                    },
+                                    "form_details": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "field_name",
+                                                "field_type",
+                                                "is_required"
+                                            ],
+                                            "properties": {
+                                                "field_name": {
+                                                    "description": "Name of the field",
+                                                    "type": "string"
+                                                },
+                                                "field_type": {
+                                                    "description": "Type of the field (e.g., text, number, etc.)",
+                                                    "type": "string"
+                                                },
+                                                "is_required": {
+                                                    "description": "Indicates if the field is required",
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Form details created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form details created successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create form details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create form details."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "tags": [
@@ -430,6 +524,10 @@
         {
             "name": "Forms",
             "description": "Forms"
+        },
+        {
+            "name": "Form Details",
+            "description": "Form Details"
         }
     ],
     "components": {

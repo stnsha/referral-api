@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FormDetailsRequest;
 use App\Http\Requests\FormsRequest;
 use App\Models\Form;
+use App\Models\FormDetails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -247,6 +249,79 @@ class FormController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete form.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/form/createFormDetails",
+     *     tags={"Form Details"},
+     *     summary="Create form details of a form in a business unit",
+     *     description="Create details for a specific form, including fields like field name, field type, and required status.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="Form details to be created",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"form_id", "form_details"},
+     *             @OA\Property(property="form_id", type="integer", description="The ID of the form"),
+     *             @OA\Property(
+     *                 property="form_details",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     required={"field_name", "field_type", "is_required"},
+     *                     @OA\Property(property="field_name", type="string", description="Name of the field"),
+     *                     @OA\Property(property="field_type", type="string", description="Type of the field (e.g., text, number, etc.)"),
+     *                     @OA\Property(property="is_required", type="boolean", description="Indicates if the field is required")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Form details created successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Form details created successfully!")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create form details",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Failed to create form details."),
+     *             @OA\Property(property="error", type="string", example="Error message from exception")
+     *         )
+     *     )
+     * )
+     */
+
+    public function createFormDetails(FormDetailsRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            $form_id = $validated['form_id'];
+            $formDetails = $validated['form_details'];
+
+            foreach ($formDetails as $detail) {
+                FormDetails::create([
+                    'form_id' => $form_id,
+                    'field_name' => $detail['field_name'],
+                    'field_type' => $detail['field_type'],
+                    'is_required' => $detail['is_required'],
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Form details created successfully!'
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create form details.',
                 'error' => $e->getMessage()
             ], 500);
         }

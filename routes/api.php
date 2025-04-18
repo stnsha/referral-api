@@ -30,5 +30,6 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::get('show/{business_unit_id}', 'show');
+        Route::post('/createFormDetails', 'createFormDetails');
     });
 });
