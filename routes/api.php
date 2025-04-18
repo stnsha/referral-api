@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\BusinessUnitController;
+use App\Http\Controllers\ReferralController;
+use App\Models\BusinessUnit;
+use App\Models\Referral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +22,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware('token.auth')->group(function() {
-    
+Route::middleware('token.auth')->group(function () {
+    Route::resource('business-units', BusinessUnitController::class);
 });

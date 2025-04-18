@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('referral_id');
             $table->unsignedBigInteger('staff_id');
-            $table->unsignedBigInteger('business_unit_id');
+            $table->unsignedBigInteger('business_unit_id'); //refer to business unit id on referral, not department_id
             $table->softDeletes();
             $table->timestamps();
 
             $table->foreign('referral_id')->references('id')->on('referrals')->onDelete('cascade');
+            $table->foreign('business_unit_id')->references('id')->on('business_units')->onDelete('cascade');
+            $table->index(['referral_id']);
         });
     }
 

@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('referral_details', function (Blueprint $table) {
+        Schema::create('business_units', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('referral_history_id');
-            $table->longText('referral_reason');
-            $table->longText('referral_condition');
-            $table->longText('medical_history')->nullable();
+            $table->string('name');
+            $table->unsignedBigInteger('staff_department_id');
+            $table->boolean('is_active')->default(1); //1 = active
             $table->softDeletes();
             $table->timestamps();
+
+            $table->index(['staff_department_id']);
         });
     }
 
@@ -27,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('referral_details');
+        Schema::dropIfExists('business_units');
     }
 };

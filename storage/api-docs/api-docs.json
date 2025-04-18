@@ -1,0 +1,113 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Referral API",
+        "description": "Backend API for referral",
+        "contact": {
+            "name": "Swagger API Team"
+        },
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000",
+            "description": "MyHealth server"
+        }
+    ],
+    "paths": {
+        "/api/business-units": {
+            "get": {
+                "tags": [
+                    "Business Units"
+                ],
+                "summary": "Get list of business units",
+                "description": "Returns a list of business units with their names and staff department IDs. If no data is available, returns a 404 error.",
+                "operationId": "56bcd40a97bacef9f6ce4674abed7aee",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "staff_department_id": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No data available",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "apiKeyAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Business Units",
+            "description": "Business Units"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "Authorization",
+                "description": "Pass your API key in the Authorization header. Example: `Authorization: {apiKey}`"
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyAuth": []
+        }
+    ]
+}

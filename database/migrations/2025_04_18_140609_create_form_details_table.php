@@ -11,13 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('referrals', function (Blueprint $table) {
+        Schema::create('form_details', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer_id');
-            $table->integer('priority')->default(2); //2 = Standard
-            $table->integer('status')->default(1); //Submitted
+            $table->unsignedBigInteger('form_id');
+            $table->string('field_name');
+            $table->string('field_type');
+            $table->boolean('is_required')->default(1); //1 = required
             $table->softDeletes();
             $table->timestamps();
+
+            $table->foreign('form_id')->references('id')->on('forms')->onDelete('cascade');
+            $table->index(['form_id']);
         });
     }
 
@@ -26,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('referrals');
+        Schema::dropIfExists('form_details');
     }
 };

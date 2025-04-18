@@ -19,17 +19,16 @@ class TokenMiddleware
     {
         $token = $request->header('Authorization');
 
-        if(!$token) {
+        if (!$token) {
             return response()->json(['message' => 'Token is required.'], Response::HTTP_UNAUTHORIZED);
         }
 
         $cacheKey = "token:$token";
-        $isValid = Cache::remember($cacheKey, 3600, function() use 
-        ($token) {
-            return DB::table('token')->where('value', $token)->exists();
+        $isValid = Cache::remember($cacheKey, 3600, function () use ($token) {
+            return DB::table('api_token')->where('value', $token)->exists();
         });
 
-        if(!$isValid) {
+        if (!$isValid) {
             return response()->json(['message' => 'Invalid token.'], Response::HTTP_UNAUTHORIZED);
         }
         return $next($request);

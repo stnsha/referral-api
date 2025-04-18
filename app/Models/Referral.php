@@ -1,18 +1,20 @@
 <?php
 
-namespace App\Models\API;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class ReferralHistory extends Model
+class Referral extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'referral_id',
-        'staff_id',
-        'business_unit_id',
+        'customer_id',
+        'reason',
+        'condition',
+        'medical_history',
+        'priority',
     ];
 }
