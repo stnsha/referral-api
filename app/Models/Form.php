@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Form extends Model
@@ -15,4 +16,9 @@ class Form extends Model
         'label_name',
         'is_hidden'
     ];
+
+    public function form_details(): HasMany
+    {
+        return $this->hasMany(FormDetails::class, 'form_id', 'id');
+    }
 }

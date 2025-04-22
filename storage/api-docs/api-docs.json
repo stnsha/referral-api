@@ -191,14 +191,14 @@
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Get list of forms by business unit",
-                "description": "Retrieve a list of forms associated with a specific business unit ID.",
+                "summary": "Get forms and their details by business unit",
+                "description": "Retrieve all forms for a specific business unit, including their associated form details.",
                 "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
                 "parameters": [
                     {
                         "name": "business_unit_id",
                         "in": "path",
-                        "description": "The business unit ID to filter forms by.",
+                        "description": "ID of the business unit",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -207,7 +207,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Forms retrieved successfully",
+                        "description": "List of forms with their details",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -216,14 +216,45 @@
                                             "type": "array",
                                             "items": {
                                                 "properties": {
-                                                    "business_unit_id": {
-                                                        "type": "integer"
+                                                    "form_id": {
+                                                        "type": "integer",
+                                                        "example": 1
                                                     },
                                                     "label_name": {
-                                                        "type": "string"
+                                                        "type": "string",
+                                                        "example": "Physio Interventions"
                                                     },
                                                     "is_hidden": {
-                                                        "type": "boolean"
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "form_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_detail_id": {
+                                                                    "type": "integer",
+                                                                    "example": 10
+                                                                },
+                                                                "field_name": {
+                                                                    "type": "string",
+                                                                    "example": "physio_interventions"
+                                                                },
+                                                                "field_type": {
+                                                                    "type": "string",
+                                                                    "example": "checkbox"
+                                                                },
+                                                                "is_required": {
+                                                                    "type": "boolean",
+                                                                    "example": true
+                                                                },
+                                                                "field_value": {
+                                                                    "type": "string",
+                                                                    "example": "Educational Class"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
                                                     }
                                                 },
                                                 "type": "object"
@@ -236,7 +267,7 @@
                         }
                     },
                     "500": {
-                        "description": "Failed to retrieve forms",
+                        "description": "Failed to retrieve form",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -421,14 +452,14 @@
                 }
             }
         },
-        "/api/form/createFormDetails": {
+        "/api/formDetails/create": {
             "post": {
                 "tags": [
                     "Form Details"
                 ],
                 "summary": "Create form details of a form in a business unit",
                 "description": "Create details for a specific form, including fields like field name, field type, and required status.",
-                "operationId": "7feaf8e682b29d7c961a1cc639a53af2",
+                "operationId": "9de1b04dcbab9cd91772760a77f8d83c",
                 "requestBody": {
                     "description": "Form details to be created",
                     "required": true,
@@ -505,6 +536,240 @@
                                         "error": {
                                             "type": "string",
                                             "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/formDetails/{formDetail}": {
+            "get": {
+                "tags": [
+                    "Form Details"
+                ],
+                "summary": "Get specific form detail",
+                "operationId": "dcf18ae4b7c80c488130a9bab1d8e0c6",
+                "parameters": [
+                    {
+                        "name": "formDetail",
+                        "in": "path",
+                        "description": "Form detail ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form detail retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "form_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "field_name": {
+                                                    "type": "string",
+                                                    "example": "patient_notes"
+                                                },
+                                                "field_type": {
+                                                    "type": "string",
+                                                    "example": "textarea"
+                                                },
+                                                "is_required": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "field_value": {
+                                                    "type": "string",
+                                                    "example": "Some default text"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve form",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to retrieve form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message here"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Form Details"
+                ],
+                "summary": "Delete a specific form detail",
+                "operationId": "308106e20f364073ac47e28b184ede2c",
+                "parameters": [
+                    {
+                        "name": "form",
+                        "in": "path",
+                        "description": "Form detail ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form deleted successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete form",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to delete form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Exception message"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/formDetails/{id}": {
+            "put": {
+                "tags": [
+                    "Form Details"
+                ],
+                "summary": "Update form details",
+                "description": "Updates a specific form detail entry with new values.",
+                "operationId": "updateFormDetails",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the form detail",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Form data to be updated",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "form_id",
+                                    "field_name",
+                                    "field_type",
+                                    "is_required",
+                                    "field_value"
+                                ],
+                                "properties": {
+                                    "form_id": {
+                                        "description": "The ID of the business unit",
+                                        "type": "integer"
+                                    },
+                                    "field_name": {
+                                        "description": "The label name of the form",
+                                        "type": "string"
+                                    },
+                                    "field_type": {
+                                        "description": "Whether the form is hidden or not",
+                                        "type": "boolean"
+                                    },
+                                    "is_required": {
+                                        "description": "The ID of the business unit",
+                                        "type": "integer"
+                                    },
+                                    "field_value": {
+                                        "description": "The label name of the form",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Form updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form updated successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Update failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Update failed"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Exception message"
                                         }
                                     },
                                     "type": "object"

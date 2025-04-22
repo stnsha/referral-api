@@ -23,10 +23,9 @@ class FormDetailsRequest extends FormRequest
     {
         return [
             'form_id' => 'required|exists:forms,id,deleted_at,NULL', // Ensure form_id exists and is not deleted
-            'form_details' => 'required|array',
-            'form_details.*.field_name' => 'required|string|max:255', // Validate field_name
-            'form_details.*.field_type' => 'required|string', // Validate field_type
-            'form_details.*.is_required' => 'required|boolean', // Validate is_required
+            'field_name' => 'required|string|max:255', // Validate field_name
+            'field_type' => 'required|string', // Validate field_type
+            'is_required' => 'required|boolean', // Validate is_required
         ];
     }
 
@@ -40,14 +39,12 @@ class FormDetailsRequest extends FormRequest
         return [
             'form_id.required' => 'The form ID is required.',
             'form_id.exists' => 'Form ID does not exist or has been deleted.',
-            'form_details.required' => 'Form details are required.',
-            'form_details.array' => 'Form details must be an array.',
-            'form_details.*.field_name.required' => 'Field name is required.',
-            'form_details.*.field_name.string' => 'Field name must be a string.',
-            'form_details.*.field_name.max' => 'Field name must not exceed 255 characters.',
-            'form_details.*.field_type.required' => 'Field type is required.',
-            'form_details.*.is_required.required' => 'The required flag is required.',
-            'form_details.*.is_required.boolean' => 'The required flag must be a boolean.',
+            'field_name.required' => 'Field name is required.',
+            'field_name.string' => 'Field name must be a string.',
+            'field_name.max' => 'Field name must not exceed 255 characters.',
+            'field_type.required' => 'Field type is required.',
+            'is_required.required' => 'The required flag is required.',
+            'is_required.boolean' => 'The required flag must be a boolean.',
         ];
     }
 }

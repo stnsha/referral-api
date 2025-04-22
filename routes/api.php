@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\FormController;
+use App\Http\Controllers\FormDetailsController;
 use App\Http\Controllers\ReferralController;
 use App\Models\BusinessUnit;
 use App\Models\Referral;
@@ -30,6 +31,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::get('show/{business_unit_id}', 'show');
-        Route::post('/createFormDetails', 'createFormDetails');
     });
+
+    Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
 });
