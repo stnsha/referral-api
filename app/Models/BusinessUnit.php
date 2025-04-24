@@ -11,15 +11,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *     version="1.0",
  *     title="Referral API",
  *     description="Backend API for referral",
- *     @OA\Contact(name="Swagger API Team")
+ *     @OA\Contact(name="Digital Innovation")
  * )
  * @OA\Server(
- *     url="http://127.0.0.1:8000",
+ *     url="http://172.18.28.51",
  *     description="MyHealth server"
  * )
  *
  */
-//url="http://172.18.28.51",
+//url="http://127.0.0.1:8000",
 class BusinessUnit extends Model
 {
     use HasFactory, SoftDeletes;
