@@ -10,12 +10,12 @@
     },
     "servers": [
         {
-            "url": "http://172.18.28.51:8002",
-            "description": "MyHealth Server"
-        },
-        {
             "url": "http://127.0.0.1:8000",
             "description": "Local Server"
+        },
+        {
+            "url": "http://172.18.28.51:8002",
+            "description": "MyHealth Server"
         }
     ],
     "paths": {
@@ -201,9 +201,9 @@
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Get forms and their details by business unit",
-                "description": "Retrieve all forms for a specific business unit, including their associated form details.",
-                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
+                "summary": "Get forms by business unit ID",
+                "description": "Returns all forms and form details for a specific business unit",
+                "operationId": "getFormsByBusinessUnit",
                 "parameters": [
                     {
                         "name": "business_unit_id",
@@ -217,7 +217,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of forms with their details",
+                        "description": "Successful operation",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -227,40 +227,50 @@
                                             "items": {
                                                 "properties": {
                                                     "form_id": {
-                                                        "type": "integer",
-                                                        "example": 1
+                                                        "type": "integer"
                                                     },
                                                     "label_name": {
-                                                        "type": "string",
-                                                        "example": "Physio Interventions"
+                                                        "type": "string"
                                                     },
                                                     "is_hidden": {
-                                                        "type": "boolean",
-                                                        "example": false
+                                                        "type": "boolean"
                                                     },
                                                     "form_details": {
                                                         "type": "array",
                                                         "items": {
                                                             "properties": {
                                                                 "form_detail_id": {
-                                                                    "type": "integer",
-                                                                    "example": 10
+                                                                    "type": "integer"
                                                                 },
                                                                 "field_name": {
-                                                                    "type": "string",
-                                                                    "example": "physio_interventions"
+                                                                    "type": "string"
                                                                 },
                                                                 "field_type": {
-                                                                    "type": "string",
-                                                                    "example": "checkbox"
+                                                                    "type": "string"
                                                                 },
                                                                 "is_required": {
-                                                                    "type": "boolean",
-                                                                    "example": true
+                                                                    "type": "boolean"
                                                                 },
                                                                 "field_value": {
-                                                                    "type": "string",
-                                                                    "example": "Educational Class"
+                                                                    "oneOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "properties": {
+                                                                                    "form_detail_id": {
+                                                                                        "type": "integer"
+                                                                                    },
+                                                                                    "field_value": {
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                },
+                                                                                "type": "object"
+                                                                            }
+                                                                        }
+                                                                    ]
                                                                 }
                                                             },
                                                             "type": "object"
@@ -277,18 +287,16 @@
                         }
                     },
                     "500": {
-                        "description": "Failed to retrieve form",
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
-                                            "type": "string",
-                                            "example": "Failed to retrieve form."
+                                            "type": "string"
                                         },
                                         "error": {
-                                            "type": "string",
-                                            "example": "Error message from exception"
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"

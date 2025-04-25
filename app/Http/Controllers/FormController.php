@@ -98,9 +98,10 @@ class FormController extends Controller
     /**
      * @OA\Get(
      *     path="/api/form/show/{business_unit_id}",
+     *     operationId="getFormsByBusinessUnit",
      *     tags={"Forms"},
-     *     summary="Get forms and their details by business unit",
-     *     description="Retrieve all forms for a specific business unit, including their associated form details.",
+     *     summary="Get forms by business unit ID",
+     *     description="Returns all forms and form details for a specific business unit",
      *     @OA\Parameter(
      *         name="business_unit_id",
      *         in="path",
@@ -110,7 +111,7 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="List of forms with their details",
+     *         description="Successful operation",
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(
@@ -118,19 +119,32 @@ class FormController extends Controller
      *                 type="array",
      *                 @OA\Items(
      *                     type="object",
-     *                     @OA\Property(property="form_id", type="integer", example=1),
-     *                     @OA\Property(property="label_name", type="string", example="Physio Interventions"),
-     *                     @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                     @OA\Property(property="form_id", type="integer"),
+     *                     @OA\Property(property="label_name", type="string"),
+     *                     @OA\Property(property="is_hidden", type="boolean"),
      *                     @OA\Property(
      *                         property="form_details",
      *                         type="array",
      *                         @OA\Items(
      *                             type="object",
-     *                             @OA\Property(property="form_detail_id", type="integer", example=10),
-     *                             @OA\Property(property="field_name", type="string", example="physio_interventions"),
-     *                             @OA\Property(property="field_type", type="string", example="checkbox"),
-     *                             @OA\Property(property="is_required", type="boolean", example=true),
-     *                             @OA\Property(property="field_value", type="string", example="Educational Class")
+     *                             @OA\Property(property="form_detail_id", type="integer"),
+     *                             @OA\Property(property="field_name", type="string"),
+     *                             @OA\Property(property="field_type", type="string"),
+     *                             @OA\Property(property="is_required", type="boolean"),
+     *                             @OA\Property(
+     *                                 property="field_value",
+     *                                 oneOf={
+     *                                     @OA\Schema(type="string"),
+     *                                     @OA\Schema(
+     *                                         type="array",
+     *                                         @OA\Items(
+     *                                             type="object",
+     *                                             @OA\Property(property="form_detail_id", type="integer"),
+     *                                             @OA\Property(property="field_value", type="string")
+     *                                         )
+     *                                     )
+     *                                 }
+     *                             )
      *                         )
      *                     )
      *                 )
@@ -139,15 +153,15 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Failed to retrieve form",
+     *         description="Internal Server Error",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Failed to retrieve form."),
-     *             @OA\Property(property="error", type="string", example="Error message from exception")
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="error", type="string")
      *         )
      *     )
      * )
      */
+
     public function show($business_unit_id)
     {
         try {

@@ -13,17 +13,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *     description="Backend API for referral",
  *     @OA\Contact(name="Digital Innovation")
  * )
+ *  * @OA\Server(
+ *      url="http://127.0.0.1:8000",
+ *      description="Local Server"
+ * )
+ * 
  * @OA\Server(
  *      url="http://172.18.28.51:8002",
  *      description="MyHealth Server"
  * )
  *
- * @OA\Server(
- *      url="http://127.0.0.1:8000",
- *      description="Local Server"
- * )
  */
-//url="http://127.0.0.1:8000",
+
 class BusinessUnit extends Model
 {
     use HasFactory, SoftDeletes;
