@@ -52,7 +52,7 @@ class FormController extends Controller
      * )
      */
 
-    public function create(FormsRequest $request)
+    public function store(FormsRequest $request)
     {
         try {
             $validated = $request->validated();
