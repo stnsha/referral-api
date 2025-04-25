@@ -94,7 +94,7 @@
                     "Forms"
                 ],
                 "summary": "Create a new form and its details",
-                "operationId": "a45ee9957cd963fad67e9a6ef5dc11fd",
+                "operationId": "b60fab596ffea21226f7edb39cd65120",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -158,6 +158,10 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Form created successfully!"
+                                        },
+                                        "form_id": {
+                                            "type": "integer",
+                                            "example": 1
                                         }
                                     },
                                     "type": "object"
@@ -178,109 +182,6 @@
                                         "error": {
                                             "type": "string",
                                             "example": "Something went wrong"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/form/show/{business_unit_id}": {
-            "get": {
-                "tags": [
-                    "Forms"
-                ],
-                "summary": "Get forms and their details by business unit",
-                "description": "Retrieve all forms for a specific business unit, including their associated form details.",
-                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
-                "parameters": [
-                    {
-                        "name": "business_unit_id",
-                        "in": "path",
-                        "description": "ID of the business unit",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of forms with their details",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "form_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "label_name": {
-                                                        "type": "string",
-                                                        "example": "Physio Interventions"
-                                                    },
-                                                    "is_hidden": {
-                                                        "type": "boolean",
-                                                        "example": false
-                                                    },
-                                                    "form_details": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "form_detail_id": {
-                                                                    "type": "integer",
-                                                                    "example": 10
-                                                                },
-                                                                "field_name": {
-                                                                    "type": "string",
-                                                                    "example": "physio_interventions"
-                                                                },
-                                                                "field_type": {
-                                                                    "type": "string",
-                                                                    "example": "checkbox"
-                                                                },
-                                                                "is_required": {
-                                                                    "type": "boolean",
-                                                                    "example": true
-                                                                },
-                                                                "field_value": {
-                                                                    "type": "string",
-                                                                    "example": "Educational Class"
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to retrieve form",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Failed to retrieve form."
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Error message from exception"
                                         }
                                     },
                                     "type": "object"
