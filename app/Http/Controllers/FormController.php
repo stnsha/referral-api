@@ -156,15 +156,40 @@ class FormController extends Controller
 
             foreach ($forms as $form) {
                 $form_details = [];
-                foreach ($form->form_details as $fd) {
-                    $form_details[] = [
-                        'form_detail_id' => $fd->id,
-                        'field_name' => $fd->field_name,
-                        'field_type' => $fd->field_type,
-                        'is_required' => $fd->is_required != 0 ? True : False,
-                        'field_value' => $fd->field_value,
-                    ];
+                $form_detail_count = count($form->form_details);
+
+                if ($form_detail_count > 1) {
+                    foreach ($form->form_details as $fd) {
+                        $key = $fd->field_name;
+
+                        if (!isset($form_details[$key])) {
+                            $form_details[$key] = [
+                                'field_name' => $fd->field_name,
+                                'field_type' => $fd->field_type,
+                                'is_required' => $fd->is_required != 0,
+                                'field_value' => [],
+                            ];
+                        }
+
+                        $form_details[$key]['field_value'][] = [
+                            'form_detail_id' => $fd->id,
+                            'field_value' => $fd->field_value,
+                        ];
+                    }
+
+                    $form_details = array_values($form_details);
+                } else {
+                    foreach ($form->form_details as $fd) {
+                        $form_details[] = [
+                            'form_detail_id' => $fd->id,
+                            'field_name' => $fd->field_name,
+                            'field_type' => $fd->field_type,
+                            'is_required' => $fd->is_required != 0,
+                            'field_value' => $fd->field_value,
+                        ];
+                    }
                 }
+
                 $data[] = [
                     'form_id' => $form->id,
                     'label_name' => $form->label_name,
