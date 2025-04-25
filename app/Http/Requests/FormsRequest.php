@@ -25,7 +25,11 @@ class FormsRequest extends FormRequest
             'business_unit_id' => 'required|exists:business_units,id',
             'label_name' => 'required|string|max:255',
             'is_hidden' => 'required|boolean',
-        ];
+            'is_required' => 'required|boolean',
+            'field_name' => 'required|string|max:255',
+            'field_type' => 'required|string|max:255',
+            'value_fields' => 'nullable|array'
+        ]; 
     }
 
     /**
@@ -42,6 +46,16 @@ class FormsRequest extends FormRequest
             'label_name.string' => 'Label name must be a string.',
             'label_name.max' => 'Label name may not be greater than 255 characters.',
             'is_hidden.required' => 'is_hidden is required.',
+            'is_hidden.boolean' => 'is_hidden must be true or false.',
+            'is_required.required' => 'is_required is required.',
+            'is_required.boolean' => 'is_required must be true or false.',
+            'field_name.required' => 'Field type is required.',
+            'field_name.string' => 'Field type must be a string.',
+            'field_name.max' => 'Field type may not be greater than 255 characters.',
+            'field_type.required' => 'Field type is required.',
+            'field_type.string' => 'Field type must be a string.',
+            'field_type.max' => 'Field type may not be greater than 255 characters.',
+            'value_fields.array' => 'Value fields must be an array.',
         ];
     }
 }

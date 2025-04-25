@@ -93,31 +93,54 @@
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Create a new form of business unit",
-                "description": "Creates a new form with the given business unit ID, label name, and visibility.",
+                "summary": "Create a new form and its details",
                 "operationId": "7d550a8c14af6b5501ed1331bbb6a41e",
                 "requestBody": {
-                    "description": "Form data to be created",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
                                     "business_unit_id",
-                                    "label_name"
+                                    "label_name",
+                                    "is_hidden",
+                                    "is_required",
+                                    "field_type"
                                 ],
                                 "properties": {
                                     "business_unit_id": {
-                                        "description": "The ID of the business unit",
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "label_name": {
-                                        "description": "The label name of the form",
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "Physio Interventions"
                                     },
                                     "is_hidden": {
-                                        "description": "Whether the form is hidden or not",
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_required": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "field_name": {
+                                        "type": "string",
+                                        "example": "physio_interventions"
+                                    },
+                                    "field_type": {
+                                        "type": "string",
+                                        "example": "checkbox"
+                                    },
+                                    "value_fields": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Chest Physiotherapy",
+                                            "Pain Management"
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -142,24 +165,8 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Form creation failed"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Form creation failed",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -170,7 +177,7 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Error message from exception"
+                                            "example": "Something went wrong"
                                         }
                                     },
                                     "type": "object"
@@ -178,12 +185,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "apiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/form/show/{business_unit_id}": {

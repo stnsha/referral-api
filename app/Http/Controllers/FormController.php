@@ -14,57 +14,61 @@ class FormController extends Controller
     /**
      * @OA\Post(
      *     path="/api/form",
+     *     summary="Create a new form and its details",
      *     tags={"Forms"},
-     *     summary="Create a new form of business unit",
-     *     description="Creates a new form with the given business unit ID, label name, and visibility.",
      *     @OA\RequestBody(
      *         required=true,
-     *         description="Form data to be created",
      *         @OA\JsonContent(
-     *             required={"business_unit_id", "label_name"},
-     *             @OA\Property(property="business_unit_id", type="integer", description="The ID of the business unit"),
-     *             @OA\Property(property="label_name", type="string", description="The label name of the form"),
-     *             @OA\Property(property="is_hidden", type="boolean", description="Whether the form is hidden or not")
+     *             required={"business_unit_id", "label_name", "is_hidden", "is_required", "field_type"},
+     *             @OA\Property(property="business_unit_id", type="integer", example=1),
+     *             @OA\Property(property="label_name", type="string", example="Physio Interventions"),
+     *             @OA\Property(property="is_hidden", type="boolean", example=false),
+     *             @OA\Property(property="is_required", type="boolean", example=true),
+     *             @OA\Property(property="field_name", type="string", example="physio_interventions"),
+     *             @OA\Property(property="field_type", type="string", example="checkbox"),
+     *             @OA\Property(
+     *                 property="value_fields",
+     *                 type="array",
+     *                 @OA\Items(type="string"),
+     *                 example={"Chest Physiotherapy", "Pain Management"}
+     *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="Form created successfully",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="Form created successfully!")
      *         )
      *     ),
      *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Form creation failed")
-     *         )
-     *     ),
-     *     @OA\Response(
      *         response=500,
-     *         description="Internal Server Error",
+     *         description="Form creation failed",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="Form creation failed"),
-     *             @OA\Property(property="error", type="string", example="Error message from exception")
+     *             @OA\Property(property="error", type="string", example="Something went wrong")
      *         )
-     *     ),
-     * 
-     *      security={{"apiKeyAuth": {}}}
+     *     )
      * )
      */
+
     public function create(FormsRequest $request)
     {
         try {
             $validated = $request->validated();
 
-            Form::create([
+            $form = Form::create([
                 'business_unit_id' => $validated['business_unit_id'],
                 'label_name' => $validated['label_name'],
-                'is_hidden' => $validated['is_hidden'] ?? false
+                'is_hidden' => $validated['is_hidden']
+            ]);
+
+            $form_details = FormDetails::create([
+                'form_id' => $form->id,
+                'field_name' => $validated['field_name'],
+                'field_type' => $validated['field_type'],
+                'is_required' => $validated['is_required'],
+                'field_value' => $validated['field_value']
             ]);
 
             return response()->json(['message' => 'Form created successfully!'], 201);
