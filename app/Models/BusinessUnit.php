@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *     @OA\Contact(name="Digital Innovation")
  * )
  * @OA\Server(
- *     url="http://172.18.28.51",
+ *     url="http://172.18.28.51:8002",
  *     description="MyHealth server"
  * )
  *
