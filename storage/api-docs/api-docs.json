@@ -4,13 +4,13 @@
         "title": "Referral API",
         "description": "Backend API for referral",
         "contact": {
-            "name": "Swagger API Team"
+            "name": "Digital Innovation"
         },
         "version": "1.0"
     },
     "servers": [
         {
-            "url": "http://127.0.0.1:8000",
+            "url": "http://172.18.28.51:8002",
             "description": "MyHealth server"
         }
     ],
