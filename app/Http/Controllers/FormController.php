@@ -63,13 +63,25 @@ class FormController extends Controller
                 'is_hidden' => $validated['is_hidden']
             ]);
 
-            $form_details = FormDetails::create([
-                'form_id' => $form->id,
-                'field_name' => $validated['field_name'],
-                'field_type' => $validated['field_type'],
-                'is_required' => $validated['is_required'],
-                'field_value' => $validated['field_value']
-            ]);
+            if (!empty($validated['value_fields'])) {
+                foreach ($validated['value_fields'] as $value) {
+                    FormDetails::create([
+                        'form_id' => $form->id,
+                        'field_name' => $validated['field_name'],
+                        'field_type' => $validated['field_type'],
+                        'is_required' => $validated['is_required'],
+                        'field_value' => $value
+                    ]);
+                }
+            } else {
+                FormDetails::create([
+                    'form_id' => $form->id,
+                    'field_name' => $validated['field_name'],
+                    'field_type' => $validated['field_type'],
+                    'is_required' => $validated['is_required'],
+                    'field_value' => null
+                ]);
+            }
 
             return response()->json(['message' => 'Form created successfully!'], 201);
         } catch (\Exception $e) {
