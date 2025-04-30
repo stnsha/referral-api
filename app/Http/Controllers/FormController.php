@@ -97,16 +97,16 @@ class FormController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/form/show/{business_unit_id}",
+     *     path="/api/form/show/{staff_department_id}",
      *     operationId="getFormsByBusinessUnit",
      *     tags={"Forms"},
      *     summary="Get forms by business unit ID",
      *     description="Returns all forms and form details for a specific business unit",
      *     @OA\Parameter(
-     *         name="business_unit_id",
+     *         name="staff_department_id",
      *         in="path",
      *         required=true,
-     *         description="ID of the business unit",
+     *         description="Primary key of staff_departkment table",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
@@ -162,9 +162,10 @@ class FormController extends Controller
      * )
      */
 
-    public function show($business_unit_id)
+    public function show($staff_department_id)
     {
         try {
+            $business_unit_id = BusinessUnit::where('staff_department_id', $staff_department_id)->value('id');
             $forms = Form::with(['form_details'])->where('business_unit_id', $business_unit_id)->get();
             $data = [];
 

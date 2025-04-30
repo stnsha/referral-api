@@ -196,7 +196,7 @@
                 }
             }
         },
-        "/api/form/show/{business_unit_id}": {
+        "/api/form/show/{staff_department_id}": {
             "get": {
                 "tags": [
                     "Forms"
@@ -206,9 +206,9 @@
                 "operationId": "getFormsByBusinessUnit",
                 "parameters": [
                     {
-                        "name": "business_unit_id",
+                        "name": "staff_department_id",
                         "in": "path",
-                        "description": "ID of the business unit",
+                        "description": "Primary key of staff_departkment table",
                         "required": true,
                         "schema": {
                             "type": "integer"
