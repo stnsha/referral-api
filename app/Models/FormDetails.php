@@ -11,6 +11,10 @@ class FormDetails extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $casts = [
+        'field_value' => 'array',
+    ];
+
     protected $fillable = [
         'form_id',
         'field_name',

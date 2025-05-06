@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -34,4 +35,9 @@ class BusinessUnit extends Model
         'staff_department_id',
         'is_active',
     ];
+
+    public function forms(): HasMany
+    {
+        return $this->hasMany(Form::class, 'business_unit_id', 'id');
+    }
 }

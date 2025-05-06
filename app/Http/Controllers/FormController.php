@@ -106,7 +106,7 @@ class FormController extends Controller
      *         name="staff_department_id",
      *         in="path",
      *         required=true,
-     *         description="Primary key of staff_departkment table",
+     *         description="Primary key of staff_department table",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(

@@ -11,7 +11,7 @@ class ReferralDetails extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'referral_history_id',
+        'referral_id',
         'form_detail_id',
         'value',
     ];
