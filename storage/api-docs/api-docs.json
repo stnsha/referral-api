@@ -208,7 +208,7 @@
                     {
                         "name": "staff_department_id",
                         "in": "path",
-                        "description": "Primary key of staff_departkment table",
+                        "description": "Primary key of staff_department table",
                         "required": true,
                         "schema": {
                             "type": "integer"
