@@ -15,7 +15,7 @@ class ReferralController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="api/referral",
+     *     path="/api/referral",
      *     summary="Create a new referral",
      *     tags={"Referrals"},
      *     @OA\RequestBody(

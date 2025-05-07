@@ -798,13 +798,13 @@
                 }
             }
         },
-        "api/referral": {
+        "/api/referral": {
             "post": {
                 "tags": [
                     "Referrals"
                 ],
                 "summary": "Create a new referral",
-                "operationId": "b352ca035fe8ceff6c699a9240dc3758",
+                "operationId": "4a03f158cec5d04a922637564726d870",
                 "requestBody": {
                     "required": true,
                     "content": {
