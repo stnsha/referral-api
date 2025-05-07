@@ -65,7 +65,7 @@ class StoreReferralRequest extends FormRequest
 
         $deptId = $this->input('business_units.assignee.staff_department_id');
 
-        $forms = \App\Models\Form::whereHas('business_unit', function ($q) use ($deptId) {
+        $forms = Form::whereHas('business_unit', function ($q) use ($deptId) {
             $q->where('staff_department_id', $deptId);
         })->get();
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreReferralRequest;
+use App\Models\BusinessUnit;
 use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralDetails;
@@ -106,10 +107,13 @@ class ReferralController extends Controller
             $businessUnits = $request->input('business_units');
 
             foreach (['assignee', 'recipient'] as $role) {
+                $sd_id = $businessUnits[$role]['staff_department_id'];
+
+                $bu_id = BusinessUnit::where('staff_department_id', $sd_id)->value('id');
                 ReferralHistory::create([
                     'referral_id' => $referral->id,
                     'staff_id' => $businessUnits[$role]['staff_id'],
-                    'business_unit_id' => $businessUnits[$role]['staff_department_id'],
+                    'business_unit_id' => $bu_id,
                 ]);
             }
 
