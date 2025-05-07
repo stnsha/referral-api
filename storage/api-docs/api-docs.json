@@ -797,6 +797,156 @@
                     }
                 }
             }
+        },
+        "api/referral": {
+            "post": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Create a new referral",
+                "operationId": "b352ca035fe8ceff6c699a9240dc3758",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "business_units": {
+                                        "properties": {
+                                            "assignee": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 3581
+                                                    },
+                                                    "staff_department_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "recipient": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 3580
+                                                    },
+                                                    "staff_department_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "referral": {
+                                        "properties": {
+                                            "customer_id": {
+                                                "type": "integer",
+                                                "example": 2,
+                                                "nullable": true
+                                            },
+                                            "referral_reason": {
+                                                "type": "string",
+                                                "example": "Hearing issue"
+                                            },
+                                            "referral_condition": {
+                                                "type": "string",
+                                                "example": "Not be able to hear clearly since last week (30/4)"
+                                            },
+                                            "medical_history": {
+                                                "type": "string",
+                                                "example": ""
+                                            },
+                                            "priority": {
+                                                "type": "integer",
+                                                "example": 2
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "form_data": {
+                                        "type": "object",
+                                        "example": {
+                                            "2": {
+                                                "chronic_illness_history": "No",
+                                                "current_medications": "No",
+                                                "recent_surgeries": "No"
+                                            }
+                                        },
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Referral created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Referral created successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create referral.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create referral."
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "tags": [
@@ -811,6 +961,10 @@
         {
             "name": "Form Details",
             "description": "Form Details"
+        },
+        {
+            "name": "Referrals",
+            "description": "Referrals"
         }
     ],
     "components": {

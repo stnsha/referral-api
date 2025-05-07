@@ -13,6 +13,83 @@ use Throwable;
 
 class ReferralController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="api/referral",
+     *     summary="Create a new referral",
+     *     tags={"Referrals"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="business_units",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="assignee",
+     *                     type="object",
+     *                     @OA\Property(property="staff_id", type="integer", example=3581),
+     *                     @OA\Property(property="staff_department_id", type="integer", example=2)
+     *                 ),
+     *                 @OA\Property(
+     *                     property="recipient",
+     *                     type="object",
+     *                     @OA\Property(property="staff_id", type="integer", example=3580),
+     *                     @OA\Property(property="staff_department_id", type="integer", example=1)
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="referral",
+     *                 type="object",
+     *                 @OA\Property(property="customer_id", type="integer", nullable=true, example=2),
+     *                 @OA\Property(property="referral_reason", type="string", example="Hearing issue"),
+     *                 @OA\Property(property="referral_condition", type="string", example="Not be able to hear clearly since last week (30/4)"),
+     *                 @OA\Property(property="medical_history", type="string", example=""),
+     *                 @OA\Property(property="priority", type="integer", example=2)
+     *             ),
+     *             @OA\Property(
+     *                 property="form_data",
+     *                 type="object",
+     *                 additionalProperties={
+     *                     "type"="object",
+     *                     "additionalProperties"={"type"="string"}
+     *                 },
+     *                 example={
+     *                     "2": {
+     *                         "chronic_illness_history": "No",
+     *                         "current_medications": "No",
+     *                         "recent_surgeries": "No"
+     *                     }
+     *                 }
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Referral created successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral created successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
+     *             @OA\Property(property="error", type="string")
+     *         )
+     *     )
+     * )
+     */
+
     public function store(StoreReferralRequest $request)
     {
         try {
