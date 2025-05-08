@@ -21,4 +21,9 @@ class ReferralHistory extends Model
     {
         return $this->belongsTo(Referral::class, 'referral_id', 'id');
     }
+
+    public function business_unit(): BelongsTo
+    {
+        return $this->belongsTo(BusinessUnit::class, 'business_unit_id', 'id');
+    }
 }

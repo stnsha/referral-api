@@ -13,9 +13,30 @@ use Throwable;
 
 class ReferralController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/referral",
+     *     summary="Get list of all referrals",
+     *     tags={"Referrals"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response or no results",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="ref_id", type="string", example="#REF0001"),
+     *                 @OA\Property(property="reason", type="string", example="Follow-up needed"),
+     *                 @OA\Property(property="business_unit", type="string", example="Clinic"),
+     *                 @OA\Property(property="status", type="string", example="In Progress")
+     *             ))
+     *         )
+     *     )
+     * )
+     */
+
     public function index()
     {
-        $referrals = Referral::all();
+        $referrals = Referral::with(['latest_referral_history'])->get();
 
         if ($referrals->isEmpty()) {
             return response()->json([
@@ -28,9 +49,38 @@ class ReferralController extends Controller
         $id = '#REF';
 
         foreach ($referrals as $ref) {
+            switch ($ref->status) {
+                case '1':
+                    $status = 'Assigned';
+                    break;
+
+                case '2':
+                    $status = 'In Progress';
+                    break;
+
+                case '3':
+                    $status = 'Completed';
+
+                case '4':
+                    $status = 'Referred';
+
+                case '5':
+                    $status = 'Closed';
+
+                default:
+                    $status = 'Submitted';
+                    break;
+            }
+            $refs[] = [
+                'id' => $ref->id,
+                'ref_id' => $id . str_pad($ref->id, 4, '0', STR_PAD_LEFT),
+                'reason' => $ref->reason,
+                'business_unit' => $ref->latest_referral_history->business_unit->name,
+                'status' => $status
+            ];
         }
 
-        return response()->json(['data' => $referrals], 200);
+        return response()->json(['data' => $refs], 200);
     }
 
     /**
@@ -121,6 +171,7 @@ class ReferralController extends Controller
                 'condition' => $validated['referral']['referral_condition'],
                 'medical_history' => $validated['referral']['medical_history'],
                 'priority' => $validated['referral']['priority'],
+                'status' => 1, //Assigned
             ]);
 
             $businessUnits = $request->input('business_units');

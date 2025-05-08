@@ -17,6 +17,7 @@ class Referral extends Model
         'condition',
         'medical_history',
         'priority',
+        'status'
     ];
 
     public function referral_details(): HasMany
@@ -27,5 +28,10 @@ class Referral extends Model
     public function referral_histories(): HasMany
     {
         return $this->hasMany(ReferralHistory::class, 'referral_id', 'id');
+    }
+
+    public function latest_referral_history()
+    {
+        return $this->hasOne(ReferralHistory::class)->latestOfMany();
     }
 }

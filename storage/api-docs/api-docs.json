@@ -799,6 +799,55 @@
             }
         },
         "/api/referral": {
+            "get": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Get list of all referrals",
+                "operationId": "6e5e35d28c18fce599d37701d9327c97",
+                "responses": {
+                    "200": {
+                        "description": "Successful response or no results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "ref_id": {
+                                                        "type": "string",
+                                                        "example": "#REF0001"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string",
+                                                        "example": "Follow-up needed"
+                                                    },
+                                                    "business_unit": {
+                                                        "type": "string",
+                                                        "example": "Clinic"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "In Progress"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "Referrals"
