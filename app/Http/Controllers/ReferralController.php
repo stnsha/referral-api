@@ -8,12 +8,31 @@ use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
-use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ReferralController extends Controller
 {
+    public function index()
+    {
+        $referrals = Referral::all();
+
+        if ($referrals->isEmpty()) {
+            return response()->json([
+                'message' => 'No results.',
+                'data' => [],
+            ], 200);
+        }
+
+        $refs = [];
+        $id = '#REF';
+
+        foreach ($referrals as $ref) {
+        }
+
+        return response()->json(['data' => $referrals], 200);
+    }
+
     /**
      * @OA\Post(
      *     path="/api/referral",
