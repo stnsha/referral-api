@@ -35,5 +35,5 @@ Route::middleware('token.auth')->group(function () {
 
     Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
 
-    Route::resource('referral', ReferralController::class)->only(['index', 'store']);
+    Route::resource('referral', ReferralController::class)->only(['index', 'store', 'show']);
 });

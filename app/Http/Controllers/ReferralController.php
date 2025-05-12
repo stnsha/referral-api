@@ -217,4 +217,80 @@ class ReferralController extends Controller
             ], 500);
         }
     }
+
+    public function show(Referral $referral)
+    {
+        /*
+        {
+            "business_units": {
+                "assignee": {
+                    "staff_id": 3581,
+                    "staff_department_id": 2
+                    },
+                "recipient": {
+                    "staff_id": 3580,
+                    "staff_department_id": 1
+                    }
+            },
+            "referral": {
+                "customer_id": 2,
+                "referral_reason": "Hearing issue",
+                "referral_condition": "Not be able to hear clearly since last week (30/4)",
+                "medical_history": "",
+                "priority": 2
+            },
+            "form_data": {
+                "2": {
+                "chronic_illness_history": "No",
+                "current_medications": "No",
+                "recent_surgeries": "No"
+                }
+            }
+        }
+        */
+
+        $arr = [];
+
+        $businessUnits = $referral->referral_histories->take(2)->values()->map(function ($bu, $index) {
+            return [
+                'staff_id' => $bu->staff_id,
+                'business_unit_id' => $bu->business_unit_id,
+                'role' => $index === 0 ? 'assignee' : 'recipient',
+            ];
+        });
+
+        $referringIndication = [
+            'referral_id' => $referral->id,
+            'referral_reason' => $referral->reason,
+            'referral_condition' => $referral->condition,
+            'medical_history' => $referral->medical_history,
+            'priority' => $referral->priority,
+            'status' => $referral->status,
+        ];
+
+        $initialTreatments = [];
+
+        foreach ($referral->referral_details as $rd) {
+            $forms = [
+                'label_name' => $rd->form_detail->form->label_name,
+                'is_hidden' => $rd->form_detail->form->is_hidden,
+            ];
+
+            $formDetails[] = [
+                'field_name' => $rd->form_detail->field_name,
+                'field_type' => $rd->form_detail->field_type,
+                'is_required' => $rd->form_detail->is_required,
+                'field_value' => $rd->form_detail->field_value,
+                // 'referral_answer' => $rd->value,
+            ];
+
+            $initialTreatments = [
+                'forms' => $forms,
+                'form_details' => $formDetails,
+                // 'referral_answer' => $r
+            ];
+        }
+
+        return $initialTreatments;
+    }
 }

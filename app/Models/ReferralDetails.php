@@ -21,4 +21,9 @@ class ReferralDetails extends Model
     {
         return $this->belongsTo(Referral::class, 'referral_id', 'id');
     }
+
+    public function form_detail(): BelongsTo
+    {
+        return $this->belongsTo(FormDetails::class, 'form_detail_id', 'id');
+    }
 }
