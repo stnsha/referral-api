@@ -98,10 +98,8 @@ class FormController extends Controller
     /**
      * @OA\Get(
      *     path="/api/form/show/{staff_department_id}",
-     *     operationId="getFormsByBusinessUnit",
+     *     summary="Get forms by staff department ID",
      *     tags={"Forms"},
-     *     summary="Get forms by business unit ID",
-     *     description="Returns all forms and form details for a specific business unit",
      *     @OA\Parameter(
      *         name="staff_department_id",
      *         in="path",
@@ -111,36 +109,34 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Successful operation",
+     *         description="Successful response",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="form_id", type="integer"),
-     *                     @OA\Property(property="label_name", type="string"),
-     *                     @OA\Property(property="is_hidden", type="boolean"),
-     *                     @OA\Property(
-     *                         property="form_details",
-     *                         type="array",
-     *                         @OA\Items(
-     *                             type="object",
-     *                             @OA\Property(property="form_detail_id", type="integer"),
-     *                             @OA\Property(property="field_name", type="string"),
-     *                             @OA\Property(property="field_type", type="string"),
-     *                             @OA\Property(property="is_required", type="boolean"),
-     *                             @OA\Property(
-     *                                 property="field_value",
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="business_unit", type="integer"),
+     *                 @OA\Property(property="forms", type="array",
+     *                     @OA\Items(
+     *                         @OA\Property(property="form_id", type="integer"),
+     *                         @OA\Property(property="label_name", type="string"),
+     *                         @OA\Property(property="is_hidden", type="boolean"),
+     *                         @OA\Property(property="form_details", type="array",
+     *                             @OA\Items(
      *                                 oneOf={
-     *                                     @OA\Schema(type="string"),
      *                                     @OA\Schema(
-     *                                         type="array",
-     *                                         @OA\Items(
-     *                                             type="object",
-     *                                             @OA\Property(property="form_detail_id", type="integer"),
-     *                                             @OA\Property(property="field_value", type="string")
+     *                                         @OA\Property(property="form_detail_id", type="integer"),
+     *                                         @OA\Property(property="field_name", type="string"),
+     *                                         @OA\Property(property="field_type", type="string"),
+     *                                         @OA\Property(property="is_required", type="boolean"),
+     *                                         @OA\Property(property="field_value", type="string"),
+     *                                     ),
+     *                                     @OA\Schema(
+     *                                         @OA\Property(property="field_name", type="string"),
+     *                                         @OA\Property(property="field_type", type="string"),
+     *                                         @OA\Property(property="is_required", type="boolean"),
+     *                                         @OA\Property(property="field_value", type="array",
+     *                                             @OA\Items(
+     *                                                 @OA\Property(property="form_detail_id", type="integer"),
+     *                                                 @OA\Property(property="field_value", type="string"),
+     *                                             )
      *                                         )
      *                                     )
      *                                 }
@@ -153,7 +149,7 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Internal Server Error",
+     *         description="Failed to retrieve form",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string"),
      *             @OA\Property(property="error", type="string")
@@ -161,13 +157,13 @@ class FormController extends Controller
      *     )
      * )
      */
-
     public function show($staff_department_id)
     {
         try {
             $business_unit_id = BusinessUnit::where('staff_department_id', $staff_department_id)->value('id');
             $forms = Form::with(['form_details'])->where('business_unit_id', $business_unit_id)->get();
             $data = [];
+            $arr = [];
 
             foreach ($forms as $form) {
                 $form_details = [];
@@ -205,13 +201,18 @@ class FormController extends Controller
                     }
                 }
 
-                $data[] = [
+                $arr[] = [
                     'form_id' => $form->id,
                     'label_name' => $form->label_name,
                     'is_hidden' => $form->is_hidden != 0 ? True : False,
                     'form_details' => $form_details
                 ];
             }
+
+            $data = [
+                'business_unit' => $staff_department_id,
+                'forms' => $arr
+            ];
 
             return response()->json([
                 'data' => $data

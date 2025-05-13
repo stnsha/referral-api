@@ -201,9 +201,8 @@
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Get forms by business unit ID",
-                "description": "Returns all forms and form details for a specific business unit",
-                "operationId": "getFormsByBusinessUnit",
+                "summary": "Get forms by staff department ID",
+                "operationId": "779f92ecb2d4034b95d2fb32803cfb93",
                 "parameters": [
                     {
                         "name": "staff_department_id",
@@ -217,68 +216,90 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "form_id": {
-                                                        "type": "integer"
-                                                    },
-                                                    "label_name": {
-                                                        "type": "string"
-                                                    },
-                                                    "is_hidden": {
-                                                        "type": "boolean"
-                                                    },
-                                                    "form_details": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "form_detail_id": {
-                                                                    "type": "integer"
-                                                                },
-                                                                "field_name": {
-                                                                    "type": "string"
-                                                                },
-                                                                "field_type": {
-                                                                    "type": "string"
-                                                                },
-                                                                "is_required": {
-                                                                    "type": "boolean"
-                                                                },
-                                                                "field_value": {
+                                            "properties": {
+                                                "business_unit": {
+                                                    "type": "integer"
+                                                },
+                                                "forms": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "form_id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "label_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "is_hidden": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "form_details": {
+                                                                "type": "array",
+                                                                "items": {
                                                                     "oneOf": [
                                                                         {
-                                                                            "type": "string"
+                                                                            "properties": {
+                                                                                "form_detail_id": {
+                                                                                    "type": "integer"
+                                                                                },
+                                                                                "field_name": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "field_type": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "is_required": {
+                                                                                    "type": "boolean"
+                                                                                },
+                                                                                "field_value": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
                                                                         },
                                                                         {
-                                                                            "type": "array",
-                                                                            "items": {
-                                                                                "properties": {
-                                                                                    "form_detail_id": {
-                                                                                        "type": "integer"
-                                                                                    },
-                                                                                    "field_value": {
-                                                                                        "type": "string"
-                                                                                    }
+                                                                            "properties": {
+                                                                                "field_name": {
+                                                                                    "type": "string"
                                                                                 },
-                                                                                "type": "object"
-                                                                            }
+                                                                                "field_type": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "is_required": {
+                                                                                    "type": "boolean"
+                                                                                },
+                                                                                "field_value": {
+                                                                                    "type": "array",
+                                                                                    "items": {
+                                                                                        "properties": {
+                                                                                            "form_detail_id": {
+                                                                                                "type": "integer"
+                                                                                            },
+                                                                                            "field_value": {
+                                                                                                "type": "string"
+                                                                                            }
+                                                                                        },
+                                                                                        "type": "object"
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "type": "object"
                                                                         }
                                                                     ]
                                                                 }
-                                                            },
-                                                            "type": "object"
-                                                        }
+                                                            }
+                                                        },
+                                                        "type": "object"
                                                     }
-                                                },
-                                                "type": "object"
-                                            }
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -287,7 +308,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Failed to retrieve form",
                         "content": {
                             "application/json": {
                                 "schema": {
