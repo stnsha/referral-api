@@ -191,17 +191,28 @@ class ReferralController extends Controller
             $formFields = $request->input("form_data.$departmentId", []);
 
             foreach ($formFields as $field => $value) {
+
                 $form_detail_id = FormDetails::where('field_name', $field)
                     ->whereHas('form.business_unit', function ($query) use ($departmentId) {
                         $query->where('staff_department_id', $departmentId);
                     })
                     ->value('id');
 
-                ReferralDetails::create([
-                    'referral_id' => $referral->id,
-                    'form_detail_id' => $form_detail_id,
-                    'value' => $value,
-                ]);
+                if (is_array($value)) {
+                    foreach ($value as $optionId) {
+                        ReferralDetails::create([
+                            'referral_id' => $referral->id,
+                            'form_detail_id' => $form_detail_id,
+                            'value' => $form_detail_id != $optionId ? $optionId : null,
+                        ]);
+                    }
+                } else {
+                    ReferralDetails::create([
+                        'referral_id' => $referral->id,
+                        'form_detail_id' => $form_detail_id,
+                        'value' => $form_detail_id != $value ? $value : null,
+                    ]);
+                }
             }
 
             return response()->json(['message' => 'Referral created successfully.'], 201);

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Form;
+use App\Models\FormDetails;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreReferralRequest extends FormRequest
@@ -49,8 +50,6 @@ class StoreReferralRequest extends FormRequest
             'color' => 'string',
             'month' => 'date_format:Y-m',
             'week' => 'date_format:Y-\WW',
-            'checkbox' => 'boolean',
-            'radio' => 'string',
             'file' => 'file',
             'search' => 'string',
             'range' => 'numeric',
@@ -67,7 +66,7 @@ class StoreReferralRequest extends FormRequest
 
         $forms = Form::whereHas('business_unit', function ($q) use ($deptId) {
             $q->where('staff_department_id', $deptId);
-        })->get();
+        })->with('form_details')->get();
 
         foreach ($forms as $form) {
             foreach ($form->form_details as $detail) {
@@ -78,12 +77,26 @@ class StoreReferralRequest extends FormRequest
                 $rules = [];
                 $rules[] = $isRequired ? 'required' : 'nullable';
 
-                if (isset($fieldTypeRuleMap[$type])) {
-                    $rules[] = $fieldTypeRuleMap[$type];
-                }
+                if (in_array($type, ['select', 'radio'])) {
+                    $rules[] = 'integer';
 
-                if (in_array($type, ['select', 'radio', 'checkbox']) && is_array($detail->field_value)) {
-                    $rules[] = 'in:' . implode(',', $detail->field_value);
+                    $validIds = $form->form_details
+                        ->where('field_name', $field)
+                        ->pluck('id')
+                        ->toArray();
+
+                    $rules[] = 'in:' . implode(',', $validIds);
+                } elseif ($type === 'checkbox') {
+                    $rules[] = 'array';
+
+                    $validIds = $form->form_details
+                        ->where('field_name', $field)
+                        ->pluck('id')
+                        ->toArray();
+
+                    $rules[] = 'in:' . implode(',', $validIds);
+                } elseif (isset($fieldTypeRuleMap[$type])) {
+                    $rules[] = $fieldTypeRuleMap[$type];
                 }
 
                 $dynamicRules["form_data.$deptId.$field"] = implode('|', $rules);
@@ -94,6 +107,7 @@ class StoreReferralRequest extends FormRequest
     }
 
 
+
     public function messages(): array
     {
         $messages = [];
@@ -102,7 +116,7 @@ class StoreReferralRequest extends FormRequest
 
         $forms = Form::whereHas('business_unit', function ($query) use ($deptId) {
             $query->where('staff_department_id', $deptId);
-        })->get();
+        })->with('form_details')->get();
 
         foreach ($forms as $form) {
             foreach ($form->form_details as $detail) {
@@ -136,9 +150,6 @@ class StoreReferralRequest extends FormRequest
                     case 'week':
                         $messages["$path.date_format"] = "$label must be in YYYY-WW format.";
                         break;
-                    case 'checkbox':
-                        $messages["$path.boolean"] = "$label must be true or false.";
-                        break;
                     case 'file':
                         $messages["$path.file"] = "$label must be a valid file.";
                         break;
@@ -147,6 +158,15 @@ class StoreReferralRequest extends FormRequest
                         break;
                     case 'url':
                         $messages["$path.url"] = "$label must be a valid URL.";
+                        break;
+                    case 'select':
+                    case 'radio':
+                        $messages["$path.integer"] = "$label must be a valid option.";
+                        $messages["$path.in"] = "$label is not a valid selection.";
+                        break;
+                    case 'checkbox':
+                        $messages["$path.array"] = "$label must be an array of selected options.";
+                        $messages["$path.in"] = "$label contains an invalid selection.";
                         break;
                     default:
                         $messages["$path.string"] = "$label must be a string.";
