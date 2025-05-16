@@ -216,90 +216,82 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful response",
+                        "description": "Successful operation",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "data": {
-                                            "properties": {
-                                                "business_unit": {
-                                                    "type": "integer"
-                                                },
-                                                "forms": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "properties": {
-                                                            "form_id": {
-                                                                "type": "integer"
-                                                            },
-                                                            "label_name": {
-                                                                "type": "string"
-                                                            },
-                                                            "is_hidden": {
-                                                                "type": "boolean"
-                                                            },
-                                                            "form_details": {
-                                                                "type": "array",
-                                                                "items": {
+                                        "business_unit": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "forms": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "form_id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "label_name": {
+                                                        "type": "string",
+                                                        "example": "Assessment Form"
+                                                    },
+                                                    "is_hidden": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "form_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_detail_id": {
+                                                                    "type": "integer",
+                                                                    "example": 101
+                                                                },
+                                                                "field_name": {
+                                                                    "type": "string",
+                                                                    "example": "Blood Pressure"
+                                                                },
+                                                                "field_type": {
+                                                                    "type": "string",
+                                                                    "example": "text"
+                                                                },
+                                                                "is_required": {
+                                                                    "type": "boolean",
+                                                                    "example": true
+                                                                },
+                                                                "field_value": {
                                                                     "oneOf": [
                                                                         {
-                                                                            "properties": {
-                                                                                "form_detail_id": {
-                                                                                    "type": "integer"
-                                                                                },
-                                                                                "field_name": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "field_type": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "is_required": {
-                                                                                    "type": "boolean"
-                                                                                },
-                                                                                "field_value": {
-                                                                                    "type": "string"
-                                                                                }
-                                                                            },
-                                                                            "type": "object"
+                                                                            "type": "string",
+                                                                            "example": "120/80"
                                                                         },
                                                                         {
-                                                                            "properties": {
-                                                                                "field_name": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "field_type": {
-                                                                                    "type": "string"
-                                                                                },
-                                                                                "is_required": {
-                                                                                    "type": "boolean"
-                                                                                },
-                                                                                "field_value": {
-                                                                                    "type": "array",
-                                                                                    "items": {
-                                                                                        "properties": {
-                                                                                            "form_detail_id": {
-                                                                                                "type": "integer"
-                                                                                            },
-                                                                                            "field_value": {
-                                                                                                "type": "string"
-                                                                                            }
-                                                                                        },
-                                                                                        "type": "object"
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "properties": {
+                                                                                    "form_detail_id": {
+                                                                                        "type": "integer",
+                                                                                        "example": 201
+                                                                                    },
+                                                                                    "field_value": {
+                                                                                        "type": "string",
+                                                                                        "example": "Option A"
                                                                                     }
-                                                                                }
-                                                                            },
-                                                                            "type": "object"
+                                                                                },
+                                                                                "type": "object"
+                                                                            }
                                                                         }
                                                                     ]
                                                                 }
-                                                            }
-                                                        },
-                                                        "type": "object"
+                                                            },
+                                                            "type": "object"
+                                                        }
                                                     }
-                                                }
-                                            },
-                                            "type": "object"
+                                                },
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -308,20 +300,13 @@
                         }
                     },
                     "500": {
-                        "description": "Failed to retrieve form",
+                        "description": "Internal Server Error",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                    "type": "string"
+                                },
+                                "example": "SQLSTATE[42S22]: Column not found: 1054 Unknown column..."
                             }
                         }
                     }

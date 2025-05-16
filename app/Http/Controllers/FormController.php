@@ -109,34 +109,34 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Successful response",
+     *         description="Successful operation",
      *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="business_unit", type="integer"),
-     *                 @OA\Property(property="forms", type="array",
-     *                     @OA\Items(
-     *                         @OA\Property(property="form_id", type="integer"),
-     *                         @OA\Property(property="label_name", type="string"),
-     *                         @OA\Property(property="is_hidden", type="boolean"),
-     *                         @OA\Property(property="form_details", type="array",
-     *                             @OA\Items(
+     *             type="object",
+     *             @OA\Property(property="business_unit", type="integer", example=3),
+     *             @OA\Property(
+     *                 property="forms",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="form_id", type="integer", example=12),
+     *                     @OA\Property(property="label_name", type="string", example="Assessment Form"),
+     *                     @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                     @OA\Property(
+     *                         property="form_details",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             @OA\Property(property="form_detail_id", type="integer", example=101),
+     *                             @OA\Property(property="field_name", type="string", example="Blood Pressure"),
+     *                             @OA\Property(property="field_type", type="string", example="text"),
+     *                             @OA\Property(property="is_required", type="boolean", example=true),
+     *                             @OA\Property(
+     *                                 property="field_value",
      *                                 oneOf={
+     *                                     @OA\Schema(type="string", example="120/80"),
      *                                     @OA\Schema(
-     *                                         @OA\Property(property="form_detail_id", type="integer"),
-     *                                         @OA\Property(property="field_name", type="string"),
-     *                                         @OA\Property(property="field_type", type="string"),
-     *                                         @OA\Property(property="is_required", type="boolean"),
-     *                                         @OA\Property(property="field_value", type="string"),
-     *                                     ),
-     *                                     @OA\Schema(
-     *                                         @OA\Property(property="field_name", type="string"),
-     *                                         @OA\Property(property="field_type", type="string"),
-     *                                         @OA\Property(property="is_required", type="boolean"),
-     *                                         @OA\Property(property="field_value", type="array",
-     *                                             @OA\Items(
-     *                                                 @OA\Property(property="form_detail_id", type="integer"),
-     *                                                 @OA\Property(property="field_value", type="string"),
-     *                                             )
+     *                                         type="array",
+     *                                         @OA\Items(
+     *                                             @OA\Property(property="form_detail_id", type="integer", example=201),
+     *                                             @OA\Property(property="field_value", type="string", example="Option A")
      *                                         )
      *                                     )
      *                                 }
@@ -148,14 +148,11 @@ class FormController extends Controller
      *         )
      *     ),
      *     @OA\Response(
-     *         response=500,
-     *         description="Failed to retrieve form",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="error", type="string")
-     *         )
-     *     )
-     * )
+     *       response=500,
+     *       description="Internal Server Error",
+     *       @OA\JsonContent(type="string", example="SQLSTATE[42S22]: Column not found: 1054 Unknown column...")
+     *       )
+     *  )
      */
     public function show($staff_department_id)
     {
@@ -214,14 +211,9 @@ class FormController extends Controller
                 'forms' => $arr
             ];
 
-            return response()->json([
-                'data' => $data
-            ], 200);
+            return response()->json($data, 200);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve form.',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json($e->getMessage(), 500);
         }
     }
 
