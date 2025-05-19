@@ -49,9 +49,16 @@ class ReferralController extends Controller
         $id = '#REF';
 
         foreach ($referrals as $ref) {
+            /**
+             * Status
+             * 1 = Open
+             * 2 = In Progress
+             * 3 = Referred
+             * 4 = Closed
+             */
             switch ($ref->status) {
                 case '1':
-                    $status = 'Assigned';
+                    $status = 'Open';
                     break;
 
                 case '2':
@@ -59,12 +66,9 @@ class ReferralController extends Controller
                     break;
 
                 case '3':
-                    $status = 'Completed';
-
-                case '4':
                     $status = 'Referred';
 
-                case '5':
+                case '4':
                     $status = 'Closed';
 
                 default:
@@ -98,22 +102,22 @@ class ReferralController extends Controller
      *                 @OA\Property(
      *                     property="assignee",
      *                     type="object",
-     *                     @OA\Property(property="staff_id", type="integer", example=3581),
-     *                     @OA\Property(property="staff_department_id", type="integer", example=2)
+     *                     @OA\Property(property="staff_id", type="integer", example=2),
+     *                     @OA\Property(property="staff_department_id", type="string", example="21")
      *                 ),
      *                 @OA\Property(
      *                     property="recipient",
      *                     type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=3580),
-     *                     @OA\Property(property="staff_department_id", type="integer", example=1)
+     *                     @OA\Property(property="staff_department_id", type="string", example="1")
      *                 )
      *             ),
      *             @OA\Property(
      *                 property="referral",
      *                 type="object",
-     *                 @OA\Property(property="customer_id", type="integer", nullable=true, example=2),
-     *                 @OA\Property(property="referral_reason", type="string", example="Hearing issue"),
-     *                 @OA\Property(property="referral_condition", type="string", example="Not be able to hear clearly since last week (30/4)"),
+     *                 @OA\Property(property="customer_id", type="integer", nullable=true, example=10),
+     *                 @OA\Property(property="referral_reason", type="string", example="Bloating"),
+     *                 @OA\Property(property="referral_condition", type="string", example="-8 month girl\\r\\n-bloating\\r\\n-irritability"),
      *                 @OA\Property(property="medical_history", type="string", example=""),
      *                 @OA\Property(property="priority", type="integer", example=2)
      *             ),
@@ -125,10 +129,10 @@ class ReferralController extends Controller
      *                     "additionalProperties"={"type"="string"}
      *                 },
      *                 example={
-     *                     "2": {
-     *                         "chronic_illness_history": "No",
-     *                         "current_medications": "No",
-     *                         "recent_surgeries": "No"
+     *                     "21": {
+     *                         "baby_dob": "2025-04-30",
+     *                         "breastfeeding_status": "6",
+     *                         "recent_vaccinations": "[8, 9]"
      *                     }
      *                 }
      *             )
@@ -159,60 +163,53 @@ class ReferralController extends Controller
      *     )
      * )
      */
-
     public function store(StoreReferralRequest $request)
     {
         try {
             $validated = $request->validated();
 
+            $businessUnits = $request->input('business_units');
+
+            $departmentId = $businessUnits['assignee']['staff_department_id'];
+            $business_unit_id = BusinessUnit::where('staff_department_id', $departmentId)->value('id');
+
             $referral = Referral::create([
                 'customer_id' => $validated['referral']['customer_id'],
+                'business_unit_id' => $business_unit_id,
                 'reason' => $validated['referral']['referral_reason'],
                 'condition' => $validated['referral']['referral_condition'],
                 'medical_history' => $validated['referral']['medical_history'],
                 'priority' => $validated['referral']['priority'],
-                'status' => 1, //Assigned
+                'status' => 1, //Open
             ]);
 
-            $businessUnits = $request->input('business_units');
-
-            foreach (['assignee', 'recipient'] as $role) {
-                $sd_id = $businessUnits[$role]['staff_department_id'];
-
-                $bu_id = BusinessUnit::where('staff_department_id', $sd_id)->value('id');
+            foreach (array_values($businessUnits) as $key => $value) {
+                $bu_id = BusinessUnit::where('staff_department_id', $value['staff_department_id'])->value('id');
                 ReferralHistory::create([
                     'referral_id' => $referral->id,
-                    'staff_id' => $businessUnits[$role]['staff_id'],
+                    'staff_id' => $value['staff_id'],
                     'business_unit_id' => $bu_id,
+                    'sequence' => $key + 1,
                 ]);
             }
 
-            $departmentId = $businessUnits['assignee']['staff_department_id'];
             $formFields = $request->input("form_data.$departmentId", []);
+
+            $test = [];
 
             foreach ($formFields as $field => $value) {
 
-                $form_detail_id = FormDetails::where('field_name', $field)
+                $form_detail = FormDetails::where('field_name', $field)
                     ->whereHas('form.business_unit', function ($query) use ($departmentId) {
                         $query->where('staff_department_id', $departmentId);
                     })
-                    ->value('id');
+                    ->first();
 
-                if (is_array($value)) {
-                    foreach ($value as $optionId) {
-                        ReferralDetails::create([
-                            'referral_id' => $referral->id,
-                            'form_detail_id' => $form_detail_id,
-                            'value' => $form_detail_id != $optionId ? $optionId : null,
-                        ]);
-                    }
-                } else {
-                    ReferralDetails::create([
-                        'referral_id' => $referral->id,
-                        'form_detail_id' => $form_detail_id,
-                        'value' => $form_detail_id != $value ? $value : null,
-                    ]);
-                }
+                ReferralDetails::create([
+                    'referral_id' => $referral->id,
+                    'form_id' => $form_detail->form_id,
+                    'value' => is_array($value) ? json_encode($value) : $value,
+                ]);
             }
 
             return response()->json(['message' => 'Referral created successfully.'], 201);
@@ -229,52 +226,178 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/{referral}",
+     *     summary="Get referral details",
+     *     tags={"Referrals"},
+     *     @OA\Parameter(
+     *         name="referral",
+     *         in="path",
+     *         required=true,
+     *         description="Referral ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Referral details retrieved successfully.",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="referralDetails",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sequence", type="integer", example=1),
+     *                     @OA\Property(property="staff_id", type="integer", example=2)
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="referringIndication",
+     *                 type="object",
+     *                 @OA\Property(property="referral_id", type="integer", example=1),
+     *                 @OA\Property(property="customer_id", type="integer", example=10),
+     *                 @OA\Property(property="business_unit_id", type="integer", example=5),
+     *                 @OA\Property(property="referral_reason", type="string", example="wqwq"),
+     *                 @OA\Property(property="referral_condition", type="string", example="-dwad\r\n-dasdsddf"),
+     *                 @OA\Property(property="medical_history", type="string", example=""),
+     *                 @OA\Property(property="priority", type="integer", example=2),
+     *                 @OA\Property(property="status", type="integer", example=1)
+     *             ),
+     *             @OA\Property(
+     *                 property="initialTreatment",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="form_id", type="integer", example=1),
+     *                     @OA\Property(property="label_name", type="string", example="Form Label"),
+     *                     @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                     @OA\Property(
+     *                         property="form_details",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="form_detail_id", type="integer", example=1),
+     *                             @OA\Property(property="field_name", type="string", example="Field Name"),
+     *                             @OA\Property(property="field_type", type="string", example="text"),
+     *                             @OA\Property(property="is_required", type="boolean", example=true),
+     *                             @OA\Property(property="field_value", type="array", @OA\Items(type="string", example="Value"))
+     *                         )
+     *                     ),
+     *                     @OA\Property(property="form_answer", type="string", example="Sample Answer")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Referral not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Internal server error.")
+     *         )
+     *     )
+     * )
+     */
+
     public function show(Referral $referral)
     {
         $data = [];
 
-        $businessUnits = $referral->referral_histories->take(2)->values()->map(function ($bu, $index) {
+        $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($bu) {
             return [
-                'staff_id' => $bu->staff_id,
-                'business_unit_id' => $bu->business_unit_id,
-                'role' => $index === 0 ? 'assignee' : 'recipient',
+                'sequence' => $bu->sequence,
+                'staff_id' => $bu->staff_id
             ];
         });
 
         $referringIndication = [
             'referral_id' => $referral->id,
+            'customer_id' => $referral->customer_id,
+            'business_unit_id' => $referral->business_unit_id,
             'referral_reason' => $referral->reason,
             'referral_condition' => $referral->condition,
             'medical_history' => $referral->medical_history,
             'priority' => $referral->priority,
             'status' => $referral->status,
-            'customer_id' => $referral->customer_id
         ];
 
-        $initialTreatments = [];
+        $forms = [];
 
         foreach ($referral->referral_details as $rd) {
-            $forms = [
-                'form_id' => $rd->form_detail->form->id,
-                'label_name' => $rd->form_detail->form->label_name,
-                'is_hidden' => $rd->form_detail->form->is_hidden,
-            ];
+            $formDetails = [];
+            $count_fd = count($rd->form->form_details);
 
-            $formDetails[] = [
-                'field_name' => $rd->form_detail->field_name,
-                'field_type' => $rd->form_detail->field_type,
-                'is_required' => $rd->form_detail->is_required,
-                'field_value' => $rd->form_detail->field_value,
-                // 'referral_answer' => $rd->value,
-            ];
+            if ($count_fd > 1) {
+                $form_details = $rd->form->form_details;
+                $value = json_decode($rd->value, true);
 
-            $initialTreatments = [
-                'forms' => $forms,
+                foreach ($form_details as $fd) {
+                    $key = $fd->field_name;
+
+                    if (!isset($formDetails[$key])) {
+                        $formDetails[$key] = [
+                            'field_name' => $fd->field_name,
+                            'field_type' => $fd->field_type,
+                            'is_required' => $fd->is_required != 0 ? true : false,
+                            'field_value' => [],
+                        ];
+                    }
+
+                    if ($fd->field_type == 'checkbox' && is_array($value)) {
+                        $is_answer = in_array($fd->id, $value);
+                    } else {
+                        $is_answer = $value == $fd->id;
+                    }
+
+                    $formDetails[$key]['field_value'][] = [
+                        'form_detail_id' => $fd->id,
+                        'field_value' => $fd->field_value,
+                        'is_answer' => $is_answer
+                    ];
+                }
+
+
+                $formDetails = array_values($formDetails);
+            } else {
+                $fd = $rd->form->form_details->first();
+                $formDetails[] = [
+                    'form_id' => $fd->form_id,
+                    'form_detail_id' => $fd->id,
+                    'field_name' => $fd->field_name,
+                    'field_type' => $fd->field_type,
+                    'is_required' => $fd->is_required != 0 ? true : false,
+                ];
+            }
+
+            $form_answer = $rd->value;
+
+            $form = [
+                'form_id' => $rd->form->id,
+                'label_name' => $rd->form->label_name,
+                'is_hidden' => $rd->form->is_hidden != 0,
                 'form_details' => $formDetails,
-                // 'referral_answer' => $r
             ];
+
+            if ($count_fd == 1) {
+                $form['form_answer'] = $form_answer;
+            }
+
+            $forms[] = $form;
         }
 
-        return $businessUnits;
+        $data = [
+            'referralDetails' => $referralDetails,
+            'referringIndication' => $referringIndication,
+            'initialTreatment' => $forms
+        ];
+
+        return response()->json($data, 200);
     }
 }

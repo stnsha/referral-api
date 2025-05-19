@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('referral_details', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('referral_id');
-            $table->unsignedBigInteger('form_detail_id');
-            $table->longText('value')->nullable();
+            $table->unsignedBigInteger('form_id');
+            $table->longText('value');
             $table->softDeletes();
             $table->timestamps();
 
             $table->foreign('referral_id')->references('id')->on('referrals')->onDelete('cascade');
-            $table->foreign('form_detail_id')->references('id')->on('form_details')->onDelete('cascade');
+            $table->foreign('form_id')->references('id')->on('forms')->onDelete('cascade');
         });
     }
 

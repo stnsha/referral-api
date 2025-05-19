@@ -184,8 +184,6 @@ class FormController extends Controller
                             'field_value' => $fd->field_value,
                         ];
                     }
-
-                    $form_details = array_values($form_details);
                 } else {
                     foreach ($form->form_details as $fd) {
                         $form_details[] = [

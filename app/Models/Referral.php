@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -13,6 +14,7 @@ class Referral extends Model
 
     protected $fillable = [
         'customer_id',
+        'business_unit_id',
         'reason',
         'condition',
         'medical_history',
@@ -41,5 +43,10 @@ class Referral extends Model
     public function latest_referral_history()
     {
         return $this->hasOne(ReferralHistory::class)->latestOfMany();
+    }
+
+    public function business_unit(): BelongsTo
+    {
+        return $this->belongsTo(BusinessUnit::class, 'business_unit_id', 'id');
     }
 }

@@ -872,11 +872,11 @@
                                                 "properties": {
                                                     "staff_id": {
                                                         "type": "integer",
-                                                        "example": 3581
+                                                        "example": 2
                                                     },
                                                     "staff_department_id": {
-                                                        "type": "integer",
-                                                        "example": 2
+                                                        "type": "string",
+                                                        "example": "21"
                                                     }
                                                 },
                                                 "type": "object"
@@ -888,8 +888,8 @@
                                                         "example": 3580
                                                     },
                                                     "staff_department_id": {
-                                                        "type": "integer",
-                                                        "example": 1
+                                                        "type": "string",
+                                                        "example": "1"
                                                     }
                                                 },
                                                 "type": "object"
@@ -901,16 +901,16 @@
                                         "properties": {
                                             "customer_id": {
                                                 "type": "integer",
-                                                "example": 2,
+                                                "example": 10,
                                                 "nullable": true
                                             },
                                             "referral_reason": {
                                                 "type": "string",
-                                                "example": "Hearing issue"
+                                                "example": "Bloating"
                                             },
                                             "referral_condition": {
                                                 "type": "string",
-                                                "example": "Not be able to hear clearly since last week (30/4)"
+                                                "example": "-8 month girl\\\\r\\\\n-bloating\\\\r\\\\n-irritability"
                                             },
                                             "medical_history": {
                                                 "type": "string",
@@ -926,10 +926,10 @@
                                     "form_data": {
                                         "type": "object",
                                         "example": {
-                                            "2": {
-                                                "chronic_illness_history": "No",
-                                                "current_medications": "No",
-                                                "recent_surgeries": "No"
+                                            "21": {
+                                                "baby_dob": "2025-04-30",
+                                                "breastfeeding_status": "6",
+                                                "recent_vaccinations": "[8, 9]"
                                             }
                                         },
                                         "additionalProperties": {
@@ -993,6 +993,181 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/referral/{referral}": {
+            "get": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Get referral details",
+                "operationId": "bba13f49d75d8dc59bbb6b3bdcae8898",
+                "parameters": [
+                    {
+                        "name": "referral",
+                        "in": "path",
+                        "description": "Referral ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Referral details retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "referralDetails": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sequence": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "referringIndication": {
+                                            "properties": {
+                                                "referral_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "customer_id": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "business_unit_id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "referral_reason": {
+                                                    "type": "string",
+                                                    "example": "wqwq"
+                                                },
+                                                "referral_condition": {
+                                                    "type": "string",
+                                                    "example": "-dwad\\r\\n-dasdsddf"
+                                                },
+                                                "medical_history": {
+                                                    "type": "string",
+                                                    "example": ""
+                                                },
+                                                "priority": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "status": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "initialTreatment": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "form_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "label_name": {
+                                                        "type": "string",
+                                                        "example": "Form Label"
+                                                    },
+                                                    "is_hidden": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "form_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_detail_id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "field_name": {
+                                                                    "type": "string",
+                                                                    "example": "Field Name"
+                                                                },
+                                                                "field_type": {
+                                                                    "type": "string",
+                                                                    "example": "text"
+                                                                },
+                                                                "is_required": {
+                                                                    "type": "boolean",
+                                                                    "example": true
+                                                                },
+                                                                "field_value": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string",
+                                                                        "example": "Value"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "form_answer": {
+                                                        "type": "string",
+                                                        "example": "Sample Answer"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Referral not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Referral not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error."
                                         }
                                     },
                                     "type": "object"

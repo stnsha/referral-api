@@ -13,7 +13,7 @@ class ReferralDetails extends Model
 
     protected $fillable = [
         'referral_id',
-        'form_detail_id',
+        'form_id',
         'value',
     ];
 
@@ -22,8 +22,8 @@ class ReferralDetails extends Model
         return $this->belongsTo(Referral::class, 'referral_id', 'id');
     }
 
-    public function form_detail(): BelongsTo
+    public function form(): BelongsTo
     {
-        return $this->belongsTo(FormDetails::class, 'form_detail_id', 'id');
+        return $this->belongsTo(Form::class, 'form_id', 'id');
     }
 }
