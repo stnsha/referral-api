@@ -16,7 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('form_id');
             $table->string('field_name');
             $table->string('field_type');
-            $table->boolean('is_required')->default(1); //1 = required
+            $table->boolean('is_required')->default(true); //1 = required
+            $table->string('field_value')->nullable();
             $table->softDeletes();
             $table->timestamps();
 

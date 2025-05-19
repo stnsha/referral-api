@@ -231,36 +231,7 @@ class ReferralController extends Controller
 
     public function show(Referral $referral)
     {
-        /*
-        {
-            "business_units": {
-                "assignee": {
-                    "staff_id": 3581,
-                    "staff_department_id": 2
-                    },
-                "recipient": {
-                    "staff_id": 3580,
-                    "staff_department_id": 1
-                    }
-            },
-            "referral": {
-                "customer_id": 2,
-                "referral_reason": "Hearing issue",
-                "referral_condition": "Not be able to hear clearly since last week (30/4)",
-                "medical_history": "",
-                "priority": 2
-            },
-            "form_data": {
-                "2": {
-                "chronic_illness_history": "No",
-                "current_medications": "No",
-                "recent_surgeries": "No"
-                }
-            }
-        }
-        */
-
-        $arr = [];
+        $data = [];
 
         $businessUnits = $referral->referral_histories->take(2)->values()->map(function ($bu, $index) {
             return [
@@ -277,12 +248,14 @@ class ReferralController extends Controller
             'medical_history' => $referral->medical_history,
             'priority' => $referral->priority,
             'status' => $referral->status,
+            'customer_id' => $referral->customer_id
         ];
 
         $initialTreatments = [];
 
         foreach ($referral->referral_details as $rd) {
             $forms = [
+                'form_id' => $rd->form_detail->form->id,
                 'label_name' => $rd->form_detail->form->label_name,
                 'is_hidden' => $rd->form_detail->form->is_hidden,
             ];
@@ -302,6 +275,6 @@ class ReferralController extends Controller
             ];
         }
 
-        return $initialTreatments;
+        return $businessUnits;
     }
 }

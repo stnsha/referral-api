@@ -20,6 +20,14 @@ class Referral extends Model
         'status'
     ];
 
+    /**
+     * Status
+     * 1 = Open
+     * 2 = In Progress
+     * 3 = Forwarded
+     * 4 = Closed
+     */
+
     public function referral_details(): HasMany
     {
         return $this->hasMany(ReferralDetails::class, 'referral_id', 'id');
