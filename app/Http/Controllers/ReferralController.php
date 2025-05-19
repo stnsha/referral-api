@@ -8,6 +8,7 @@ use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -258,8 +259,8 @@ class ReferralController extends Controller
      *                 @OA\Property(property="referral_id", type="integer", example=1),
      *                 @OA\Property(property="customer_id", type="integer", example=10),
      *                 @OA\Property(property="business_unit_id", type="integer", example=5),
-     *                 @OA\Property(property="referral_reason", type="string", example="wqwq"),
-     *                 @OA\Property(property="referral_condition", type="string", example="-dwad\r\n-dasdsddf"),
+     *                 @OA\Property(property="referral_reason", type="string", example="Bloating"),
+     *                 @OA\Property(property="referral_condition", type="string", example="-8 months old\r\n-girl"),
      *                 @OA\Property(property="medical_history", type="string", example=""),
      *                 @OA\Property(property="priority", type="integer", example=2),
      *                 @OA\Property(property="status", type="integer", example=1)
@@ -308,96 +309,107 @@ class ReferralController extends Controller
 
     public function show(Referral $referral)
     {
-        $data = [];
+        try {
+            if (!$referral) {
+                return response()->json(['message' => 'Referral not found.'], 404);
+            }
+            $data = [];
 
-        $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($bu) {
-            return [
-                'sequence' => $bu->sequence,
-                'staff_id' => $bu->staff_id
+            $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($bu) {
+                return [
+                    'sequence' => $bu->sequence,
+                    'staff_id' => $bu->staff_id
+                ];
+            });
+
+            $referringIndication = [
+                'referral_id' => $referral->id,
+                'customer_id' => $referral->customer_id,
+                'business_unit_id' => $referral->business_unit_id,
+                'referral_reason' => $referral->reason,
+                'referral_condition' => $referral->condition,
+                'medical_history' => $referral->medical_history,
+                'priority' => $referral->priority,
+                'status' => $referral->status,
             ];
-        });
 
-        $referringIndication = [
-            'referral_id' => $referral->id,
-            'customer_id' => $referral->customer_id,
-            'business_unit_id' => $referral->business_unit_id,
-            'referral_reason' => $referral->reason,
-            'referral_condition' => $referral->condition,
-            'medical_history' => $referral->medical_history,
-            'priority' => $referral->priority,
-            'status' => $referral->status,
-        ];
+            $forms = [];
 
-        $forms = [];
+            foreach ($referral->referral_details as $rd) {
+                $formDetails = [];
+                $count_fd = count($rd->form->form_details);
 
-        foreach ($referral->referral_details as $rd) {
-            $formDetails = [];
-            $count_fd = count($rd->form->form_details);
+                if ($count_fd > 1) {
+                    $form_details = $rd->form->form_details;
+                    $value = json_decode($rd->value, true);
 
-            if ($count_fd > 1) {
-                $form_details = $rd->form->form_details;
-                $value = json_decode($rd->value, true);
+                    foreach ($form_details as $fd) {
+                        $key = $fd->field_name;
 
-                foreach ($form_details as $fd) {
-                    $key = $fd->field_name;
+                        if (!isset($formDetails[$key])) {
+                            $formDetails[$key] = [
+                                'field_name' => $fd->field_name,
+                                'field_type' => $fd->field_type,
+                                'is_required' => $fd->is_required != 0 ? true : false,
+                                'field_value' => [],
+                            ];
+                        }
 
-                    if (!isset($formDetails[$key])) {
-                        $formDetails[$key] = [
-                            'field_name' => $fd->field_name,
-                            'field_type' => $fd->field_type,
-                            'is_required' => $fd->is_required != 0 ? true : false,
-                            'field_value' => [],
+                        if ($fd->field_type == 'checkbox' && is_array($value)) {
+                            $is_answer = in_array($fd->id, $value);
+                        } else {
+                            $is_answer = $value == $fd->id;
+                        }
+
+                        $formDetails[$key]['field_value'][] = [
+                            'form_detail_id' => $fd->id,
+                            'field_value' => $fd->field_value,
+                            'is_answer' => $is_answer
                         ];
                     }
 
-                    if ($fd->field_type == 'checkbox' && is_array($value)) {
-                        $is_answer = in_array($fd->id, $value);
-                    } else {
-                        $is_answer = $value == $fd->id;
-                    }
 
-                    $formDetails[$key]['field_value'][] = [
+                    $formDetails = array_values($formDetails);
+                } else {
+                    $fd = $rd->form->form_details->first();
+                    $formDetails[] = [
+                        'form_id' => $fd->form_id,
                         'form_detail_id' => $fd->id,
-                        'field_value' => $fd->field_value,
-                        'is_answer' => $is_answer
+                        'field_name' => $fd->field_name,
+                        'field_type' => $fd->field_type,
+                        'is_required' => $fd->is_required != 0 ? true : false,
                     ];
                 }
 
+                $form_answer = $rd->value;
 
-                $formDetails = array_values($formDetails);
-            } else {
-                $fd = $rd->form->form_details->first();
-                $formDetails[] = [
-                    'form_id' => $fd->form_id,
-                    'form_detail_id' => $fd->id,
-                    'field_name' => $fd->field_name,
-                    'field_type' => $fd->field_type,
-                    'is_required' => $fd->is_required != 0 ? true : false,
+                $form = [
+                    'form_id' => $rd->form->id,
+                    'label_name' => $rd->form->label_name,
+                    'is_hidden' => $rd->form->is_hidden != 0,
+                    'form_details' => $formDetails,
                 ];
+
+                if ($count_fd == 1) {
+                    $form['form_answer'] = $form_answer;
+                }
+
+                $forms[] = $form;
             }
 
-            $form_answer = $rd->value;
-
-            $form = [
-                'form_id' => $rd->form->id,
-                'label_name' => $rd->form->label_name,
-                'is_hidden' => $rd->form->is_hidden != 0,
-                'form_details' => $formDetails,
+            $data = [
+                'referralDetails' => $referralDetails,
+                'referringIndication' => $referringIndication,
+                'initialTreatment' => $forms
             ];
 
-            if ($count_fd == 1) {
-                $form['form_answer'] = $form_answer;
-            }
-
-            $forms[] = $form;
+            return response()->json($data, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Referral not found.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Internal server error.'], 500);
         }
-
-        $data = [
-            'referralDetails' => $referralDetails,
-            'referringIndication' => $referringIndication,
-            'initialTreatment' => $forms
-        ];
-
-        return response()->json($data, 200);
     }
 }

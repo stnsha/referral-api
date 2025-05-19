@@ -1061,11 +1061,11 @@
                                                 },
                                                 "referral_reason": {
                                                     "type": "string",
-                                                    "example": "wqwq"
+                                                    "example": "Bloating"
                                                 },
                                                 "referral_condition": {
                                                     "type": "string",
-                                                    "example": "-dwad\\r\\n-dasdsddf"
+                                                    "example": "-8 months old\\r\\n-girl"
                                                 },
                                                 "medical_history": {
                                                     "type": "string",
