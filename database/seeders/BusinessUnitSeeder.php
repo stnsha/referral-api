@@ -25,10 +25,10 @@ class BusinessUnitSeeder extends Seeder
         foreach ($units as $unit) {
             BusinessUnit::firstOrCreate(
                 [
-                    'staff_department_id' => $unit['staff_department_id'],
+                    'name' => $unit['name'],
                 ],
                 [
-                    'name' => $unit['name'],
+                    'staff_department_id' => $unit['staff_department_id'],
                     'is_active' => 1
                 ]
             );
