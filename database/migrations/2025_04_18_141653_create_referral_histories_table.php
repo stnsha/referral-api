@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('referral_id');
             $table->unsignedBigInteger('staff_id');
-            $table->unsignedBigInteger('business_unit_id'); //refer to business unit id on referral, not department_id
+            $table->unsignedBigInteger('business_unit_id'); //refer to business unit id on referral, not department_id (FK)
+            $table->unsignedBigInteger('location');
             $table->integer('sequence');
             $table->softDeletes();
             $table->timestamps();
