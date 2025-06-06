@@ -319,7 +319,8 @@ class ReferralController extends Controller
             $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($bu) {
                 return [
                     'sequence' => $bu->sequence,
-                    'staff_id' => $bu->staff_id
+                    'staff_id' => $bu->staff_id,
+                    'location' => $bu->location
                 ];
             });
 
