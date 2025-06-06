@@ -190,6 +190,7 @@ class ReferralController extends Controller
                     'referral_id' => $referral->id,
                     'staff_id' => $value['staff_id'],
                     'business_unit_id' => $bu_id,
+                    'location' => $value['location'],
                     'sequence' => $key + 1,
                 ]);
             }

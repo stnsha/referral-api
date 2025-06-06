@@ -26,8 +26,10 @@ class StoreReferralRequest extends FormRequest
         $staticRules = [
             'business_units.assignee.staff_id' => 'required|integer',
             'business_units.assignee.staff_department_id' => 'required|integer',
+            'business_units.assignee.location' => 'required|integer',
             'business_units.recipient.staff_id' => 'required|integer',
             'business_units.recipient.staff_department_id' => 'required|integer',
+            'business_units.recipient.location' => 'required|integer',
 
             'referral.customer_id' => 'required|integer',
             'referral.referral_reason' => 'required|string',
