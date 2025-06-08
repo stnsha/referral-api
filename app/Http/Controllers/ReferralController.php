@@ -327,7 +327,7 @@ class ReferralController extends Controller
             $referringIndication = [
                 'referral_id' => $referral->id,
                 'customer_id' => $referral->customer_id,
-                'business_unit_id' => $referral->business_unit_id,
+                'business_unit_id' => $referral->business_unit->staff_department_id,
                 'referral_reason' => $referral->reason,
                 'referral_condition' => $referral->condition,
                 'medical_history' => $referral->medical_history,
