@@ -320,7 +320,8 @@ class ReferralController extends Controller
                 return [
                     'sequence' => $bu->sequence,
                     'staff_id' => $bu->staff_id,
-                    'location' => $bu->location
+                    'location' => $bu->location,
+                    'staff_department_id' => $bu->business_unit->staff_department_id
                 ];
             });
 
