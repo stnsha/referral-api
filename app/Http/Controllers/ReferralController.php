@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreReferralRequest;
+use App\Http\Requests\UpdateReferralRequest;
 use App\Models\BusinessUnit;
 use App\Models\FormDetails;
 use App\Models\Referral;
@@ -416,6 +417,74 @@ class ReferralController extends Controller
             ], 404);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Internal server error.'], 500);
+        }
+    }
+
+    public function update(UpdateReferralRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            if ($validated) {
+                $referralId = $validated['referral_id'];
+                $departmentId = $validated['bu_id_reply'];
+                $business_unit_id = BusinessUnit::where('staff_department_id', $departmentId)->value('id');
+
+                $referral = Referral::find($referralId);
+                $referral->status = $validated['status'];
+                $referral->save();
+
+                $formFields = $request->input("form_data", []);
+
+                foreach ($formFields as $field => $value) {
+
+                    $form_detail = FormDetails::where('field_name', $field)
+                        ->whereHas('form.business_unit', function ($query) use ($departmentId) {
+                            $query->where('staff_department_id', $departmentId);
+                        })
+                        ->first();
+
+                    ReferralDetails::create([
+                        'referral_id' => $referral->id,
+                        'form_id' => $form_detail->form_id,
+                        'value' => is_array($value) ? json_encode($value) : $value,
+                    ]);
+                }
+
+                $histories = $referral->referral_histories()->where('business_unit_id', $business_unit_id)->first();
+                $histories->is_filled = true;
+                $histories->save();
+
+                if (isset($validated['new_referral'])) {
+                    $latestSequence = $referral->referral_histories()->max('sequence');
+
+                    $staffId = isset($validated['new_referral']['staff_id']) ? $validated['new_referral']['staff_id'] : null;
+                    $staffDeptId = isset($validated['new_referral']['staff_department_id']) ? $validated['new_referral']['staff_department_id'] : null;
+                    $location = isset($validated['new_referral']['location']) ? $validated['new_referral']['location'] : null;
+
+                    $buId = BusinessUnit::where('staff_department_id', $staffDeptId)->value('id');
+
+                    ReferralHistory::create([
+                        'referral_id' => $referral->id,
+                        'staff_id' => $staffId,
+                        'business_unit_id' => $buId,
+                        'location' => $location,
+                        'sequence' => 1 + $latestSequence,
+                        'is_filled' => false
+                    ]);
+                }
+
+                return response()->json(['message' => 'Referral updated successfully.'], 201);
+            }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to create referral.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 }
