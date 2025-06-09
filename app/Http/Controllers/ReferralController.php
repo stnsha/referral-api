@@ -318,12 +318,13 @@ class ReferralController extends Controller
             }
             $data = [];
 
-            $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($bu) {
+            $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($rh) {
                 return [
-                    'sequence' => $bu->sequence,
-                    'staff_id' => $bu->staff_id,
-                    'location' => $bu->location,
-                    'staff_department_id' => $bu->business_unit->staff_department_id
+                    'sequence' => $rh->sequence,
+                    'staff_id' => $rh->staff_id,
+                    'location' => $rh->location,
+                    'staff_department_id' => $rh->business_unit->staff_department_id,
+                    'is_filled' => $rh->is_filled
                 ];
             });
 
