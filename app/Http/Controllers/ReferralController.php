@@ -186,18 +186,20 @@ class ReferralController extends Controller
 
             foreach (array_values($businessUnits) as $key => $value) {
                 $bu_id = BusinessUnit::where('staff_department_id', $value['staff_department_id'])->value('id');
+
+                $is_filled = $departmentId != $value['staff_department_id'] ? false : true;
+
                 ReferralHistory::create([
                     'referral_id' => $referral->id,
                     'staff_id' => $value['staff_id'],
                     'business_unit_id' => $bu_id,
                     'location' => $value['location'],
                     'sequence' => $key + 1,
+                    'is_filled' => $is_filled
                 ]);
             }
 
             $formFields = $request->input("form_data.$departmentId", []);
-
-            $test = [];
 
             foreach ($formFields as $field => $value) {
 

@@ -16,7 +16,8 @@ class ReferralHistory extends Model
         'staff_id',
         'business_unit_id',
         'location',
-        'sequence'
+        'sequence',
+        'is_filled'
     ];
 
     public function referral(): BelongsTo
