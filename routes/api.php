@@ -3,6 +3,7 @@
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\FormDetailsController;
+use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferralController;
 use App\Models\BusinessUnit;
 use App\Models\Referral;
@@ -39,5 +40,9 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');
+    });
+
+    Route::prefix('reference')->controller(ReferenceController::class)->group(function () {
+        Route::get('status', 'referralStatus')->name('reference.status');
     });
 });

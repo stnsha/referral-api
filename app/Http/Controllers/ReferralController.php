@@ -313,7 +313,7 @@ class ReferralController extends Controller
                 'referral_condition' => $referral->condition,
                 'medical_history' => $referral->medical_history,
                 'priority' => $referral->priority,
-                'status' => $this->getStatus($referral->status),
+                'status' => $referral->status,
             ];
 
             $forms = [];
