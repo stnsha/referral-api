@@ -48,41 +48,16 @@ class ReferralController extends Controller
         }
 
         $refs = [];
-        $id = '#REF';
+
 
         foreach ($referrals as $ref) {
-            /**
-             * Status
-             * 1 = Open
-             * 2 = In Progress
-             * 3 = Referred
-             * 4 = Closed
-             */
-            switch ($ref->status) {
-                case '1':
-                    $status = 'Open';
-                    break;
 
-                case '2':
-                    $status = 'In Progress';
-                    break;
-
-                case '3':
-                    $status = 'Referred';
-
-                case '4':
-                    $status = 'Closed';
-
-                default:
-                    $status = 'Submitted';
-                    break;
-            }
             $refs[] = [
                 'id' => $ref->id,
-                'ref_id' => $id . str_pad($ref->id, 4, '0', STR_PAD_LEFT),
+                'ref_id' => $this->createRefId($ref->id),
                 'reason' => $ref->reason,
                 'business_unit' => $ref->latest_referral_history->business_unit->name,
-                'status' => $status
+                'status' => $this->getStatus($ref->status)
             ];
         }
 
@@ -330,14 +305,15 @@ class ReferralController extends Controller
             });
 
             $referringIndication = [
-                'referral_id' => $referral->id,
+                'id' => $referral->id,
+                'referral_id' => $this->createRefId($referral->id),
                 'customer_id' => $referral->customer_id,
                 'business_unit_id' => $referral->business_unit->staff_department_id,
                 'referral_reason' => $referral->reason,
                 'referral_condition' => $referral->condition,
                 'medical_history' => $referral->medical_history,
                 'priority' => $referral->priority,
-                'status' => $referral->status,
+                'status' => $this->getStatus($referral->status),
             ];
 
             $forms = [];
@@ -486,5 +462,46 @@ class ReferralController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function getStatus($ref_status)
+    {
+        /**
+         * Status
+         * 1 = Open
+         * 2 = In Progress
+         * 3 = Referred
+         * 4 = Closed
+         */
+        switch ($ref_status) {
+            case '1':
+                $status = 'Open';
+                break;
+
+            case '2':
+                $status = 'In Progress';
+                break;
+
+            case '3':
+                $status = 'Referred';
+
+            case '4':
+                $status = 'Closed';
+
+            default:
+                $status = 'Submitted';
+                break;
+        }
+
+        return $status;
+    }
+
+    private function createRefId($id)
+    {
+        $param = '#REF';
+
+        $updatedId = $param . str_pad($id, 4, '0', STR_PAD_LEFT);
+
+        return $updatedId;
     }
 }
