@@ -80,13 +80,15 @@ class ReferralController extends Controller
      *                     property="assignee",
      *                     type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=2),
-     *                     @OA\Property(property="staff_department_id", type="string", example="21")
+     *                     @OA\Property(property="staff_department_id", type="string", example="21"),
+     *                     @OA\Property(property="location", type="string", example="1")
      *                 ),
      *                 @OA\Property(
      *                     property="recipient",
      *                     type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=3580),
-     *                     @OA\Property(property="staff_department_id", type="string", example="1")
+     *                     @OA\Property(property="staff_department_id", type="string", example="1"),
+     *                     @OA\Property(property="location", type="string", example="3")
      *                 )
      *             ),
      *             @OA\Property(
@@ -94,8 +96,8 @@ class ReferralController extends Controller
      *                 type="object",
      *                 @OA\Property(property="customer_id", type="integer", nullable=true, example=10),
      *                 @OA\Property(property="referral_reason", type="string", example="Bloating"),
-     *                 @OA\Property(property="referral_condition", type="string", example="-8 month girl\\r\\n-bloating\\r\\n-irritability"),
-     *                 @OA\Property(property="medical_history", type="string", example=""),
+     *                 @OA\Property(property="referral_condition", type="string", example="-8 month girl\r\n-bloating\r\n-irritability"),
+     *                 @OA\Property(property="medical_history", type="string", example="No prior conditions"),
      *                 @OA\Property(property="priority", type="integer", example=2)
      *             ),
      *             @OA\Property(
@@ -103,13 +105,18 @@ class ReferralController extends Controller
      *                 type="object",
      *                 additionalProperties={
      *                     "type"="object",
-     *                     "additionalProperties"={"type"="string"}
+     *                     "additionalProperties"={
+     *                         "oneOf"={
+     *                             @OA\Schema(type="string"),
+     *                             @OA\Schema(type="array", @OA\Items(type="integer"))
+     *                         }
+     *                     }
      *                 },
      *                 example={
      *                     "21": {
      *                         "baby_dob": "2025-04-30",
      *                         "breastfeeding_status": "6",
-     *                         "recent_vaccinations": "[8, 9]"
+     *                         "recent_vaccinations": {"8", "9"}
      *                     }
      *                 }
      *             )
@@ -135,11 +142,12 @@ class ReferralController extends Controller
      *         description="Failed to create referral.",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Failed to create referral."),
-     *             @OA\Property(property="error", type="string")
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[23000]: Integrity constraint violation...")
      *         )
      *     )
      * )
      */
+
     public function store(StoreReferralRequest $request)
     {
         try {
@@ -209,76 +217,67 @@ class ReferralController extends Controller
     /**
      * @OA\Get(
      *     path="/api/referral/{referral}",
-     *     summary="Get referral details",
+     *     summary="Get detailed referral information including history and form data",
      *     tags={"Referrals"},
      *     @OA\Parameter(
      *         name="referral",
      *         in="path",
      *         required=true,
-     *         description="Referral ID",
-     *         @OA\Schema(type="integer", example=1)
+     *         description="The ID of the referral",
+     *         @OA\Schema(type="integer", example=10)
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Referral details retrieved successfully.",
+     *         description="Referral details retrieved successfully",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(
-     *                 property="referralDetails",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="sequence", type="integer", example=1),
-     *                     @OA\Property(property="staff_id", type="integer", example=2)
-     *                 )
+     *             @OA\Property(property="referralDetails", type="array", @OA\Items(
+     *                 @OA\Property(property="sequence", type="integer", example=1),
+     *                 @OA\Property(property="staff_id", type="integer", example=3581),
+     *                 @OA\Property(property="location", type="string", example="Melaka"),
+     *                 @OA\Property(property="staff_department_id", type="string", example="21"),
+     *                 @OA\Property(property="is_filled", type="boolean", example=true),
+     *             )),
+     *             @OA\Property(property="referringIndication", type="object",
+     *                 @OA\Property(property="id", type="integer", example=10),
+     *                 @OA\Property(property="referral_id", type="string", example="REF0010"),
+     *                 @OA\Property(property="customer_id", type="integer", example=12121),
+     *                 @OA\Property(property="business_unit_id", type="string", example="21"),
+     *                 @OA\Property(property="referral_reason", type="string", example="Need specialist review"),
+     *                 @OA\Property(property="referral_condition", type="string", example="Diabetic"),
+     *                 @OA\Property(property="medical_history", type="string", example="Hypertension"),
+     *                 @OA\Property(property="priority", type="string", example="Urgent"),
+     *                 @OA\Property(property="status", type="integer", example=2),
      *             ),
-     *             @OA\Property(
-     *                 property="referringIndication",
-     *                 type="object",
-     *                 @OA\Property(property="referral_id", type="integer", example=1),
-     *                 @OA\Property(property="customer_id", type="integer", example=10),
-     *                 @OA\Property(property="business_unit_id", type="integer", example=5),
-     *                 @OA\Property(property="referral_reason", type="string", example="Bloating"),
-     *                 @OA\Property(property="referral_condition", type="string", example="-8 months old\r\n-girl"),
-     *                 @OA\Property(property="medical_history", type="string", example=""),
-     *                 @OA\Property(property="priority", type="integer", example=2),
-     *                 @OA\Property(property="status", type="integer", example=1)
-     *             ),
-     *             @OA\Property(
-     *                 property="initialTreatment",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="form_id", type="integer", example=1),
-     *                     @OA\Property(property="label_name", type="string", example="Form Label"),
-     *                     @OA\Property(property="is_hidden", type="boolean", example=false),
-     *                     @OA\Property(
-     *                         property="form_details",
-     *                         type="array",
-     *                         @OA\Items(
-     *                             type="object",
-     *                             @OA\Property(property="form_detail_id", type="integer", example=1),
-     *                             @OA\Property(property="field_name", type="string", example="Field Name"),
-     *                             @OA\Property(property="field_type", type="string", example="text"),
-     *                             @OA\Property(property="is_required", type="boolean", example=true),
-     *                             @OA\Property(property="field_value", type="array", @OA\Items(type="string", example="Value"))
-     *                         )
-     *                     ),
-     *                     @OA\Property(property="form_answer", type="string", example="Sample Answer")
-     *                 )
-     *             )
+     *             @OA\Property(property="initialTreatment", type="array", @OA\Items(
+     *                 @OA\Property(property="form_id", type="integer", example=1),
+     *                 @OA\Property(property="label_name", type="string", example="Baby Checkup"),
+     *                 @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                 @OA\Property(property="form_details", type="array", @OA\Items(
+     *                     @OA\Property(property="form_detail_id", type="integer", example=3),
+     *                     @OA\Property(property="field_name", type="string", example="breastfeeding_status"),
+     *                     @OA\Property(property="field_type", type="string", example="checkbox"),
+     *                     @OA\Property(property="is_required", type="boolean", example=true),
+     *                     @OA\Property(property="field_value", type="array", @OA\Items(
+     *                         @OA\Property(property="form_detail_id", type="integer", example=5),
+     *                         @OA\Property(property="field_value", type="string", example="Exclusive"),
+     *                         @OA\Property(property="is_answer", type="boolean", example=true)
+     *                     ))
+     *                 )),
+     *                 @OA\Property(property="form_answer", type="string", example="Yes")
+     *             ))
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Referral not found.",
+     *         description="Referral not found",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Referral not found.")
      *         )
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Server error.",
+     *         description="Internal server error",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Internal server error.")
      *         )
@@ -292,6 +291,7 @@ class ReferralController extends Controller
             if (!$referral) {
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
+
             $data = [];
 
             $referralDetails = $referral->referral_histories->take(2)->sortBy('sequence')->values()->map(function ($rh) {
@@ -299,8 +299,7 @@ class ReferralController extends Controller
                     'sequence' => $rh->sequence,
                     'staff_id' => $rh->staff_id,
                     'location' => $rh->location,
-                    'staff_department_id' => $rh->business_unit->staff_department_id,
-                    'is_filled' => $rh->is_filled
+                    'staff_department_id' => $rh->business_unit->staff_department_id
                 ];
             });
 
@@ -316,7 +315,24 @@ class ReferralController extends Controller
                 'status' => $referral->status,
             ];
 
-            $forms = [];
+            $referralHistories = [];
+
+            $refHistories = $referral->referral_histories->map(function ($history) {
+                return [
+                    'staff_id' => $history->staff_id,
+                    'location' => $history->location,
+                    'business_unit_id' => $history->business_unit->staff_department_id,
+                    'sequence' => $history->sequence,
+                    'is_filled' => $history->is_filled,
+                ];
+            })->toArray();
+
+            $referralHistories = $refHistories;
+
+            $initialTreatments = [];
+            $replyHistories = [];
+
+            $initBuId = $referral->referral_histories->firstWhere('sequence', 1)?->business_unit_id;
 
             foreach ($referral->referral_details as $rd) {
                 $formDetails = [];
@@ -333,7 +349,7 @@ class ReferralController extends Controller
                             $formDetails[$key] = [
                                 'field_name' => $fd->field_name,
                                 'field_type' => $fd->field_type,
-                                'is_required' => $fd->is_required != 0 ? true : false,
+                                'is_required' => $fd->is_required != 0,
                                 'field_value' => [],
                             ];
                         }
@@ -351,7 +367,6 @@ class ReferralController extends Controller
                         ];
                     }
 
-
                     $formDetails = array_values($formDetails);
                 } else {
                     $fd = $rd->form->form_details->first();
@@ -360,7 +375,7 @@ class ReferralController extends Controller
                         'form_detail_id' => $fd->id,
                         'field_name' => $fd->field_name,
                         'field_type' => $fd->field_type,
-                        'is_required' => $fd->is_required != 0 ? true : false,
+                        'is_required' => $fd->is_required != 0,
                     ];
                 }
 
@@ -377,13 +392,20 @@ class ReferralController extends Controller
                     $form['form_answer'] = $form_answer;
                 }
 
-                $forms[] = $form;
+                if ($rd->form->business_unit_id == $initBuId) {
+                    $initialTreatments[] = $form;
+                } else {
+                    $replyHistories[] = $form;
+                }
             }
+
 
             $data = [
                 'referralDetails' => $referralDetails,
                 'referringIndication' => $referringIndication,
-                'initialTreatment' => $forms
+                'initialTreatment' => $initialTreatments,
+                'replyHistories' => $replyHistories,
+                'referralHistories' => $referralHistories
             ];
 
             return response()->json($data, 200);
@@ -395,6 +417,69 @@ class ReferralController extends Controller
             return response()->json(['message' => 'Internal server error.'], 500);
         }
     }
+
+    /**
+     * @OA\Put(
+     *     path="/api/referral",
+     *     summary="Update an existing referral with form data and optionally forward it",
+     *     tags={"Referrals"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="referral_id", type="integer", example=10),
+     *             @OA\Property(property="bu_id_reply", type="string", example="21"),
+     *             @OA\Property(property="status", type="integer", example=2),
+     *             @OA\Property(
+     *                 property="form_data",
+     *                 type="object",
+     *                 additionalProperties={
+     *                     "oneOf"={
+     *                         @OA\Schema(type="string"),
+     *                         @OA\Schema(type="array", @OA\Items(type="integer"))
+     *                     }
+     *                 },
+     *                 example={
+     *                     "baby_dob": "2025-04-30",
+     *                     "breastfeeding_status": "6",
+     *                     "recent_vaccinations": {"8", "9"}
+     *                 }
+     *             ),
+     *             @OA\Property(
+     *                 property="new_referral",
+     *                 type="object",
+     *                 required={"staff_id", "staff_department_id", "location"},
+     *                 @OA\Property(property="staff_id", type="integer", example=3581),
+     *                 @OA\Property(property="staff_department_id", type="string", example="5"),
+     *                 @OA\Property(property="location", type="string", example="2")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Referral updated successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral updated successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[23000]: Integrity constraint violation...")
+     *         )
+     *     )
+     * )
+     */
 
     public function update(UpdateReferralRequest $request)
     {
@@ -426,7 +511,7 @@ class ReferralController extends Controller
                     ]);
                 }
 
-                $histories = $referral->referral_histories()->where('business_unit_id', $business_unit_id)->first();
+                $histories = $referral->referral_histories->where('business_unit_id', $business_unit_id)->first();
                 $histories->is_filled = true;
                 $histories->save();
 
