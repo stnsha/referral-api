@@ -1208,6 +1208,11 @@
                                                     "is_filled": {
                                                         "type": "boolean",
                                                         "example": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-06-12 10:56:49"
                                                     }
                                                 },
                                                 "type": "object"

@@ -9,6 +9,7 @@ use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -237,6 +238,7 @@ class ReferralController extends Controller
      *                 @OA\Property(property="location", type="string", example="Melaka"),
      *                 @OA\Property(property="staff_department_id", type="string", example="21"),
      *                 @OA\Property(property="is_filled", type="boolean", example=true),
+     *                 @OA\Property(property="created_at", type="string", example="12 June 2025"),
      *             )),
      *             @OA\Property(property="referringIndication", type="object",
      *                 @OA\Property(property="id", type="integer", example=10),
@@ -324,6 +326,7 @@ class ReferralController extends Controller
                     'business_unit_id' => $history->business_unit->staff_department_id,
                     'sequence' => $history->sequence,
                     'is_filled' => $history->is_filled,
+                    'created_at' => Carbon::parse($history->created_at)->format('d F Y')
                 ];
             })->toArray();
 
