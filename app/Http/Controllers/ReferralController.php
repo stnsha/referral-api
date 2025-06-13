@@ -219,77 +219,73 @@ class ReferralController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/referral/{referral}",
-     *     summary="Get detailed referral information including history and form data",
-     *     tags={"Referrals"},
-     *     @OA\Parameter(
-     *         name="referral",
-     *         in="path",
-     *         required=true,
-     *         description="The ID of the referral",
-     *         @OA\Schema(type="integer", example=10)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Referral details retrieved successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="referralDetails", type="array", @OA\Items(
-     *                 @OA\Property(property="sequence", type="integer", example=1),
-     *                 @OA\Property(property="staff_id", type="integer", example=3581),
-     *                 @OA\Property(property="location", type="string", example="Melaka"),
-     *                 @OA\Property(property="staff_department_id", type="string", example="21"),
-     *                 @OA\Property(property="is_filled", type="boolean", example=true),
-     *                 @OA\Property(property="created_at", type="string", example="12 June 2025"),
-     *             )),
-     *             @OA\Property(property="referringIndication", type="object",
-     *                 @OA\Property(property="id", type="integer", example=10),
-     *                 @OA\Property(property="referral_id", type="string", example="REF0010"),
-     *                 @OA\Property(property="customer_id", type="integer", example=12121),
-     *                 @OA\Property(property="business_unit_id", type="string", example="21"),
-     *                 @OA\Property(property="referral_reason", type="string", example="Need specialist review"),
-     *                 @OA\Property(property="referral_condition", type="string", example="Diabetic"),
-     *                 @OA\Property(property="medical_history", type="string", example="Hypertension"),
-     *                 @OA\Property(property="priority", type="string", example="Urgent"),
-     *                 @OA\Property(property="status", type="integer", example=2),
-     *             ),
-     *             @OA\Property(property="initialTreatment", type="array", @OA\Items(
-     *                 @OA\Property(property="form_id", type="integer", example=1),
-     *                 @OA\Property(property="label_name", type="string", example="Baby Checkup"),
-     *                 @OA\Property(property="is_hidden", type="boolean", example=false),
-     *                 @OA\Property(property="form_details", type="array", @OA\Items(
-     *                     @OA\Property(property="form_detail_id", type="integer", example=3),
-     *                     @OA\Property(property="field_name", type="string", example="breastfeeding_status"),
-     *                     @OA\Property(property="field_type", type="string", example="checkbox"),
-     *                     @OA\Property(property="is_required", type="boolean", example=true),
-     *                     @OA\Property(property="field_value", type="array", @OA\Items(
-     *                         @OA\Property(property="form_detail_id", type="integer", example=5),
-     *                         @OA\Property(property="field_value", type="string", example="Exclusive"),
-     *                         @OA\Property(property="is_answer", type="boolean", example=true)
-     *                     ))
-     *                 )),
-     *                 @OA\Property(property="form_answer", type="string", example="Yes")
-     *             ))
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Referral not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Referral not found.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Internal server error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Internal server error.")
-     *         )
-     *     )
+     * path="/api/referral/{referral}",
+     * summary="Get detailed referral information including history and form data",
+     * tags={"Referrals"},
+     * @OA\Parameter(
+     * name="referral",
+     * in="path",
+     * required=true,
+     * description="The ID of the referral",
+     * @OA\Schema(type="integer", example=10)
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Referral details retrieved successfully",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="referralDetails", type="array", @OA\Items(
+     * @OA\Property(property="sequence", type="integer", example=1),
+     * @OA\Property(property="staff_id", type="integer", example=3581),
+     * @OA\Property(property="location", type="string", example="Melaka"),
+     * @OA\Property(property="staff_department_id", type="string", example="21"),
+     * @OA\Property(property="is_filled", type="boolean", example=true),
+     * @OA\Property(property="created_at", type="string", example="12 June 2025"),
+     * @OA\Property(property="referral_details", type="array", @OA\Items(
+     * @OA\Property(property="form_id", type="integer", example=1),
+     * @OA\Property(property="label_name", type="string", example="Baby Checkup"),
+     * @OA\Property(property="is_hidden", type="boolean", example=false),
+     * @OA\Property(property="form_details", type="array", @OA\Items(
+     * @OA\Property(property="field_name", type="string", example="breastfeeding_status"),
+     * @OA\Property(property="field_type", type="string", example="checkbox"),
+     * @OA\Property(property="is_required", type="boolean", example=true),
+     * @OA\Property(property="field_data", type="array", @OA\Items(
+     * @OA\Property(property="form_detail_id", type="integer", example=5),
+     * @OA\Property(property="field_value", type="string", example="Exclusive"),
+     * @OA\Property(property="is_answer", type="boolean", example=true)
+     * ))
+     * ))
+     * ))
+     * )),
+     * @OA\Property(property="referringIndication", type="object",
+     * @OA\Property(property="id", type="integer", example=10),
+     * @OA\Property(property="referral_id", type="string", example="REF0010"),
+     * @OA\Property(property="customer_id", type="integer", example=12121),
+     * @OA\Property(property="business_unit_id", type="string", example="21"),
+     * @OA\Property(property="referral_reason", type="string", example="Need specialist review"),
+     * @OA\Property(property="referral_condition", type="string", example="Diabetic"),
+     * @OA\Property(property="medical_history", type="string", example="Hypertension"),
+     * @OA\Property(property="priority", type="string", example="Urgent"),
+     * @OA\Property(property="status", type="integer", example=2),
      * )
-     */
-
-    public function show(Referral $referral)
+     * )
+     * ),
+     * @OA\Response(
+     * response=404,
+     * description="Referral not found",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="Referral not found.")
+     * )
+     * ),
+     * @OA\Response(
+     * response=500,
+     * description="Internal server error",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="Internal server error.")
+     * )
+     * )
+     * )
+     */ public function show(Referral $referral)
     {
         try {
             if (!$referral) {
