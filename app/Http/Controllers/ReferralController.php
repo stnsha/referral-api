@@ -176,7 +176,7 @@ class ReferralController extends Controller
 
                 $referralHistory = ReferralHistory::create([
                     'referral_id' => $referral->id,
-                    'staff_id' => $value['staff_id'],
+                    'staff_id' => isset($value['staff_id']) ? $value['staff_id'] : null,
                     'business_unit_id' => $bu_id,
                     'location' => $value['location'],
                     'sequence' => $key + 1,
@@ -285,7 +285,7 @@ class ReferralController extends Controller
      * )
      * )
      * )
-     */ 
+     */
     public function show(Referral $referral)
     {
         try {
@@ -362,7 +362,7 @@ class ReferralController extends Controller
                         'sequence' => $rh->sequence,
                         'staff_id' => $rh->staff_id,
                         'location' => $rh->location,
-                        'staff_department_id' => $rh->business_unit->staff_department_id,
+                        'business_unit_id' => $rh->business_unit_id,
                         'is_filled' => $rh->is_filled,
                         'created_at' => Carbon::parse($rh->created_at)->format('d F Y'),
                         'referral_details' => $forms
@@ -374,7 +374,7 @@ class ReferralController extends Controller
                 'id' => $referral->id,
                 'referral_id' => $this->createRefId($referral->id),
                 'customer_id' => $referral->customer_id,
-                'business_unit_id' => $referral->business_unit->staff_department_id,
+                'business_unit_id' => $referral->business_unit_id,
                 'referral_reason' => $referral->reason,
                 'referral_condition' => $referral->condition,
                 'medical_history' => $referral->medical_history,

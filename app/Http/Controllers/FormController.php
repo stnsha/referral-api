@@ -154,10 +154,9 @@ class FormController extends Controller
      *       )
      *  )
      */
-    public function show($staff_department_id)
+    public function show($business_unit_id)
     {
         try {
-            $business_unit_id = BusinessUnit::where('staff_department_id', $staff_department_id)->value('id');
             $forms = Form::with(['form_details'])->where('business_unit_id', $business_unit_id)->get();
             $data = [];
             $arr = [];
@@ -205,7 +204,7 @@ class FormController extends Controller
             }
 
             $data = [
-                'business_unit' => $staff_department_id,
+                'business_unit_id' => $business_unit_id,
                 'forms' => $arr
             ];
 
