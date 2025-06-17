@@ -81,14 +81,14 @@ class ReferralController extends Controller
      *                     property="assignee",
      *                     type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=2),
-     *                     @OA\Property(property="staff_department_id", type="string", example="21"),
+     *                     @OA\Property(property="business_unit_id", type="string", example="6"),
      *                     @OA\Property(property="location", type="string", example="1")
      *                 ),
      *                 @OA\Property(
      *                     property="recipient",
      *                     type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=3580),
-     *                     @OA\Property(property="staff_department_id", type="string", example="1"),
+     *                     @OA\Property(property="business_unit_id", type="string", example="1"),
      *                     @OA\Property(property="location", type="string", example="3")
      *                 )
      *             ),
@@ -156,8 +156,7 @@ class ReferralController extends Controller
 
             $businessUnits = $request->input('business_units');
 
-            $departmentId = $businessUnits['assignee']['staff_department_id'];
-            $business_unit_id = BusinessUnit::where('staff_department_id', $departmentId)->value('id');
+            $business_unit_id = $businessUnits['assignee']['business_unit_id'];
 
             $referral = Referral::create([
                 'customer_id' => $validated['referral']['customer_id'],
@@ -170,27 +169,25 @@ class ReferralController extends Controller
             ]);
 
             foreach (array_values($businessUnits) as $key => $value) {
-                $bu_id = BusinessUnit::where('staff_department_id', $value['staff_department_id'])->value('id');
-
-                $is_filled = $departmentId != $value['staff_department_id'] ? false : true;
+                $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
 
                 $referralHistory = ReferralHistory::create([
                     'referral_id' => $referral->id,
-                    'staff_id' => isset($value['staff_id']) ? $value['staff_id'] : null,
-                    'business_unit_id' => $bu_id,
+                    'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
+                    'business_unit_id' => $value['business_unit_id'],
                     'location' => $value['location'],
                     'sequence' => $key + 1,
                     'is_filled' => $is_filled
                 ]);
 
                 $referral_history_id = $referralHistory->id;
-                if ($departmentId == $value['staff_department_id']) {
-                    $formFields = $request->input("form_data.$departmentId", []);
+                if ($business_unit_id == $value['business_unit_id']) {
+                    $formFields = $request->input("form_data.$business_unit_id", []);
 
                     foreach ($formFields as $field => $value) {
                         $form_detail = FormDetails::where('field_name', $field)
-                            ->whereHas('form.business_unit', function ($query) use ($departmentId) {
-                                $query->where('staff_department_id', $departmentId);
+                            ->whereHas('form', function ($query) use ($business_unit_id) {
+                                $query->where('business_unit_id', $business_unit_id);
                             })
                             ->first();
 
@@ -238,7 +235,7 @@ class ReferralController extends Controller
      * @OA\Property(property="sequence", type="integer", example=1),
      * @OA\Property(property="staff_id", type="integer", example=3581),
      * @OA\Property(property="location", type="string", example="Melaka"),
-     * @OA\Property(property="staff_department_id", type="string", example="21"),
+     * @OA\Property(property="business_unit_id", type="string", example="1"),
      * @OA\Property(property="is_filled", type="boolean", example=true),
      * @OA\Property(property="created_at", type="string", example="12 June 2025"),
      * @OA\Property(property="referral_details", type="array", @OA\Items(

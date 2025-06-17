@@ -1008,9 +1008,9 @@
                                                         "type": "integer",
                                                         "example": 2
                                                     },
-                                                    "staff_department_id": {
+                                                    "business_unit_id": {
                                                         "type": "string",
-                                                        "example": "21"
+                                                        "example": "6"
                                                     },
                                                     "location": {
                                                         "type": "string",
@@ -1025,7 +1025,7 @@
                                                         "type": "integer",
                                                         "example": 3580
                                                     },
-                                                    "staff_department_id": {
+                                                    "business_unit_id": {
                                                         "type": "string",
                                                         "example": "1"
                                                     },
