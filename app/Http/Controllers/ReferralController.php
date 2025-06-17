@@ -285,7 +285,8 @@ class ReferralController extends Controller
      * )
      * )
      * )
-     */ public function show(Referral $referral)
+     */ 
+    public function show(Referral $referral)
     {
         try {
             if (!$referral) {
