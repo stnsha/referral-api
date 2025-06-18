@@ -1201,9 +1201,9 @@
                                                         "type": "string",
                                                         "example": "Melaka"
                                                     },
-                                                    "staff_department_id": {
+                                                    "business_unit_id": {
                                                         "type": "string",
-                                                        "example": "21"
+                                                        "example": "1"
                                                     },
                                                     "is_filled": {
                                                         "type": "boolean",
