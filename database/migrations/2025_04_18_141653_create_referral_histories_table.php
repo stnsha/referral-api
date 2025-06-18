@@ -18,8 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('business_unit_id'); //refer to business unit id on referral, not department_id (FK)
             $table->unsignedBigInteger('location');
             $table->integer('sequence');
-            $table->longText('reason');
-            $table->longText('condition');
+            $table->longText('referral_reason')->nullable();
+            $table->longText('referral_condition')->nullable();
             $table->longText('medical_history')->nullable();
             $table->longText('additional_remarks')->nullable();
             $table->boolean('is_filled')->default(false);

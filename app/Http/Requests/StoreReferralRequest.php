@@ -27,14 +27,15 @@ class StoreReferralRequest extends FormRequest
             'business_units.assignee.staff_id' => 'required|integer',
             'business_units.assignee.business_unit_id' => 'required|integer',
             'business_units.assignee.location' => 'required|integer',
+            'business_units.assignee.referral_reason' => 'required|string',
+            'business_units.assignee.referral_condition' => 'required|string',
+            'business_units.assignee.medical_history' => 'nullable|string',
+
             'business_units.recipient.staff_id' => 'nullable|integer',
             'business_units.recipient.business_unit_id' => 'required|integer',
             'business_units.recipient.location' => 'required|integer',
 
             'referral.customer_id' => 'required|integer',
-            'referral.referral_reason' => 'required|string',
-            'referral.referral_condition' => 'required|string',
-            'referral.medical_history' => 'nullable|string',
             'referral.priority' => 'required|integer',
         ];
 

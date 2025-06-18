@@ -18,6 +18,10 @@ class ReferralHistory extends Model
         'business_unit_id',
         'location',
         'sequence',
+        'referral_reason',
+        'referral_condition',
+        'medical_history',
+        'additional_remarks',
         'is_filled'
     ];
 

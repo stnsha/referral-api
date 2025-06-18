@@ -55,10 +55,6 @@ class ReferralController extends Controller
 
             $referral = Referral::create([
                 'customer_id' => $validated['referral']['customer_id'],
-                'business_unit_id' => $business_unit_id,
-                'reason' => $validated['referral']['referral_reason'],
-                'condition' => $validated['referral']['referral_condition'],
-                'medical_history' => $validated['referral']['medical_history'],
                 'priority' => $validated['referral']['priority'],
                 'status' => 1, //Open
             ]);
@@ -66,16 +62,24 @@ class ReferralController extends Controller
             foreach (array_values($businessUnits) as $key => $value) {
                 $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
 
-                $referralHistory = ReferralHistory::create([
+                $data = [
                     'referral_id' => $referral->id,
                     'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
                     'business_unit_id' => $value['business_unit_id'],
                     'location' => $value['location'],
                     'sequence' => $key + 1,
-                    'is_filled' => $is_filled
-                ]);
+                    'is_filled' => $is_filled,
+                ];
 
+                if (isset($value['referral_reason']) || isset($value['referral_condition']) || isset($value['medical_history'])) {
+                    $data['referral_reason'] = $value['referral_reason'] ?? '';
+                    $data['referral_condition'] = $value['referral_condition'] ?? '';
+                    $data['medical_history'] = $value['medical_history'] ?? '';
+                }
+
+                $referralHistory = ReferralHistory::create($data);
                 $referral_history_id = $referralHistory->id;
+
                 if ($business_unit_id == $value['business_unit_id']) {
                     $formFields = $request->input("form_data.$business_unit_id", []);
 
@@ -94,6 +98,7 @@ class ReferralController extends Controller
                     }
                 }
             }
+
 
             return response()->json(['message' => 'Referral created successfully.'], 201);
         } catch (ValidationException $e) {

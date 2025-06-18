@@ -14,10 +14,6 @@ class Referral extends Model
 
     protected $fillable = [
         'customer_id',
-        'business_unit_id',
-        'reason',
-        'condition',
-        'medical_history',
         'priority',
         'status'
     ];
