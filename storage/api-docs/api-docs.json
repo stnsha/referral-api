@@ -1008,9 +1008,9 @@
                                                         "type": "integer",
                                                         "example": 2
                                                     },
-                                                    "staff_department_id": {
+                                                    "business_unit_id": {
                                                         "type": "string",
-                                                        "example": "21"
+                                                        "example": "6"
                                                     },
                                                     "location": {
                                                         "type": "string",
@@ -1025,7 +1025,7 @@
                                                         "type": "integer",
                                                         "example": 3580
                                                     },
-                                                    "staff_department_id": {
+                                                    "business_unit_id": {
                                                         "type": "string",
                                                         "example": "1"
                                                     },
@@ -1211,8 +1211,67 @@
                                                     },
                                                     "created_at": {
                                                         "type": "string",
-                                                        "format": "date-time",
-                                                        "example": "2025-06-12 10:56:49"
+                                                        "example": "12 June 2025"
+                                                    },
+                                                    "referral_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "label_name": {
+                                                                    "type": "string",
+                                                                    "example": "Baby Checkup"
+                                                                },
+                                                                "is_hidden": {
+                                                                    "type": "boolean",
+                                                                    "example": false
+                                                                },
+                                                                "form_details": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "field_name": {
+                                                                                "type": "string",
+                                                                                "example": "breastfeeding_status"
+                                                                            },
+                                                                            "field_type": {
+                                                                                "type": "string",
+                                                                                "example": "checkbox"
+                                                                            },
+                                                                            "is_required": {
+                                                                                "type": "boolean",
+                                                                                "example": true
+                                                                            },
+                                                                            "field_data": {
+                                                                                "type": "array",
+                                                                                "items": {
+                                                                                    "properties": {
+                                                                                        "form_detail_id": {
+                                                                                            "type": "integer",
+                                                                                            "example": 5
+                                                                                        },
+                                                                                        "field_value": {
+                                                                                            "type": "string",
+                                                                                            "example": "Exclusive"
+                                                                                        },
+                                                                                        "is_answer": {
+                                                                                            "type": "boolean",
+                                                                                            "example": true
+                                                                                        }
+                                                                                    },
+                                                                                    "type": "object"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
                                                     }
                                                 },
                                                 "type": "object"
@@ -1258,74 +1317,6 @@
                                                 }
                                             },
                                             "type": "object"
-                                        },
-                                        "initialTreatment": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "form_id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "label_name": {
-                                                        "type": "string",
-                                                        "example": "Baby Checkup"
-                                                    },
-                                                    "is_hidden": {
-                                                        "type": "boolean",
-                                                        "example": false
-                                                    },
-                                                    "form_details": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "form_detail_id": {
-                                                                    "type": "integer",
-                                                                    "example": 3
-                                                                },
-                                                                "field_name": {
-                                                                    "type": "string",
-                                                                    "example": "breastfeeding_status"
-                                                                },
-                                                                "field_type": {
-                                                                    "type": "string",
-                                                                    "example": "checkbox"
-                                                                },
-                                                                "is_required": {
-                                                                    "type": "boolean",
-                                                                    "example": true
-                                                                },
-                                                                "field_value": {
-                                                                    "type": "array",
-                                                                    "items": {
-                                                                        "properties": {
-                                                                            "form_detail_id": {
-                                                                                "type": "integer",
-                                                                                "example": 5
-                                                                            },
-                                                                            "field_value": {
-                                                                                "type": "string",
-                                                                                "example": "Exclusive"
-                                                                            },
-                                                                            "is_answer": {
-                                                                                "type": "boolean",
-                                                                                "example": true
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
-                                                                    }
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    },
-                                                    "form_answer": {
-                                                        "type": "string",
-                                                        "example": "Yes"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
                                         }
                                     },
                                     "type": "object"

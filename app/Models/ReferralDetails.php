@@ -12,7 +12,7 @@ class ReferralDetails extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'referral_id',
+        'referral_history_id',
         'form_id',
         'value',
     ];
@@ -25,5 +25,10 @@ class ReferralDetails extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class, 'form_id', 'id');
+    }
+
+    public function referral_histories(): BelongsTo
+    {
+        return $this->belongsTo(ReferralDetails::class, 'referral_history_id', 'id');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ReferralHistory extends Model
@@ -28,5 +29,10 @@ class ReferralHistory extends Model
     public function business_unit(): BelongsTo
     {
         return $this->belongsTo(BusinessUnit::class, 'business_unit_id', 'id');
+    }
+
+    public function referral_details(): HasMany
+    {
+        return $this->hasMany(ReferralDetails::class, 'referral_history_id', 'id');
     }
 }
