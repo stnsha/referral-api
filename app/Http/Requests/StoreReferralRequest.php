@@ -66,11 +66,9 @@ class StoreReferralRequest extends FormRequest
 
         $dynamicRules = [];
 
-        $deptId = $this->input('business_units.assignee.staff_department_id');
+        $buId = $this->input('business_units.assignee.business_unit_id');
 
-        $forms = Form::whereHas('business_unit', function ($q) use ($deptId) {
-            $q->where('staff_department_id', $deptId);
-        })->with('form_details')->get();
+        $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 
         foreach ($forms as $form) {
             foreach ($form->form_details as $detail) {
@@ -103,7 +101,7 @@ class StoreReferralRequest extends FormRequest
                     $rules[] = $fieldTypeRuleMap[$type];
                 }
 
-                $dynamicRules["form_data.$deptId.$field"] = implode('|', $rules);
+                $dynamicRules["form_data.$buId.$field"] = implode('|', $rules);
             }
         }
 
@@ -116,18 +114,16 @@ class StoreReferralRequest extends FormRequest
     {
         $messages = [];
 
-        $deptId = $this->input('business_units.assignee.staff_department_id');
+        $buId = $this->input('business_units.assignee.business_unit_id');
 
-        $forms = Form::whereHas('business_unit', function ($query) use ($deptId) {
-            $query->where('staff_department_id', $deptId);
-        })->with('form_details')->get();
+        $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 
         foreach ($forms as $form) {
             foreach ($form->form_details as $detail) {
                 $field = $detail->field_name;
                 $label = ucwords(str_replace('_', ' ', $field));
                 $type = $detail->field_type;
-                $path = "form_data.$deptId.$field";
+                $path = "form_data.$buId.$field";
 
                 if ($detail->is_required) {
                     $messages["$path.required"] = "$label is required.";

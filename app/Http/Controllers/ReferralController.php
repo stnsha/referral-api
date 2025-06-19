@@ -144,64 +144,66 @@ class ReferralController extends Controller
         try {
             $validated = $request->validated();
 
-            $businessUnits = $request->input('business_units');
+            if ($validated) {
+                $businessUnits = $request->input('business_units');
 
-            $business_unit_id = $businessUnits['assignee']['business_unit_id'];
+                $business_unit_id = $businessUnits['assignee']['business_unit_id'];
 
-            $referral = Referral::create([
-                'customer_id' => $validated['referral']['customer_id'],
-                'priority' => $validated['referral']['priority'],
-                'status' => 1, //Open
-            ]);
+                $referral = Referral::create([
+                    'customer_id' => $validated['referral']['customer_id'],
+                    'priority' => $validated['referral']['priority'],
+                    'status' => 1, //Open
+                ]);
 
-            foreach (array_values($businessUnits) as $key => $value) {
-                $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
+                foreach (array_values($businessUnits) as $key => $value) {
+                    $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
 
-                $data = [
-                    'referral_id' => $referral->id,
-                    'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
-                    'business_unit_id' => $value['business_unit_id'],
-                    'location' => $value['location'],
-                    'sequence' => $key + 1,
-                    'is_filled' => $is_filled,
-                ];
+                    $data = [
+                        'referral_id' => $referral->id,
+                        'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
+                        'business_unit_id' => $value['business_unit_id'],
+                        'location' => $value['location'],
+                        'sequence' => $key + 1,
+                        'is_filled' => $is_filled,
+                    ];
 
-                if (
-                    isset($value['referral_reason']) ||
-                    isset($value['referral_condition']) ||
-                    isset($value['medical_history']) ||
-                    isset($value['additional_remarks'])
-                ) {
-                    $data['referral_reason'] = $value['referral_reason'] ?? '';
-                    $data['referral_condition'] = $value['referral_condition'] ?? '';
-                    $data['medical_history'] = $value['medical_history'] ?? '';
-                    $data['additional_remarks'] = $value['additional_remarks'] ?? '';
-                }
+                    if (
+                        isset($value['referral_reason']) ||
+                        isset($value['referral_condition']) ||
+                        isset($value['medical_history']) ||
+                        isset($value['additional_remarks'])
+                    ) {
+                        $data['referral_reason'] = $value['referral_reason'] ?? '';
+                        $data['referral_condition'] = $value['referral_condition'] ?? '';
+                        $data['medical_history'] = $value['medical_history'] ?? '';
+                        $data['additional_remarks'] = $value['additional_remarks'] ?? '';
+                    }
 
-                $referralHistory = ReferralHistory::create($data);
-                $referral_history_id = $referralHistory->id;
+                    $referralHistory = ReferralHistory::create($data);
+                    $referral_history_id = $referralHistory->id;
 
-                if ($business_unit_id == $value['business_unit_id']) {
-                    $formFields = $request->input("form_data.$business_unit_id", []);
+                    if ($business_unit_id == $value['business_unit_id']) {
+                        $formFields = $request->input("form_data.$business_unit_id", []);
 
-                    foreach ($formFields as $field => $value) {
-                        $form_detail = FormDetails::where('field_name', $field)
-                            ->whereHas('form', function ($query) use ($business_unit_id) {
-                                $query->where('business_unit_id', $business_unit_id);
-                            })
-                            ->first();
+                        foreach ($formFields as $field => $value) {
+                            $form_detail = FormDetails::where('field_name', $field)
+                                ->whereHas('form', function ($query) use ($business_unit_id) {
+                                    $query->where('business_unit_id', $business_unit_id);
+                                })
+                                ->first();
 
-                        ReferralDetails::create([
-                            'referral_history_id' => $referral_history_id,
-                            'form_id' => $form_detail->form_id,
-                            'value' => is_array($value) ? json_encode($value) : $value,
-                        ]);
+                            ReferralDetails::create([
+                                'referral_history_id' => $referral_history_id,
+                                'form_id' => $form_detail->form_id,
+                                'value' => is_array($value) ? json_encode($value) : $value,
+                            ]);
+                        }
                     }
                 }
+
+
+                return response()->json(['message' => 'Referral created successfully.'], 201);
             }
-
-
-            return response()->json(['message' => 'Referral created successfully.'], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed.',
