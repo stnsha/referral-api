@@ -175,7 +175,7 @@ class ReferralController extends Controller
                     $data['referral_reason'] = $value['referral_reason'] ?? '';
                     $data['referral_condition'] = $value['referral_condition'] ?? '';
                     $data['medical_history'] = $value['medical_history'] ?? '';
-                    $data['medical_history'] = $value['medical_history'] ?? '';
+                    $data['additional_remarks'] = $value['additional_remarks'] ?? '';
                 }
 
                 $referralHistory = ReferralHistory::create($data);
