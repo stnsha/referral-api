@@ -16,34 +16,129 @@ use Throwable;
 
 class ReferralController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/referral",
+     *     summary="Get list of referrals",
+     *     tags={"Referrals"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of referrals",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="ref_id", type="string", example="#REF0001"),
+     *                     @OA\Property(property="reason", type="string", example="Vestibular-Related Balance Issue"),
+     *                     @OA\Property(property="business_unit", type="string", example="Alpro Physio"),
+     *                     @OA\Property(property="status", type="string", example="Open")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=204,
+     *         description="No results found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="No results."),
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
     public function index()
     {
-        $referrals = Referral::with(['latest_referral_history'])->get();
+        $referrals = Referral::with(['referral_histories'])->get();
 
         if ($referrals->isEmpty()) {
             return response()->json([
                 'message' => 'No results.',
                 'data' => [],
-            ], 200);
+            ], 204);
         }
 
         $refs = [];
 
-
         foreach ($referrals as $ref) {
-
-            $refs[] = [
-                'id' => $ref->id,
-                'ref_id' => $this->createRefId($ref->id),
-                'reason' => $ref->reason,
-                'business_unit' => $ref->latest_referral_history->business_unit->name,
-                'status' => $this->getStatus($ref->status)
-            ];
+            foreach ($ref->referral_histories as $rh) {
+                if ($rh->sequence == 1) {
+                    $refs[] = [
+                        'id' => $ref->id,
+                        'ref_id' => $this->createRefId($ref->id),
+                        'reason' => $rh->referral_reason,
+                        'business_unit' => $rh->business_unit->name,
+                        'status' => $this->getStatus($ref->status)
+                    ];
+                }
+            }
         }
 
         return response()->json(['data' => $refs], 200);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/referral",
+     *     summary="Create a new referral",
+     *     tags={"Referrals"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"business_units", "referral"},
+     *             @OA\Property(property="business_units", type="object",
+     *                 @OA\Property(property="assignee", type="object",
+     *                     @OA\Property(property="staff_id", type="integer", example=2222),
+     *                     @OA\Property(property="business_unit_id", type="string", example="6"),
+     *                     @OA\Property(property="location", type="string", example="101"),
+     *                     @OA\Property(property="referral_reason", type="string", example="Vestibular-Related Balance Issue"),
+     *                     @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."),
+     *                     @OA\Property(property="medical_history", type="string", example=""),
+     *                     @OA\Property(property="additional_remarks", type="string", example=null, nullable=true)
+     *                 ),
+     *                 @OA\Property(property="recipient", type="object",
+     *                     @OA\Property(property="staff_id", type="integer", example=0),
+     *                     @OA\Property(property="business_unit_id", type="string", example="1"),
+     *                     @OA\Property(property="location", type="string", example="350")
+     *                 )
+     *             ),
+     *             @OA\Property(property="referral", type="object",
+     *                 @OA\Property(property="customer_id", type="integer", example=10),
+     *                 @OA\Property(property="priority", type="integer", example=2)
+     *             ),
+     *             @OA\Property(property="form_data", type="object",
+     *                 @OA\Property(property="6", type="object",
+     *                     @OA\Property(property="targeted_area", type="string", example="Lower limbs and core"),
+     *                     @OA\Property(property="pain_level", type="string", example="4"),
+     *                     @OA\Property(property="previous_physiotherapy", type="string", example="30")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Referral created successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral created successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'customer_id' cannot be null")
+     *         )
+     *     )
+     * )
+     */
     public function store(StoreReferralRequest $request)
     {
         try {
@@ -114,6 +209,84 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/{id}",
+     *     summary="Get detailed referral information by ID",
+     *     tags={"Referrals"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Referral ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Referral details retrieved successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="referralDetails", type="object",
+     *                 @OA\Property(property="6", type="object",
+     *                     @OA\Property(property="sequence", type="integer", example=1),
+     *                     @OA\Property(property="staff_id", type="integer", example=2222),
+     *                     @OA\Property(property="location", type="integer", example=101),
+     *                     @OA\Property(property="business_unit_id", type="integer", example=6),
+     *                     @OA\Property(property="is_filled", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", example="19 June 2025"),
+     *                     @OA\Property(property="additional_remarks", type="string", nullable=true, example=null),
+     *                     @OA\Property(property="referral_details", type="array",
+     *                         @OA\Items(
+     *                             @OA\Property(property="form_id", type="integer", example=16),
+     *                             @OA\Property(property="label_name", type="string", example="Which area of your body needs physiotherapy?"),
+     *                             @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                             @OA\Property(property="form_details", type="array",
+     *                                 @OA\Items(
+     *                                     @OA\Property(property="field_name", type="string", example="targeted_area"),
+     *                                     @OA\Property(property="field_type", type="string", example="text"),
+     *                                     @OA\Property(property="is_required", type="boolean", example=true),
+     *                                     @OA\Property(property="field_data", type="array",
+     *                                         @OA\Items(
+     *                                             @OA\Property(property="form_detail_id", type="integer", example=27),
+     *                                             @OA\Property(property="field_value", type="string", example="Lower limbs and core"),
+     *                                             @OA\Property(property="is_answer", type="boolean", example=true)
+     *                                         )
+     *                                     )
+     *                                 )
+     *                             )
+     *                         )
+     *                     )
+     *                 )
+     *             ),
+     *             @OA\Property(property="referringIndication", type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="referral_id", type="string", example="#REF0001"),
+     *                 @OA\Property(property="customer_id", type="integer", example=10),
+     *                 @OA\Property(property="business_unit_id", type="integer", example=6),
+     *                 @OA\Property(property="referral_reason", type="string", example="Vestibular-Related Balance Issue"),
+     *                 @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."),
+     *                 @OA\Property(property="medical_history", type="string", example=""),
+     *                 @OA\Property(property="priority", type="integer", example=2),
+     *                 @OA\Property(property="status", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Referral not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Internal server error.")
+     *         )
+     *     )
+     * )
+     */
+
     public function show(Referral $referral)
     {
         try {
@@ -121,13 +294,23 @@ class ReferralController extends Controller
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
 
+            $referral_reason = '';
+            $business_unit_id = '';
+            $referral_condition = '';
+            $medical_history  = '';
+
             $referralHistories = $referral->referral_histories
                 ->sortBy('sequence')
                 ->values()
                 ->keyBy(function ($rh) {
                     return $rh->business_unit_id;
                 })
-                ->map(function ($rh) {
+                ->map(function ($rh) use (
+                    &$referral_reason,
+                    &$business_unit_id,
+                    &$referral_condition,
+                    &$medical_history,
+                ) {
                     $forms = [];
 
                     foreach ($rh->referral_details as $rd) {
@@ -186,6 +369,13 @@ class ReferralController extends Controller
                         $forms[] = $form;
                     }
 
+                    if ($rh->sequence == 1) {
+                        $referral_reason = $rh->referral_reason;
+                        $business_unit_id = $rh->business_unit_id;
+                        $referral_condition = $rh->referral_condition;
+                        $medical_history = $rh->medical_history;
+                    }
+
                     return [
                         'sequence' => $rh->sequence,
                         'staff_id' => $rh->staff_id,
@@ -193,6 +383,7 @@ class ReferralController extends Controller
                         'business_unit_id' => $rh->business_unit_id,
                         'is_filled' => $rh->is_filled,
                         'created_at' => Carbon::parse($rh->created_at)->format('d F Y'),
+                        'additional_remarks' => $rh->additional_remarks,
                         'referral_details' => $forms
                     ];
                 });
@@ -202,10 +393,10 @@ class ReferralController extends Controller
                 'id' => $referral->id,
                 'referral_id' => $this->createRefId($referral->id),
                 'customer_id' => $referral->customer_id,
-                'business_unit_id' => $referral->business_unit_id,
-                'referral_reason' => $referral->reason,
-                'referral_condition' => $referral->condition,
-                'medical_history' => $referral->medical_history,
+                'business_unit_id' => $business_unit_id,
+                'referral_reason' => $referral_reason,
+                'referral_condition' => $referral_condition,
+                'medical_history' => $medical_history,
                 'priority' => $referral->priority,
                 'status' => $referral->status,
             ];

@@ -809,11 +809,11 @@
                 "tags": [
                     "Referrals"
                 ],
-                "summary": "Get list of all referrals",
+                "summary": "Get list of referrals",
                 "operationId": "6e5e35d28c18fce599d37701d9327c97",
                 "responses": {
                     "200": {
-                        "description": "Successful response or no results",
+                        "description": "List of referrals",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -832,15 +832,15 @@
                                                     },
                                                     "reason": {
                                                         "type": "string",
-                                                        "example": "Follow-up needed"
+                                                        "example": "Vestibular-Related Balance Issue"
                                                     },
                                                     "business_unit": {
                                                         "type": "string",
-                                                        "example": "Clinic"
+                                                        "example": "Alpro Physio"
                                                     },
                                                     "status": {
                                                         "type": "string",
-                                                        "example": "In Progress"
+                                                        "example": "Open"
                                                     }
                                                 },
                                                 "type": "object"
@@ -851,134 +851,22 @@
                                 }
                             }
                         }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Referrals"
-                ],
-                "summary": "Update an existing referral with form data and optionally forward it",
-                "operationId": "f367ee5ae5f67a378adfaf574c010f1d",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "referral_id": {
-                                        "type": "integer",
-                                        "example": 10
-                                    },
-                                    "bu_id_reply": {
-                                        "type": "string",
-                                        "example": "21"
-                                    },
-                                    "status": {
-                                        "type": "integer",
-                                        "example": 2
-                                    },
-                                    "form_data": {
-                                        "type": "object",
-                                        "example": {
-                                            "baby_dob": "2025-04-30",
-                                            "breastfeeding_status": "6",
-                                            "recent_vaccinations": [
-                                                "8",
-                                                "9"
-                                            ]
+                    },
+                    "204": {
+                        "description": "No results found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
                                         },
-                                        "additionalProperties": {
-                                            "oneOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "integer"
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "new_referral": {
-                                        "required": [
-                                            "staff_id",
-                                            "staff_department_id",
-                                            "location"
-                                        ],
-                                        "properties": {
-                                            "staff_id": {
-                                                "type": "integer",
-                                                "example": 3581
-                                            },
-                                            "staff_department_id": {
-                                                "type": "string",
-                                                "example": "5"
-                                            },
-                                            "location": {
-                                                "type": "string",
-                                                "example": "2"
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
                                             }
-                                        },
-                                        "type": "object"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Referral updated successfully.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Referral updated successfully."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation failed.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation failed."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to create referral.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Failed to create referral."
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "SQLSTATE[23000]: Integrity constraint violation..."
                                         }
                                     },
                                     "type": "object"
@@ -999,6 +887,10 @@
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "business_units",
+                                    "referral"
+                                ],
                                 "properties": {
                                     "business_units": {
                                         "properties": {
@@ -1006,7 +898,7 @@
                                                 "properties": {
                                                     "staff_id": {
                                                         "type": "integer",
-                                                        "example": 2
+                                                        "example": 2222
                                                     },
                                                     "business_unit_id": {
                                                         "type": "string",
@@ -1014,7 +906,24 @@
                                                     },
                                                     "location": {
                                                         "type": "string",
-                                                        "example": "1"
+                                                        "example": "101"
+                                                    },
+                                                    "referral_reason": {
+                                                        "type": "string",
+                                                        "example": "Vestibular-Related Balance Issue"
+                                                    },
+                                                    "referral_condition": {
+                                                        "type": "string",
+                                                        "example": "Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."
+                                                    },
+                                                    "medical_history": {
+                                                        "type": "string",
+                                                        "example": ""
+                                                    },
+                                                    "additional_remarks": {
+                                                        "type": "string",
+                                                        "example": null,
+                                                        "nullable": true
                                                     }
                                                 },
                                                 "type": "object"
@@ -1023,7 +932,7 @@
                                                 "properties": {
                                                     "staff_id": {
                                                         "type": "integer",
-                                                        "example": 3580
+                                                        "example": 0
                                                     },
                                                     "business_unit_id": {
                                                         "type": "string",
@@ -1031,7 +940,7 @@
                                                     },
                                                     "location": {
                                                         "type": "string",
-                                                        "example": "3"
+                                                        "example": "350"
                                                     }
                                                 },
                                                 "type": "object"
@@ -1043,20 +952,7 @@
                                         "properties": {
                                             "customer_id": {
                                                 "type": "integer",
-                                                "example": 10,
-                                                "nullable": true
-                                            },
-                                            "referral_reason": {
-                                                "type": "string",
-                                                "example": "Bloating"
-                                            },
-                                            "referral_condition": {
-                                                "type": "string",
-                                                "example": "-8 month girl\\r\\n-bloating\\r\\n-irritability"
-                                            },
-                                            "medical_history": {
-                                                "type": "string",
-                                                "example": "No prior conditions"
+                                                "example": 10
                                             },
                                             "priority": {
                                                 "type": "integer",
@@ -1066,33 +962,26 @@
                                         "type": "object"
                                     },
                                     "form_data": {
-                                        "type": "object",
-                                        "example": {
-                                            "21": {
-                                                "baby_dob": "2025-04-30",
-                                                "breastfeeding_status": "6",
-                                                "recent_vaccinations": [
-                                                    "8",
-                                                    "9"
-                                                ]
+                                        "properties": {
+                                            "6": {
+                                                "properties": {
+                                                    "targeted_area": {
+                                                        "type": "string",
+                                                        "example": "Lower limbs and core"
+                                                    },
+                                                    "pain_level": {
+                                                        "type": "string",
+                                                        "example": "4"
+                                                    },
+                                                    "previous_physiotherapy": {
+                                                        "type": "string",
+                                                        "example": "30"
+                                                    }
+                                                },
+                                                "type": "object"
                                             }
                                         },
-                                        "additionalProperties": {
-                                            "type": "object",
-                                            "additionalProperties": {
-                                                "oneOf": [
-                                                    {
-                                                        "type": "string"
-                                                    },
-                                                    {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "integer"
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        }
+                                        "type": "object"
                                     }
                                 },
                                 "type": "object"
@@ -1148,7 +1037,7 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "SQLSTATE[23000]: Integrity constraint violation..."
+                                            "example": "SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'customer_id' cannot be null"
                                         }
                                     },
                                     "type": "object"
@@ -1159,161 +1048,168 @@
                 }
             }
         },
-        "/api/referral/{referral}": {
+        "/api/referral/{id}": {
             "get": {
                 "tags": [
                     "Referrals"
                 ],
-                "summary": "Get detailed referral information including history and form data",
-                "operationId": "bba13f49d75d8dc59bbb6b3bdcae8898",
+                "summary": "Get detailed referral information by ID",
+                "operationId": "b0dd51bece8f3369955921a504e2ddeb",
                 "parameters": [
                     {
-                        "name": "referral",
+                        "name": "id",
                         "in": "path",
-                        "description": "The ID of the referral",
+                        "description": "Referral ID",
                         "required": true,
                         "schema": {
                             "type": "integer",
-                            "example": 10
+                            "example": 1
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Referral details retrieved successfully",
+                        "description": "Referral details retrieved successfully.",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "referralDetails": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "sequence": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "staff_id": {
-                                                        "type": "integer",
-                                                        "example": 3581
-                                                    },
-                                                    "location": {
-                                                        "type": "string",
-                                                        "example": "Melaka"
-                                                    },
-                                                    "business_unit_id": {
-                                                        "type": "string",
-                                                        "example": "1"
-                                                    },
-                                                    "is_filled": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    },
-                                                    "created_at": {
-                                                        "type": "string",
-                                                        "example": "12 June 2025"
-                                                    },
-                                                    "referral_details": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "form_id": {
-                                                                    "type": "integer",
-                                                                    "example": 1
-                                                                },
-                                                                "label_name": {
-                                                                    "type": "string",
-                                                                    "example": "Baby Checkup"
-                                                                },
-                                                                "is_hidden": {
-                                                                    "type": "boolean",
-                                                                    "example": false
-                                                                },
-                                                                "form_details": {
-                                                                    "type": "array",
-                                                                    "items": {
-                                                                        "properties": {
-                                                                            "field_name": {
-                                                                                "type": "string",
-                                                                                "example": "breastfeeding_status"
-                                                                            },
-                                                                            "field_type": {
-                                                                                "type": "string",
-                                                                                "example": "checkbox"
-                                                                            },
-                                                                            "is_required": {
-                                                                                "type": "boolean",
-                                                                                "example": true
-                                                                            },
-                                                                            "field_data": {
-                                                                                "type": "array",
-                                                                                "items": {
-                                                                                    "properties": {
-                                                                                        "form_detail_id": {
-                                                                                            "type": "integer",
-                                                                                            "example": 5
+                                            "properties": {
+                                                "6": {
+                                                    "properties": {
+                                                        "sequence": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "staff_id": {
+                                                            "type": "integer",
+                                                            "example": 2222
+                                                        },
+                                                        "location": {
+                                                            "type": "integer",
+                                                            "example": 101
+                                                        },
+                                                        "business_unit_id": {
+                                                            "type": "integer",
+                                                            "example": 6
+                                                        },
+                                                        "is_filled": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "example": "19 June 2025"
+                                                        },
+                                                        "additional_remarks": {
+                                                            "type": "string",
+                                                            "example": null,
+                                                            "nullable": true
+                                                        },
+                                                        "referral_details": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "properties": {
+                                                                    "form_id": {
+                                                                        "type": "integer",
+                                                                        "example": 16
+                                                                    },
+                                                                    "label_name": {
+                                                                        "type": "string",
+                                                                        "example": "Which area of your body needs physiotherapy?"
+                                                                    },
+                                                                    "is_hidden": {
+                                                                        "type": "boolean",
+                                                                        "example": false
+                                                                    },
+                                                                    "form_details": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "properties": {
+                                                                                "field_name": {
+                                                                                    "type": "string",
+                                                                                    "example": "targeted_area"
+                                                                                },
+                                                                                "field_type": {
+                                                                                    "type": "string",
+                                                                                    "example": "text"
+                                                                                },
+                                                                                "is_required": {
+                                                                                    "type": "boolean",
+                                                                                    "example": true
+                                                                                },
+                                                                                "field_data": {
+                                                                                    "type": "array",
+                                                                                    "items": {
+                                                                                        "properties": {
+                                                                                            "form_detail_id": {
+                                                                                                "type": "integer",
+                                                                                                "example": 27
+                                                                                            },
+                                                                                            "field_value": {
+                                                                                                "type": "string",
+                                                                                                "example": "Lower limbs and core"
+                                                                                            },
+                                                                                            "is_answer": {
+                                                                                                "type": "boolean",
+                                                                                                "example": true
+                                                                                            }
                                                                                         },
-                                                                                        "field_value": {
-                                                                                            "type": "string",
-                                                                                            "example": "Exclusive"
-                                                                                        },
-                                                                                        "is_answer": {
-                                                                                            "type": "boolean",
-                                                                                            "example": true
-                                                                                        }
-                                                                                    },
-                                                                                    "type": "object"
+                                                                                        "type": "object"
+                                                                                    }
                                                                                 }
-                                                                            }
-                                                                        },
-                                                                        "type": "object"
+                                                                            },
+                                                                            "type": "object"
+                                                                        }
                                                                     }
-                                                                }
-                                                            },
-                                                            "type": "object"
+                                                                },
+                                                                "type": "object"
+                                                            }
                                                         }
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
                                         },
                                         "referringIndication": {
                                             "properties": {
                                                 "id": {
                                                     "type": "integer",
-                                                    "example": 10
+                                                    "example": 1
                                                 },
                                                 "referral_id": {
                                                     "type": "string",
-                                                    "example": "REF0010"
+                                                    "example": "#REF0001"
                                                 },
                                                 "customer_id": {
                                                     "type": "integer",
-                                                    "example": 12121
+                                                    "example": 10
                                                 },
                                                 "business_unit_id": {
-                                                    "type": "string",
-                                                    "example": "21"
+                                                    "type": "integer",
+                                                    "example": 6
                                                 },
                                                 "referral_reason": {
                                                     "type": "string",
-                                                    "example": "Need specialist review"
+                                                    "example": "Vestibular-Related Balance Issue"
                                                 },
                                                 "referral_condition": {
                                                     "type": "string",
-                                                    "example": "Diabetic"
+                                                    "example": "Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."
                                                 },
                                                 "medical_history": {
                                                     "type": "string",
-                                                    "example": "Hypertension"
+                                                    "example": ""
                                                 },
                                                 "priority": {
-                                                    "type": "string",
-                                                    "example": "Urgent"
+                                                    "type": "integer",
+                                                    "example": 2
                                                 },
                                                 "status": {
                                                     "type": "integer",
-                                                    "example": 2
+                                                    "example": 1
                                                 }
                                             },
                                             "type": "object"
@@ -1325,7 +1221,7 @@
                         }
                     },
                     "404": {
-                        "description": "Referral not found",
+                        "description": "Referral not found.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1341,7 +1237,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error.",
                         "content": {
                             "application/json": {
                                 "schema": {

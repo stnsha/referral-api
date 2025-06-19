@@ -30,6 +30,7 @@ class StoreReferralRequest extends FormRequest
             'business_units.assignee.referral_reason' => 'required|string',
             'business_units.assignee.referral_condition' => 'required|string',
             'business_units.assignee.medical_history' => 'nullable|string',
+            'business_units.assignee.additional_remarks' => 'nullable|string',
 
             'business_units.recipient.staff_id' => 'nullable|integer',
             'business_units.recipient.business_unit_id' => 'required|integer',
