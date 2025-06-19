@@ -876,6 +876,165 @@
                     }
                 }
             },
+            "put": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Update an existing referral and optionally refer to another business unit",
+                "operationId": "f367ee5ae5f67a378adfaf574c010f1d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "referral"
+                                ],
+                                "properties": {
+                                    "referral": {
+                                        "properties": {
+                                            "referral_id": {
+                                                "type": "string",
+                                                "example": "1"
+                                            },
+                                            "updated_recipient_to": {
+                                                "type": "string",
+                                                "example": "3333"
+                                            },
+                                            "business_unit_id_reply": {
+                                                "type": "string",
+                                                "example": "5"
+                                            },
+                                            "status": {
+                                                "type": "integer",
+                                                "example": 3
+                                            },
+                                            "additional_remarks": {
+                                                "type": "string",
+                                                "example": "No current medications apart from pain relief."
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "refer_another": {
+                                        "properties": {
+                                            "refer_business_unit": {
+                                                "type": "string",
+                                                "example": "2"
+                                            },
+                                            "refer_location": {
+                                                "type": "string",
+                                                "example": "303"
+                                            },
+                                            "refer_to": {
+                                                "type": "string",
+                                                "example": ""
+                                            },
+                                            "referral_reason": {
+                                                "type": "string",
+                                                "example": "Medical assessment on lower back pain"
+                                            },
+                                            "referral_condition": {
+                                                "type": "string",
+                                                "example": "Lower back pain rated at 7/10, persistent despite physiotherapy and pharmacy treatment. Patient reports stiffness after prolonged sitting and minimal improvement. Pharmacist advised on pain relief medication (paracetamol and muscle rub), but symptoms persist."
+                                            },
+                                            "medical_history": {
+                                                "type": "string",
+                                                "example": "Mild scoliosis diagnosed during teenage years. No history of trauma or major illness."
+                                            },
+                                            "additional_remarks_refer": {
+                                                "type": "string",
+                                                "example": "Patient has been cooperative and compliant with both physiotherapy and pharmacy recommendations. However, the ongoing pain and limited response to conservative treatment suggest the need for further clinical evaluation. Consider ruling out structural or neurological causes. Patient open to further diagnostic tests if required."
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "form_data": {
+                                        "properties": {
+                                            "5": {
+                                                "properties": {
+                                                    "drug_allergies": {
+                                                        "type": "string",
+                                                        "example": "No"
+                                                    },
+                                                    "prescription_status": {
+                                                        "type": "string",
+                                                        "example": "25"
+                                                    },
+                                                    "pickup_time": {
+                                                        "type": "string",
+                                                        "example": "14:20"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Referral updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Referral updated successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update referral.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to update referral."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'referral_id' cannot be null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "Referrals"

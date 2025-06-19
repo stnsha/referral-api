@@ -23,15 +23,19 @@ class UpdateReferralRequest extends FormRequest
     public function rules(): array
     {
         $staticRules = [
-            'referral_id' => 'required|exists:referrals,id',
-            'bu_id_reply' => 'required|integer',
-            'ref_bu_id' => 'nullable|integer',
-            'status' => 'required|integer',
+            'referral.referral_id' => 'required|exists:referrals,id',
+            'referral.business_unit_id_reply' => 'required|integer',
+            'referral.updated_recipient_to' => 'nullable|integer',
+            'referral.status' => 'required|integer',
+            'referral.additional_remarks' => 'nullable|string',
 
-            'new_referral' => 'nullable|array',
-            'new_referral.staff_id' => 'nullable|integer',
-            'new_referral.staff_department_id' => 'nullable|integer',
-            'new_referral.location' => 'nullable|integer'
+            'refer_another.refer_business_unit' => 'nullable|integer',
+            'refer_another.refer_location' => 'nullable|integer',
+            'refer_another.refer_to' => 'nullable|integer',
+            'refer_another.referral_reason' => 'nullable|string',
+            'refer_another.referral_condition' => 'nullable|string',
+            'refer_another.medical_history' => 'nullable|string',
+            'refer_another.additional_remarks_refer' => 'nullable|string'
         ];
 
         $fieldTypeRuleMap = [
@@ -60,7 +64,7 @@ class UpdateReferralRequest extends FormRequest
 
         $dynamicRules = [];
 
-        $deptId = $this->input('bu_id_reply');
+        $deptId = $this->input('referral.business_unit_id_reply');
 
         $forms = Form::whereHas('business_unit', function ($q) use ($deptId) {
             $q->where('staff_department_id', $deptId);
@@ -97,7 +101,7 @@ class UpdateReferralRequest extends FormRequest
                     $rules[] = $fieldTypeRuleMap[$type];
                 }
 
-                $dynamicRules["form_data.$field"] = implode('|', $rules);
+                $dynamicRules["form_data.{$form->id}.$field"] = implode('|', $rules);
             }
         }
 
@@ -108,7 +112,7 @@ class UpdateReferralRequest extends FormRequest
     {
         $messages = [];
 
-        $deptId = $this->input('bu_id_reply');
+        $deptId = $this->input('referral.business_unit_id_reply');
 
         $forms = Form::whereHas('business_unit', function ($query) use ($deptId) {
             $query->where('staff_department_id', $deptId);
@@ -119,7 +123,7 @@ class UpdateReferralRequest extends FormRequest
                 $field = $detail->field_name;
                 $label = ucwords(str_replace('_', ' ', $field));
                 $type = $detail->field_type;
-                $path = "form_data.$field";
+                $path = "form_data.{$form->id}.$field";
 
                 if ($detail->is_required) {
                     $messages["$path.required"] = "$label is required.";

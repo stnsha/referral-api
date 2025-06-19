@@ -422,60 +422,138 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/referral",
+     *     summary="Update an existing referral and optionally refer to another business unit",
+     *     tags={"Referrals"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"referral"},
+     *             @OA\Property(property="referral", type="object",
+     *                 @OA\Property(property="referral_id", type="string", example="1"),
+     *                 @OA\Property(property="updated_recipient_to", type="string", example="3333"),
+     *                 @OA\Property(property="business_unit_id_reply", type="string", example="5"),
+     *                 @OA\Property(property="status", type="integer", example=3),
+     *                 @OA\Property(property="additional_remarks", type="string", example="No current medications apart from pain relief.")
+     *             ),
+     *             @OA\Property(property="refer_another", type="object",
+     *                 @OA\Property(property="refer_business_unit", type="string", example="2"),
+     *                 @OA\Property(property="refer_location", type="string", example="303"),
+     *                 @OA\Property(property="refer_to", type="string", example=""),
+     *                 @OA\Property(property="referral_reason", type="string", example="Medical assessment on lower back pain"),
+     *                 @OA\Property(property="referral_condition", type="string", example="Lower back pain rated at 7/10, persistent despite physiotherapy and pharmacy treatment. Patient reports stiffness after prolonged sitting and minimal improvement. Pharmacist advised on pain relief medication (paracetamol and muscle rub), but symptoms persist."),
+     *                 @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years. No history of trauma or major illness."),
+     *                 @OA\Property(property="additional_remarks_refer", type="string", example="Patient has been cooperative and compliant with both physiotherapy and pharmacy recommendations. However, the ongoing pain and limited response to conservative treatment suggest the need for further clinical evaluation. Consider ruling out structural or neurological causes. Patient open to further diagnostic tests if required.")
+     *             ),
+     *             @OA\Property(property="form_data", type="object",
+     *                 @OA\Property(property="5", type="object",
+     *                     @OA\Property(property="drug_allergies", type="string", example="No"),
+     *                     @OA\Property(property="prescription_status", type="string", example="25"),
+     *                     @OA\Property(property="pickup_time", type="string", example="14:20")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Referral updated successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Referral updated successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to update referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to update referral."),
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'referral_id' cannot be null")
+     *         )
+     *     )
+     * )
+     */
     public function update(UpdateReferralRequest $request)
     {
         try {
             $validated = $request->validated();
             if ($validated) {
-                $referralId = $validated['referral_id'];
-                $departmentId = $validated['bu_id_reply'];
-                $business_unit_id = BusinessUnit::where('staff_department_id', $departmentId)->value('id');
+                $referral_id = $validated['referral']['referral_id'];
+                $business_unit_id = $validated['referral']['business_unit_id_reply'];
+                $referral = Referral::with(['referral_histories', 'referral_histories.referral_details'])->find($referral_id);
 
-                $referral = Referral::find($referralId);
-                $referral->status = $validated['status'];
-                $referral->save();
+                //update status
+                $referral->status = $validated['referral']['status'];
+                $referral_history_id = '';
 
-                $formFields = $request->input("form_data", []);
+                foreach ($referral->referral_histories as $rh) {
+                    if ($rh->business_unit_id == $business_unit_id) {
 
-                foreach ($formFields as $field => $value) {
+                        $referral_history_id = $rh->id;
 
-                    $form_detail = FormDetails::where('field_name', $field)
-                        ->whereHas('form.business_unit', function ($query) use ($departmentId) {
-                            $query->where('staff_department_id', $departmentId);
-                        })
-                        ->first();
+                        if ($rh->status === null) {
+                            $rh->staff_id = $validated['referral']['updated_recipient_to'] ?? $rh->staff_id;
 
-                    ReferralDetails::create([
-                        'referral_id' => $referral->id,
-                        'form_id' => $form_detail->form_id,
-                        'value' => is_array($value) ? json_encode($value) : $value,
-                    ]);
+                            if (isset($validated['referral']['additional_remarks'])) {
+                                $rh->additional_remarks = $validated['referral']['additional_remarks'];
+                            }
+
+                            $rh->save();
+                        }
+                    }
                 }
 
-                $histories = $referral->referral_histories->where('business_unit_id', $business_unit_id)->first();
-                $histories->is_filled = true;
-                $histories->save();
+                $referral->save();
 
-                if (isset($validated['new_referral'])) {
-                    $latestSequence = $referral->referral_histories()->max('sequence');
+                if (isset($validated['refer_another'])) {
+                    $refer_business_unit = isset($validated['refer_another']['refer_business_unit']) ? $validated['refer_another']['refer_business_unit'] : null;
+                    $refer_location = isset($validated['refer_another']['refer_location']) ? $validated['refer_another']['refer_location'] : null;
+                    $refer_to = isset($validated['refer_another']['refer_to']) ? $validated['refer_another']['refer_to'] : null;
+                    $referral_reason = isset($validated['refer_another']['referral_reason']) ? $validated['refer_another']['referral_reason'] : null;
+                    $referral_condition = isset($validated['refer_another']['referral_condition']) ? $validated['refer_another']['referral_condition'] : null;
+                    $medical_history = isset($validated['refer_another']['medical_history']) ? $validated['refer_another']['medical_history'] : null;
+                    $additional_remarks_refer = isset($validated['refer_another']['additional_remarks_refer']) ? $validated['refer_another']['additional_remarks_refer'] : null;
 
-                    $staffId = isset($validated['new_referral']['staff_id']) ? $validated['new_referral']['staff_id'] : null;
-                    $staffDeptId = isset($validated['new_referral']['staff_department_id']) ? $validated['new_referral']['staff_department_id'] : null;
-                    $location = isset($validated['new_referral']['location']) ? $validated['new_referral']['location'] : null;
-
-                    $buId = BusinessUnit::where('staff_department_id', $staffDeptId)->value('id');
+                    $total_rh = count($referral->referral_histories);
 
                     ReferralHistory::create([
                         'referral_id' => $referral->id,
-                        'staff_id' => $staffId,
-                        'business_unit_id' => $buId,
-                        'location' => $location,
-                        'sequence' => 1 + $latestSequence,
+                        'staff_id' => $refer_to,
+                        'business_unit_id' => $refer_business_unit,
+                        'location' => $refer_location,
+                        'sequence' => $total_rh + 1,
+                        'referral_reason' => $referral_reason,
+                        'referral_condition' => $referral_condition,
+                        'medical_history' => $medical_history,
+                        'additional_remarks' => $additional_remarks_refer,
                         'is_filled' => false
                     ]);
                 }
 
-                return response()->json(['message' => 'Referral updated successfully.'], 201);
+                $formFields = $request->input("form_data.$business_unit_id", []);
+
+                foreach ($formFields as $field => $value) {
+                    $form_detail = FormDetails::where('field_name', $field)
+                        ->whereHas('form', function ($query) use ($business_unit_id) {
+                            $query->where('business_unit_id', $business_unit_id);
+                        })
+                        ->first();
+
+                    ReferralDetails::create([
+                        'referral_history_id' => $referral_history_id,
+                        'form_id' => $form_detail->form_id,
+                        'value' => is_array($value) ? json_encode($value) : $value,
+                    ]);
+                }
+                return response()->json(['message' => 'Referral updated successfully.'], 200);
             }
         } catch (ValidationException $e) {
             return response()->json([
@@ -484,7 +562,7 @@ class ReferralController extends Controller
             ], 422);
         } catch (Throwable $e) {
             return response()->json([
-                'message' => 'Failed to create referral.',
+                'message' => 'Failed to update referral.',
                 'error' => $e->getMessage(),
             ], 500);
         }
