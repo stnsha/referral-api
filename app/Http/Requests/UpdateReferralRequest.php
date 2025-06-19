@@ -101,7 +101,7 @@ class UpdateReferralRequest extends FormRequest
                     $rules[] = $fieldTypeRuleMap[$type];
                 }
 
-                $dynamicRules["form_data.{$form->id}.$field"] = implode('|', $rules);
+                $dynamicRules["form_data.$deptId.$field"] = implode('|', $rules);
             }
         }
 
