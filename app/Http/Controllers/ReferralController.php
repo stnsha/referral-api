@@ -241,6 +241,9 @@ class ReferralController extends Controller
      *                     @OA\Property(property="business_unit_id", type="integer", example=6),
      *                     @OA\Property(property="is_filled", type="integer", example=1),
      *                     @OA\Property(property="created_at", type="string", example="19 June 2025"),
+     *                     @OA\Property(property="referral_reason", type="string", example="Vestibular-Related Balance Issue"),
+     *                     @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness..."),
+     *                     @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                     @OA\Property(property="additional_remarks", type="string", nullable=true, example=null),
      *                     @OA\Property(property="referral_details", type="array",
      *                         @OA\Items(
@@ -271,8 +274,8 @@ class ReferralController extends Controller
      *                 @OA\Property(property="customer_id", type="integer", example=10),
      *                 @OA\Property(property="business_unit_id", type="integer", example=6),
      *                 @OA\Property(property="referral_reason", type="string", example="Vestibular-Related Balance Issue"),
-     *                 @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."),
-     *                 @OA\Property(property="medical_history", type="string", example=""),
+     *                 @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness and unsteadiness..."),
+     *                 @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                 @OA\Property(property="priority", type="integer", example=2),
      *                 @OA\Property(property="status", type="integer", example=1)
      *             )
@@ -294,7 +297,6 @@ class ReferralController extends Controller
      *     )
      * )
      */
-
     public function show(Referral $referral)
     {
         try {
@@ -391,6 +393,9 @@ class ReferralController extends Controller
                         'business_unit_id' => $rh->business_unit_id,
                         'is_filled' => $rh->is_filled,
                         'created_at' => Carbon::parse($rh->created_at)->format('d F Y'),
+                        'referral_reason' => $rh->referral_reason,
+                        'referral_condition' => $rh->referral_condition,
+                        'medical_history' => $rh->medical_history,
                         'additional_remarks' => $rh->additional_remarks,
                         'referral_details' => $forms
                     ];

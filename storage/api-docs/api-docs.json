@@ -1261,6 +1261,18 @@
                                                             "type": "string",
                                                             "example": "19 June 2025"
                                                         },
+                                                        "referral_reason": {
+                                                            "type": "string",
+                                                            "example": "Vestibular-Related Balance Issue"
+                                                        },
+                                                        "referral_condition": {
+                                                            "type": "string",
+                                                            "example": "Patient reports persistent dizziness..."
+                                                        },
+                                                        "medical_history": {
+                                                            "type": "string",
+                                                            "example": "Mild scoliosis diagnosed during teenage years."
+                                                        },
                                                         "additional_remarks": {
                                                             "type": "string",
                                                             "example": null,
@@ -1356,11 +1368,11 @@
                                                 },
                                                 "referral_condition": {
                                                     "type": "string",
-                                                    "example": "Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."
+                                                    "example": "Patient reports persistent dizziness and unsteadiness..."
                                                 },
                                                 "medical_history": {
                                                     "type": "string",
-                                                    "example": ""
+                                                    "example": "Mild scoliosis diagnosed during teenage years."
                                                 },
                                                 "priority": {
                                                     "type": "integer",
