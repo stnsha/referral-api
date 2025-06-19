@@ -499,8 +499,9 @@ class ReferralController extends Controller
 
                         $referral_history_id = $rh->id;
 
-                        if ($rh->status === null) {
+                        if ($rh->staff_id === null) {
                             $rh->staff_id = $validated['referral']['updated_recipient_to'] ?? $rh->staff_id;
+                            $rh->is_filled = true;
 
                             if (isset($validated['referral']['additional_remarks'])) {
                                 $rh->additional_remarks = $validated['referral']['additional_remarks'];
