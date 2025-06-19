@@ -166,9 +166,15 @@ class ReferralController extends Controller
                     'is_filled' => $is_filled,
                 ];
 
-                if (isset($value['referral_reason']) || isset($value['referral_condition']) || isset($value['medical_history'])) {
+                if (
+                    isset($value['referral_reason']) ||
+                    isset($value['referral_condition']) ||
+                    isset($value['medical_history']) ||
+                    isset($value['additional_remarks'])
+                ) {
                     $data['referral_reason'] = $value['referral_reason'] ?? '';
                     $data['referral_condition'] = $value['referral_condition'] ?? '';
+                    $data['medical_history'] = $value['medical_history'] ?? '';
                     $data['medical_history'] = $value['medical_history'] ?? '';
                 }
 
