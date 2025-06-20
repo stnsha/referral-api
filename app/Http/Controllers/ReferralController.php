@@ -503,19 +503,15 @@ class ReferralController extends Controller
 
                 foreach ($referral->referral_histories as $rh) {
                     if ($rh->business_unit_id == $business_unit_id) {
-
                         $referral_history_id = $rh->id;
 
-                        if ($rh->staff_id === null) {
-                            $rh->staff_id = $validated['referral']['updated_recipient_to'] ?? $rh->staff_id;
-                            $rh->is_filled = true;
-
-                            if (isset($validated['referral']['additional_remarks'])) {
-                                $rh->additional_remarks = $validated['referral']['additional_remarks'];
-                            }
-
-                            $rh->save();
+                        if (is_null($rh->staff_id) && !empty($validated['referral']['updated_recipient_to'])) {
+                            $rh->staff_id = $validated['referral']['updated_recipient_to'];
+                            $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
                         }
+
+                        $rh->is_filled = true;
+                        $rh->save();
                     }
                 }
 
@@ -528,7 +524,6 @@ class ReferralController extends Controller
                     $referral_reason = isset($validated['refer_another']['referral_reason']) ? $validated['refer_another']['referral_reason'] : null;
                     $referral_condition = isset($validated['refer_another']['referral_condition']) ? $validated['refer_another']['referral_condition'] : null;
                     $medical_history = isset($validated['refer_another']['medical_history']) ? $validated['refer_another']['medical_history'] : null;
-                    $additional_remarks_refer = isset($validated['refer_another']['additional_remarks_refer']) ? $validated['refer_another']['additional_remarks_refer'] : null;
 
                     $total_rh = count($referral->referral_histories);
 
@@ -541,7 +536,6 @@ class ReferralController extends Controller
                         'referral_reason' => $referral_reason,
                         'referral_condition' => $referral_condition,
                         'medical_history' => $medical_history,
-                        'additional_remarks' => $additional_remarks_refer,
                         'is_filled' => false
                     ]);
                 }
