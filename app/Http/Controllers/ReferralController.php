@@ -202,7 +202,7 @@ class ReferralController extends Controller
                 }
 
 
-                return response()->json(['message' => 'Referral created successfully.'], 201);
+                return response()->json(['id' => $referral->id], 201);
             }
         } catch (ValidationException $e) {
             return response()->json([
