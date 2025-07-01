@@ -14,8 +14,8 @@
             "description": "Local Server"
         },
         {
-            "url": "http://172.18.28.51:8002",
-            "description": "MyHealth Server"
+            "url": "http://mytotalhealth.com.my/referral-api",
+            "description": "MyHealth Server (Staging)"
         }
     ],
     "paths": {
@@ -1155,9 +1155,9 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Referral created successfully."
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1234
                                         }
                                     },
                                     "type": "object"
