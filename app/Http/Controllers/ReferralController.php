@@ -67,6 +67,7 @@ class ReferralController extends Controller
                         'ref_id' => $this->createRefId($ref->id),
                         'reason' => $rh->referral_reason,
                         'business_unit' => $rh->business_unit->name,
+                        'ori_status' => $ref->status,
                         'status' => $this->getStatus($ref->status)
                     ];
                 }
