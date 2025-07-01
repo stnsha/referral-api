@@ -20,8 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * )
  * 
  * @OA\Server(
- *      url="http://172.18.28.51:8002",
- *      description="MyHealth Server"
+ *      url="http://mytotalhealth.com.my/referral-api",
+ *      description="MyHealth Server (Staging)"
  * )
  *
  */

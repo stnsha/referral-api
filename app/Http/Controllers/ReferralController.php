@@ -114,13 +114,14 @@ class ReferralController extends Controller
      *             )
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Referral created successfully.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Referral created successfully.")
-     *         )
-     *     ),
+     *  @OA\Response(
+     *      response=201,
+     *      description="Referral created successfully.",
+     *      @OA\JsonContent(
+     *          @OA\Property(property="id", type="integer", example=1234)
+     *      )
+     *  ),
+
      *     @OA\Response(
      *         response=422,
      *         description="Validation failed.",
