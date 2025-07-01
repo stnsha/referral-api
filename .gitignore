@@ -20,3 +20,8 @@ yarn-error.log
 .htaccess
 index.php
 /public
+composer.json
+package.json
+composer.lock
+package-lock.json
+vite.config.js
