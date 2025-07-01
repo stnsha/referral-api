@@ -574,6 +574,7 @@ class ReferralController extends Controller
 
     private function getStatus($ref_status)
     {
+
         /**
          * Status
          * 1 = Open
@@ -582,25 +583,26 @@ class ReferralController extends Controller
          * 4 = Closed
          */
         switch ($ref_status) {
-            case 1:
+            case '1':
                 $status = 'Open';
                 break;
 
-            case 2:
+            case '2':
                 $status = 'In Progress';
                 break;
 
-            case 3:
+            case '3':
                 $status = 'Referred';
+                break;
 
-            case 4:
+            case '4':
                 $status = 'Closed';
+                break;
 
             default:
                 $status = 'Submitted';
                 break;
         }
-
         return $status;
     }
 
