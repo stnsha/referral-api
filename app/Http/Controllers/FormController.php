@@ -8,6 +8,7 @@ use App\Models\BusinessUnit;
 use App\Models\Form;
 use App\Models\FormDetails;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
@@ -58,6 +59,7 @@ class FormController extends Controller
     public function store(FormsRequest $request)
     {
         try {
+            DB::beginTransaction();
             $validated = $request->validated();
             $bu = BusinessUnit::where('staff_department_id', $validated['business_unit_id'])->first();
 
@@ -87,8 +89,10 @@ class FormController extends Controller
                 ]);
             }
 
+            DB::commit();
             return response()->json(['message' => 'Form created successfully!', 'form_id' => $form->id], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Form creation failed: ' . $e->getMessage());
 
             return response()->json(['message' => 'Form creation failed', 'error' => $e->getMessage()], 500);
@@ -267,6 +271,7 @@ class FormController extends Controller
     public function update(FormsRequest $request, Form $form)
     {
         try {
+            DB::beginTransaction();
             $validated = $request->validated();
 
             $updates = [];
@@ -282,8 +287,10 @@ class FormController extends Controller
                 $form->update($updates);
             }
 
+            DB::commit();
             return response()->json(['message' => 'Form updated successfully!'], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['message' => 'Update failed', 'error' => $e->getMessage()], 500);
         }
     }
@@ -324,12 +331,14 @@ class FormController extends Controller
     public function destroy(Form $form)
     {
         try {
+            DB::beginTransaction();
             $form->delete();
-
+            DB::commit();
             return response()->json([
                 'message' => 'Form deleted successfully!'
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Failed to delete form.',
                 'error' => $e->getMessage()
