@@ -114,7 +114,16 @@ class ReferralController extends Controller
      *                     @OA\Property(property="pain_level", type="string", example="4"),
      *                     @OA\Property(property="previous_physiotherapy", type="string", example="30")
      *                 )
-     *             )
+     *             ),
+     *             @OA\Property(property="attachments", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="name", type="string", example="Labs.png"),
+     *                     @OA\Property(property="type", type="string", example="image/png"),
+     *                     @OA\Property(property="size", type="integer", example=14040),
+     *                     @OA\Property(property="base64", type="string", format="byte", example="iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA")
+     *                 )
+     *             ),
+
      *         )
      *     ),
      *  @OA\Response(
@@ -309,7 +318,16 @@ class ReferralController extends Controller
      *                 @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                 @OA\Property(property="priority", type="integer", example=2),
      *                 @OA\Property(property="status", type="integer", example=1)
-     *             )
+     *             ),
+     *              @OA\Property(property="referralAttachments", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="name", type="string", example="BloodReport.pdf"),
+     *                     @OA\Property(property="size", type="string", example="1.2 MB"),
+     *                     @OA\Property(property="type", type="string", example="application/pdf"),
+     *                     @OA\Property(property="encoded", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago8PC9U... (truncated)")
+     *                 )
+     *             ),
+
      *         )
      *     ),
      *     @OA\Response(
@@ -331,15 +349,18 @@ class ReferralController extends Controller
     public function show(Referral $referral)
     {
         try {
+            //check if exist
             if (!$referral) {
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
 
+            //initialize for default value
             $referral_reason = '';
             $business_unit_id = '';
             $referral_condition = '';
             $medical_history  = '';
 
+            //get referral histories
             $referralHistories = $referral->referral_histories
                 ->sortBy('sequence')
                 ->values()
@@ -354,11 +375,13 @@ class ReferralController extends Controller
                 ) {
                     $forms = [];
 
+                    //get details
                     foreach ($rh->referral_details as $rd) {
                         $formDetails = [];
                         $form_details = $rd->form->form_details;
                         $value = json_decode($rd->value, true);
 
+                        //run through form details
                         foreach ($form_details as $fd) {
                             $key = $fd->field_name;
 
@@ -371,6 +394,7 @@ class ReferralController extends Controller
                                 ];
                             }
 
+                            //map answer to form details based on type
                             $is_answer = false;
 
                             if ($fd->field_type == 'checkbox' && is_array($value)) {
@@ -398,8 +422,10 @@ class ReferralController extends Controller
                             }
                         }
 
+                        //group by index
                         $formDetails = array_values($formDetails);
 
+                        //grouped form details with form
                         $form = [
                             'form_id' => $rd->form->id,
                             'label_name' => $rd->form->label_name,
@@ -407,9 +433,11 @@ class ReferralController extends Controller
                             'form_details' => $formDetails,
                         ];
 
+                        //add to array
                         $forms[] = $form;
                     }
 
+                    //if first level business unit, assigned actual values
                     if ($rh->sequence == 1) {
                         $referral_reason = $rh->referral_reason;
                         $business_unit_id = $rh->business_unit_id;
@@ -417,6 +445,7 @@ class ReferralController extends Controller
                         $medical_history = $rh->medical_history;
                     }
 
+                    //return histories data
                     return [
                         'sequence' => $rh->sequence,
                         'staff_id' => $rh->staff_id,
@@ -432,7 +461,7 @@ class ReferralController extends Controller
                     ];
                 });
 
-
+            //create referring indication data
             $referringIndication = [
                 'id' => $referral->id,
                 'referral_id' => $this->createRefId($referral->id),
@@ -445,9 +474,21 @@ class ReferralController extends Controller
                 'status' => $referral->status,
             ];
 
+            //attachments
+            $referralAttachments = $referral->referral_attachments->map(function ($atc) {
+                return [
+                    'name' => $atc->file_name,
+                    'size' => $atc->file_type,
+                    'type' => $atc->file_size,
+                    'encoded' => $atc->encoded_base
+                ];
+            });
+
+            //grouped all data
             $data = [
                 'referralDetails' => $referralHistories,
-                'referringIndication' => $referringIndication
+                'referringIndication' => $referringIndication,
+                'referralAttachments' => $referralAttachments,
             ];
 
             return response()->json($data, 200);

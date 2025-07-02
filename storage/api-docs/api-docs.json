@@ -1141,6 +1141,31 @@
                                             }
                                         },
                                         "type": "object"
+                                    },
+                                    "attachments": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Labs.png"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "image/png"
+                                                },
+                                                "size": {
+                                                    "type": "integer",
+                                                    "example": 14040
+                                                },
+                                                "base64": {
+                                                    "type": "string",
+                                                    "format": "byte",
+                                                    "example": "iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
                                     }
                                 },
                                 "type": "object"
@@ -1384,6 +1409,31 @@
                                                 }
                                             },
                                             "type": "object"
+                                        },
+                                        "referralAttachments": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "BloodReport.pdf"
+                                                    },
+                                                    "size": {
+                                                        "type": "string",
+                                                        "example": "1.2 MB"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "example": "application/pdf"
+                                                    },
+                                                    "encoded": {
+                                                        "type": "string",
+                                                        "format": "byte",
+                                                        "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago8PC9U... (truncated)"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"

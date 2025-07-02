@@ -41,8 +41,8 @@ class Referral extends Model
         return $this->hasOne(ReferralHistory::class)->latestOfMany();
     }
 
-    public function business_unit(): BelongsTo
+    public function referral_attachments(): HasMany
     {
-        return $this->belongsTo(BusinessUnit::class, 'business_unit_id', 'id');
+        return $this->hasMany(ReferralAttachment::class, 'referral_id', 'id');
     }
 }
