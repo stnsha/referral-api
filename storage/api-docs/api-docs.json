@@ -196,18 +196,18 @@
                 }
             }
         },
-        "/api/form/show/{staff_department_id}": {
+        "/api/form/show/{business_unit_id}": {
             "get": {
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Get forms by staff department ID",
-                "operationId": "779f92ecb2d4034b95d2fb32803cfb93",
+                "summary": "Get forms by business unit id.",
+                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
                 "parameters": [
                     {
-                        "name": "staff_department_id",
+                        "name": "business_unit_id",
                         "in": "path",
-                        "description": "Primary key of staff_department table",
+                        "description": "Business unit ID",
                         "required": true,
                         "schema": {
                             "type": "integer"

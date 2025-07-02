@@ -2,13 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\BusinessUnit;
 use App\Models\Form;
 use App\Models\FormDetails;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 
 class BusinessUnitFormSeeder extends Seeder
 {
@@ -17,64 +13,6 @@ class BusinessUnitFormSeeder extends Seeder
      */
     public function run(): void
     {
-        // $fieldTypes = [
-        //     'button',
-        //     'checkbox',
-        //     'color',
-        //     'date',
-        //     'datetime-local',
-        //     'email',
-        //     'file',
-        //     'hidden',
-        //     'image',
-        //     'month',
-        //     'number',
-        //     'password',
-        //     'radio',
-        //     'range',
-        //     'reset',
-        //     'search',
-        //     'submit',
-        //     'tel',
-        //     'text',
-        //     'time',
-        //     'url',
-        //     'week',
-        // ];
-
-        // foreach (range(1, 10) as $i) {
-        //     $fieldType = Arr::random($fieldTypes);
-        //     $label = fake()->words(2, true);
-        //     $fieldName = Str::slug($label, '_');
-
-        //     $form = Form::create([
-        //         'business_unit_id' => rand(1, 6),
-        //         'label_name' => $label,
-        //         'is_hidden' => fake()->boolean(),
-        //     ]);
-
-        //     if (in_array($fieldType, ['checkbox', 'radio', 'select'])) {
-        //         $options = ['Option A', 'Option B', 'Option C'];
-        //         foreach ($options as $option) {
-        //             FormDetails::create([
-        //                 'form_id' => $form->id,
-        //                 'is_required' => fake()->boolean(),
-        //                 'field_name' => $fieldName,
-        //                 'field_type' => $fieldType,
-        //                 'field_value' => $option,
-        //             ]);
-        //         }
-        //     } else {
-        //         FormDetails::create([
-        //             'form_id' => $form->id,
-        //             'is_required' => fake()->boolean(),
-        //             'field_name' => $fieldName,
-        //             'field_type' => $fieldType,
-        //             'field_value' => null,
-        //         ]);
-        //     }
-        // }
-
         $customQuestions = [
             1 => [
                 ['label' => 'Have you experienced hearing loss recently?', 'field' => 'hearing_loss_recent', 'type' => 'radio', 'options' => ['Yes', 'No']],
@@ -110,28 +48,31 @@ class BusinessUnitFormSeeder extends Seeder
 
         foreach ($customQuestions as $business_unit_id => $fields) {
             foreach ($fields as $field) {
-                $form = Form::create([
+                $form = Form::firstOrCreate([
                     'business_unit_id' => $business_unit_id,
                     'label_name' => $field['label'],
+                ], [
                     'is_hidden' => false,
                 ]);
 
                 if (in_array($field['type'], ['checkbox', 'radio', 'select']) && isset($field['options'])) {
                     foreach ($field['options'] as $option) {
-                        FormDetails::create([
+                        FormDetails::firstOrCreate([
                             'form_id' => $form->id,
-                            'is_required' => true,
                             'field_name' => $field['field'],
                             'field_type' => $field['type'],
                             'field_value' => $option,
+                        ], [
+                            'is_required' => true,
                         ]);
                     }
                 } else {
-                    FormDetails::create([
+                    FormDetails::firstOrCreate([
                         'form_id' => $form->id,
-                        'is_required' => true,
                         'field_name' => $field['field'],
                         'field_type' => $field['type'],
+                    ], [
+                        'is_required' => true,
                         'field_value' => null,
                     ]);
                 }

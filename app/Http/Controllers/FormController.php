@@ -97,14 +97,14 @@ class FormController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/form/show/{staff_department_id}",
-     *     summary="Get forms by staff department ID",
+     *     path="/api/form/show/{business_unit_id}",
+     *     summary="Get forms by business unit id.",
      *     tags={"Forms"},
      *     @OA\Parameter(
-     *         name="staff_department_id",
+     *         name="business_unit_id",
      *         in="path",
      *         required=true,
-     *         description="Primary key of staff_department table",
+     *         description="Business unit ID",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
