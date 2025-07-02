@@ -16,7 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('referral_id');
             $table->string('file_name');
             $table->string('file_type');
-            $table->string('file_location');
+            $table->string('file_size');
+            $table->longText('encoded_base');
             $table->softDeletes();
             $table->timestamps();
 

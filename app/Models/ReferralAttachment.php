@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class referral_attachments extends Model
+class ReferralAttachment extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -14,6 +14,7 @@ class referral_attachments extends Model
         'referral_id',
         'file_name',
         'file_type',
-        'file_location'
+        'file_size',
+        'encoded_base'
     ];
 }

@@ -38,6 +38,8 @@ class StoreReferralRequest extends FormRequest
 
             'referral.customer_id' => 'required|integer',
             'referral.priority' => 'required|integer',
+
+            'attachments' => 'nullable|array'
         ];
 
         $fieldTypeRuleMap = [
