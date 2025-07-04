@@ -567,6 +567,24 @@ class ReferralController extends Controller
 
                         $rh->is_filled = true;
                         $rh->save();
+
+                        //run through attachments if exist
+                        if (filled($request['attachments'])) {
+                            foreach ($validated['attachments'] as $atc) {
+                                $referralAttachment = ReferralAttachment::create([
+                                    'referral_history_id' => $referral_history_id,
+                                    'file_name' => $atc['name'],
+                                    'file_type' => $atc['type'],
+                                    'file_size' => $atc['size'],
+                                    'encoded_base' => $atc['base64']
+                                ]);
+
+
+                                $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
+                                $referralAttachment->file_name = $prefix . '_' . $atc['name'];
+                                $referralAttachment->save();
+                            }
+                        }
                     }
                 }
 
@@ -595,23 +613,6 @@ class ReferralController extends Controller
                     ]);
 
                     $referral_history_id = $referral_history->id;
-                    //run through attachments if exist
-                    if (filled($request['attachments'])) {
-                        foreach ($validated['attachments'] as $atc) {
-                            $referralAttachment = ReferralAttachment::create([
-                                'referral_history_id' => $referral_history_id,
-                                'file_name' => $atc['name'],
-                                'file_type' => $atc['type'],
-                                'file_size' => $atc['size'],
-                                'encoded_base' => $atc['base64']
-                            ]);
-
-
-                            $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
-                            $referralAttachment->file_name = $prefix . '_' . $atc['name'];
-                            $referralAttachment->save();
-                        }
-                    }
                 }
 
                 $formFields = $request->input("form_data.$business_unit_id", []);
