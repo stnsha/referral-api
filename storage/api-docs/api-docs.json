@@ -804,14 +804,14 @@
                 }
             }
         },
-        "/api/attachment/{attachment}/download": {
+        "/api/attachment/{attachment}": {
             "get": {
                 "tags": [
                     "Attachments"
                 ],
                 "summary": "Download an attachment file",
                 "description": "Download an attachment file",
-                "operationId": "f2a656b6e632a560da9144ab9d065f66",
+                "operationId": "e3da93f887faf547d458b75b9d6154fb",
                 "parameters": [
                     {
                         "name": "attachment",
