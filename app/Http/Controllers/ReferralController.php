@@ -493,6 +493,15 @@ class ReferralController extends Controller
      *                 @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years. No history of trauma or major illness."),
      *                 @OA\Property(property="additional_remarks_refer", type="string", example="Patient has been cooperative and compliant with both physiotherapy and pharmacy recommendations. However, the ongoing pain and limited response to conservative treatment suggest the need for further clinical evaluation. Consider ruling out structural or neurological causes. Patient open to further diagnostic tests if required.")
      *             ),
+     *             @OA\Property(property="attachments", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="name", type="string", example="Labs.png"),
+     *                     @OA\Property(property="type", type="string", example="image/png"),
+     *                     @OA\Property(property="size", type="integer", example=14040),
+     *                     @OA\Property(property="base64", type="string", format="byte", example="iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"),
+     *                     description="Attachments will be associated with the referral history that has is_filled=true"
+     *                 )
+     *             ),
      *             @OA\Property(property="form_data", type="object",
      *                 @OA\Property(property="5", type="object",
      *                     @OA\Property(property="drug_allergies", type="string", example="No"),
@@ -567,7 +576,7 @@ class ReferralController extends Controller
 
                     $total_rh = count($referral->referral_histories);
 
-                    ReferralHistory::create([
+                    $referral_history = ReferralHistory::create([
                         'referral_id' => $referral->id,
                         'staff_id' => $refer_to,
                         'business_unit_id' => $refer_business_unit,
@@ -578,6 +587,20 @@ class ReferralController extends Controller
                         'medical_history' => $medical_history,
                         'is_filled' => false
                     ]);
+
+                    $referral_history_id = $referral_history->id;
+                    //run through attachments if exist
+                    if (filled($request['attachments'])) {
+                        foreach ($validated['attachments'] as $atc) {
+                            ReferralAttachment::create([
+                                'referral_history_id' => $referral_history_id,
+                                'file_name' => $atc['name'],
+                                'file_type' => $atc['type'],
+                                'file_size' => $atc['size'],
+                                'encoded_base' => $atc['base64']
+                            ]);
+                        }
+                    }
                 }
 
                 $formFields = $request->input("form_data.$business_unit_id", []);

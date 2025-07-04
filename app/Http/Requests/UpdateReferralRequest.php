@@ -35,7 +35,9 @@ class UpdateReferralRequest extends FormRequest
             'refer_another.referral_reason' => 'nullable|string',
             'refer_another.referral_condition' => 'nullable|string',
             'refer_another.medical_history' => 'nullable|string',
-            'refer_another.additional_remarks_refer' => 'nullable|string'
+            'refer_another.additional_remarks_refer' => 'nullable|string',
+
+            'attachments' => 'nullable|array'
         ];
 
         $fieldTypeRuleMap = [
