@@ -143,7 +143,112 @@ class ReferralController extends Controller
      *     )
      * )
      */
+    public function store(StoreReferralRequest $request)
+    {
+        try {
+            $validated = $request->validated();
 
+            if ($validated) {
+                DB::beginTransaction();
+                //data from business units
+                $businessUnits = $validated['business_units'];
+
+                //get business unit id
+                $business_unit_id = $businessUnits['assignee']['business_unit_id'];
+
+                //create referral
+                $referral = Referral::create([
+                    'customer_id' => $validated['referral']['customer_id'],
+                    'priority' => $validated['referral']['priority'],
+                    'status' => 1, //Open
+                ]);
+
+                //run through businessunits 
+                foreach (array_values($businessUnits) as $key => $value) {
+                    //for second level of business unit 
+                    $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
+
+                    //compile data
+                    $data = [
+                        'referral_id' => $referral->id,
+                        'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
+                        'business_unit_id' => $value['business_unit_id'],
+                        'location' => $value['location'],
+                        'sequence' => $key + 1,
+                        'is_filled' => $is_filled,
+                    ];
+
+                    //check if exist
+                    if (
+                        isset($value['referral_reason']) ||
+                        isset($value['referral_condition']) ||
+                        isset($value['medical_history']) ||
+                        isset($value['additional_remarks'])
+                    ) {
+                        $data['referral_reason'] = $value['referral_reason'] ?? '';
+                        $data['referral_condition'] = $value['referral_condition'] ?? '';
+                        $data['medical_history'] = $value['medical_history'] ?? '';
+                        $data['additional_remarks'] = $value['additional_remarks'] ?? '';
+                    }
+
+                    //create referral history
+                    $referralHistory = ReferralHistory::create($data);
+                    $referral_history_id = $referralHistory->id;
+
+                    //run through first level of business unit
+                    if ($business_unit_id == $value['business_unit_id']) {
+                        $formFields = $request->input("form_data.$business_unit_id", []);
+
+                        foreach ($formFields as $field => $value) {
+                            //get data from form details
+                            $form_detail = FormDetails::where('field_name', $field)
+                                ->whereHas('form', function ($query) use ($business_unit_id) {
+                                    $query->where('business_unit_id', $business_unit_id);
+                                })
+                                ->first();
+
+                            //create referral details
+                            ReferralDetails::create([
+                                'referral_history_id' => $referral_history_id,
+                                'form_id' => $form_detail->form_id,
+                                'value' => is_array($value) ? json_encode($value) : $value,
+                            ]);
+                        }
+                    }
+
+                    //run through attachments if exist
+                    if (filled($request['attachments']) && $is_filled) {
+                        foreach ($validated['attachments'] as $atc) {
+                            ReferralAttachment::create([
+                                'referral_history_id' => $referral_history_id,
+                                'file_name' => $atc['name'],
+                                'file_type' => $atc['type'],
+                                'file_size' => $atc['size'],
+                                'encoded_base' => $atc['base64']
+                            ]);
+                        }
+                    }
+                }
+
+
+                //return referral id if successfulD
+                DB::commit();
+                return response()->json(['id' => $referral->id], 201);
+            }
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create referral.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
     /**
      * @OA\Get(
      *     path="/api/referral/{id}",
