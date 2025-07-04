@@ -217,15 +217,20 @@ class ReferralController extends Controller
                     }
 
                     //run through attachments if exist
-                    if (filled($request['attachments']) && $is_filled) {
+                    if (filled($request['attachments'])) {
                         foreach ($validated['attachments'] as $atc) {
-                            ReferralAttachment::create([
+                            $referralAttachment = ReferralAttachment::create([
                                 'referral_history_id' => $referral_history_id,
                                 'file_name' => $atc['name'],
                                 'file_type' => $atc['type'],
                                 'file_size' => $atc['size'],
                                 'encoded_base' => $atc['base64']
                             ]);
+
+
+                            $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
+                            $referralAttachment->file_name = $prefix . '_' . $atc['name'];
+                            $referralAttachment->save();
                         }
                     }
                 }
@@ -540,6 +545,7 @@ class ReferralController extends Controller
     {
         try {
             $validated = $request->validated();
+
             if ($validated) {
                 DB::beginTransaction();
                 $referral_id = $validated['referral']['referral_id'];
@@ -592,13 +598,18 @@ class ReferralController extends Controller
                     //run through attachments if exist
                     if (filled($request['attachments'])) {
                         foreach ($validated['attachments'] as $atc) {
-                            ReferralAttachment::create([
+                            $referralAttachment = ReferralAttachment::create([
                                 'referral_history_id' => $referral_history_id,
                                 'file_name' => $atc['name'],
                                 'file_type' => $atc['type'],
                                 'file_size' => $atc['size'],
                                 'encoded_base' => $atc['base64']
                             ]);
+
+
+                            $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
+                            $referralAttachment->file_name = $prefix . '_' . $atc['name'];
+                            $referralAttachment->save();
                         }
                     }
                 }
