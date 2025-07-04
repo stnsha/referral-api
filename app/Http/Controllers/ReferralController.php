@@ -120,20 +120,19 @@ class ReferralController extends Controller
      *                     @OA\Property(property="name", type="string", example="Labs.png"),
      *                     @OA\Property(property="type", type="string", example="image/png"),
      *                     @OA\Property(property="size", type="integer", example=14040),
-     *                     @OA\Property(property="base64", type="string", format="byte", example="iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA")
+     *                     @OA\Property(property="base64", type="string", format="byte", example="iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"),
+     *                     description="Attachments will be associated with the referral history that has is_filled=true"
      *                 )
-     *             ),
-
+     *             )
      *         )
      *     ),
-     *  @OA\Response(
-     *      response=201,
-     *      description="Referral created successfully.",
-     *      @OA\JsonContent(
-     *          @OA\Property(property="id", type="integer", example=1234)
-     *      )
-     *  ),
-
+     *     @OA\Response(
+     *         response=201,
+     *         description="Referral created successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1234)
+     *         )
+     *     ),
      *     @OA\Response(
      *         response=422,
      *         description="Validation failed.",
@@ -141,121 +140,9 @@ class ReferralController extends Controller
      *             @OA\Property(property="message", type="string", example="Validation failed."),
      *             @OA\Property(property="errors", type="object")
      *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Failed to create referral.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
-     *             @OA\Property(property="error", type="string", example="SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'customer_id' cannot be null")
-     *         )
      *     )
      * )
      */
-    public function store(StoreReferralRequest $request)
-    {
-        try {
-            $validated = $request->validated();
-
-            if ($validated) {
-                DB::beginTransaction();
-                //data from business units
-                $businessUnits = $validated['business_units'];
-
-                //get business unit id
-                $business_unit_id = $businessUnits['assignee']['business_unit_id'];
-
-                //create referral
-                $referral = Referral::create([
-                    'customer_id' => $validated['referral']['customer_id'],
-                    'priority' => $validated['referral']['priority'],
-                    'status' => 1, //Open
-                ]);
-
-                //run through businessunits 
-                foreach (array_values($businessUnits) as $key => $value) {
-                    //for second level of business unit 
-                    $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
-
-                    //compile data
-                    $data = [
-                        'referral_id' => $referral->id,
-                        'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
-                        'business_unit_id' => $value['business_unit_id'],
-                        'location' => $value['location'],
-                        'sequence' => $key + 1,
-                        'is_filled' => $is_filled,
-                    ];
-
-                    //check if exist
-                    if (
-                        isset($value['referral_reason']) ||
-                        isset($value['referral_condition']) ||
-                        isset($value['medical_history']) ||
-                        isset($value['additional_remarks'])
-                    ) {
-                        $data['referral_reason'] = $value['referral_reason'] ?? '';
-                        $data['referral_condition'] = $value['referral_condition'] ?? '';
-                        $data['medical_history'] = $value['medical_history'] ?? '';
-                        $data['additional_remarks'] = $value['additional_remarks'] ?? '';
-                    }
-
-                    //create referral history
-                    $referralHistory = ReferralHistory::create($data);
-                    $referral_history_id = $referralHistory->id;
-
-                    //run through first level of business unit
-                    if ($business_unit_id == $value['business_unit_id']) {
-                        $formFields = $request->input("form_data.$business_unit_id", []);
-
-                        foreach ($formFields as $field => $value) {
-                            //get data from form details
-                            $form_detail = FormDetails::where('field_name', $field)
-                                ->whereHas('form', function ($query) use ($business_unit_id) {
-                                    $query->where('business_unit_id', $business_unit_id);
-                                })
-                                ->first();
-
-                            //create referral details
-                            ReferralDetails::create([
-                                'referral_history_id' => $referral_history_id,
-                                'form_id' => $form_detail->form_id,
-                                'value' => is_array($value) ? json_encode($value) : $value,
-                            ]);
-                        }
-                    }
-                }
-
-                //run through attachments if exist
-                if (filled($request['attachments'])) {
-                    foreach ($validated['attachments'] as $atc) {
-                        ReferralAttachment::create([
-                            'referral_id' => $referral->id,
-                            'file_name' => $atc['name'],
-                            'file_type' => $atc['type'],
-                            'file_size' => $atc['size'],
-                            'encoded_base' => $atc['base64']
-                        ]);
-                    }
-                }
-                //return referral id if successfulD
-                DB::commit();
-                return response()->json(['id' => $referral->id], 201);
-            }
-        } catch (ValidationException $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Failed to create referral.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * @OA\Get(
@@ -286,24 +173,14 @@ class ReferralController extends Controller
      *                     @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                     @OA\Property(property="additional_remarks", type="string", nullable=true, example=null),
      *                     @OA\Property(property="referral_details", type="array",
+     *                         @OA\Items(type="object")
+     *                     ),
+     *                     @OA\Property(property="attachments", type="array",
      *                         @OA\Items(
-     *                             @OA\Property(property="form_id", type="integer", example=16),
-     *                             @OA\Property(property="label_name", type="string", example="Which area of your body needs physiotherapy?"),
-     *                             @OA\Property(property="is_hidden", type="boolean", example=false),
-     *                             @OA\Property(property="form_details", type="array",
-     *                                 @OA\Items(
-     *                                     @OA\Property(property="field_name", type="string", example="targeted_area"),
-     *                                     @OA\Property(property="field_type", type="string", example="text"),
-     *                                     @OA\Property(property="is_required", type="boolean", example=true),
-     *                                     @OA\Property(property="field_data", type="array",
-     *                                         @OA\Items(
-     *                                             @OA\Property(property="form_detail_id", type="integer", example=27),
-     *                                             @OA\Property(property="field_value", type="string", example="Lower limbs and core"),
-     *                                             @OA\Property(property="is_answer", type="boolean", example=true)
-     *                                         )
-     *                                     )
-     *                                 )
-     *                             )
+     *                             @OA\Property(property="name", type="string", example="BloodReport.pdf"),
+     *                             @OA\Property(property="size", type="string", example="1.2 MB"),
+     *                             @OA\Property(property="type", type="string", example="application/pdf"),
+     *                             @OA\Property(property="encoded", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago8PC9U... (truncated)")
      *                         )
      *                     )
      *                 )
@@ -318,16 +195,7 @@ class ReferralController extends Controller
      *                 @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                 @OA\Property(property="priority", type="integer", example=2),
      *                 @OA\Property(property="status", type="integer", example=1)
-     *             ),
-     *              @OA\Property(property="referralAttachments", type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="name", type="string", example="BloodReport.pdf"),
-     *                     @OA\Property(property="size", type="string", example="1.2 MB"),
-     *                     @OA\Property(property="type", type="string", example="application/pdf"),
-     *                     @OA\Property(property="encoded", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago8PC9U... (truncated)")
-     *                 )
-     *             ),
-
+     *             )
      *         )
      *     ),
      *     @OA\Response(
@@ -335,13 +203,6 @@ class ReferralController extends Controller
      *         description="Referral not found.",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Referral not found.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Internal server error.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Internal server error.")
      *         )
      *     )
      * )
@@ -445,7 +306,18 @@ class ReferralController extends Controller
                         $medical_history = $rh->medical_history;
                     }
 
-                    //return histories data
+                    //get attachments for this history
+                    $attachments = $rh->referral_attachments->map(function ($atc) {
+                        return [
+                            'attachment_id' => $atc->id,
+                            'name' => $atc->file_name,
+                            'size' => $atc->file_type,
+                            'type' => $atc->file_size,
+                            'encoded' => $atc->encoded_base
+                        ];
+                    });
+
+                    //return histories data with attachments
                     return [
                         'sequence' => $rh->sequence,
                         'staff_id' => $rh->staff_id,
@@ -457,7 +329,8 @@ class ReferralController extends Controller
                         'referral_condition' => $rh->referral_condition,
                         'medical_history' => $rh->medical_history,
                         'additional_remarks' => $rh->additional_remarks,
-                        'referral_details' => $forms
+                        'referral_details' => $forms,
+                        'attachments' => $attachments
                     ];
                 });
 
@@ -474,21 +347,10 @@ class ReferralController extends Controller
                 'status' => $referral->status,
             ];
 
-            //attachments
-            $referralAttachments = $referral->referral_attachments->map(function ($atc) {
-                return [
-                    'name' => $atc->file_name,
-                    'size' => $atc->file_type,
-                    'type' => $atc->file_size,
-                    'encoded' => $atc->encoded_base
-                ];
-            });
-
             //grouped all data
             $data = [
                 'referralDetails' => $referralHistories,
                 'referringIndication' => $referringIndication,
-                'referralAttachments' => $referralAttachments,
             ];
 
             return response()->json($data, 200);

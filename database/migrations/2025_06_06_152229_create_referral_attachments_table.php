@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('referral_attachments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('referral_id');
+            $table->unsignedBigInteger('referral_history_id');
             $table->string('file_name');
             $table->string('file_type');
             $table->string('file_size');
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->foreign('referral_id')->references('id')->on('referrals')->onDelete('cascade');
+            $table->foreign('referral_history_id')->references('id')->on('referral_histories')->onDelete('cascade');
         });
     }
 

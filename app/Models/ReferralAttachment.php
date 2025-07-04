@@ -11,7 +11,7 @@ class ReferralAttachment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'referral_id',
+        'referral_history_id',
         'file_name',
         'file_type',
         'file_size',

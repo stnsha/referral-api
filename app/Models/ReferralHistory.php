@@ -39,4 +39,9 @@ class ReferralHistory extends Model
     {
         return $this->hasMany(ReferralDetails::class, 'referral_history_id', 'id');
     }
+
+    public function referral_attachments(): HasMany
+    {
+        return $this->hasMany(ReferralAttachment::class, 'referral_history_id', 'id');
+    }
 }
