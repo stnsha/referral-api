@@ -15,7 +15,7 @@ class ReferralAttachmentController extends Controller
      * Download an attachment file
      *
      * @OA\Get(
-     *     path="/api/attachment/{attachment}/download",
+     *     path="/api/attachment/{attachment}",
      *     summary="Download an attachment file",
      *     tags={"Attachments"},
      *     @OA\Parameter(
