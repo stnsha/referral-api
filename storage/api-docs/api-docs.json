@@ -92,6 +92,337 @@
                 ]
             }
         },
+        "/api/external-referees": {
+            "get": {
+                "tags": [
+                    "External Referees"
+                ],
+                "summary": "Get list of external referees",
+                "operationId": "326e3e1f0772f6069319d357f8974cae",
+                "responses": {
+                    "200": {
+                        "description": "List of external referees",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Dr. John Doe"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "john.doe@example.com"
+                                                    },
+                                                    "organization": {
+                                                        "type": "string",
+                                                        "example": "General Hospital"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "External Referees"
+                ],
+                "summary": "Create a new external referee",
+                "operationId": "88d1a51076805019aaff7a64f02b613b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "organization"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Dr. John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+1234567890",
+                                        "nullable": true
+                                    },
+                                    "organization": {
+                                        "type": "string",
+                                        "example": "General Hospital"
+                                    },
+                                    "position": {
+                                        "type": "string",
+                                        "example": "Senior Physician",
+                                        "nullable": true
+                                    },
+                                    "specialty": {
+                                        "type": "string",
+                                        "example": "Cardiology",
+                                        "nullable": true
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123 Medical Center Ave",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "External referee created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "External referee created successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/external-referees/{externalReferee}": {
+            "get": {
+                "tags": [
+                    "External Referees"
+                ],
+                "summary": "Get a specific external referee",
+                "operationId": "72ec10dcd668c2a496f250c5c0e956a6",
+                "parameters": [
+                    {
+                        "name": "externalReferee",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Dr. John Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "john.doe@example.com"
+                                                },
+                                                "organization": {
+                                                    "type": "string",
+                                                    "example": "General Hospital"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "External Referees"
+                ],
+                "summary": "Update an external referee",
+                "operationId": "53301f7619b16ec51606d947d64d5d46",
+                "parameters": [
+                    {
+                        "name": "externalReferee",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Dr. John Doe"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+1234567890",
+                                        "nullable": true
+                                    },
+                                    "organization": {
+                                        "type": "string",
+                                        "example": "General Hospital"
+                                    },
+                                    "position": {
+                                        "type": "string",
+                                        "example": "Senior Physician",
+                                        "nullable": true
+                                    },
+                                    "specialty": {
+                                        "type": "string",
+                                        "example": "Cardiology",
+                                        "nullable": true
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123 Medical Center Ave",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "External referee updated successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "External Referees"
+                ],
+                "summary": "Delete an external referee",
+                "operationId": "a563a4c5a47d08f7ad67c94cd75c4a3f",
+                "parameters": [
+                    {
+                        "name": "externalReferee",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "External referee deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
         "/api/form": {
             "post": {
                 "tags": [
@@ -1015,6 +1346,32 @@
                                         },
                                         "type": "object"
                                     },
+                                    "attachments": {
+                                        "type": "array",
+                                        "items": {
+                                            "description": "Attachments will be associated with the referral history that has is_filled=true",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Labs.png"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "image/png"
+                                                },
+                                                "size": {
+                                                    "type": "integer",
+                                                    "example": 14040
+                                                },
+                                                "base64": {
+                                                    "type": "string",
+                                                    "format": "byte",
+                                                    "example": "iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
                                     "form_data": {
                                         "properties": {
                                             "5": {
@@ -1458,6 +1815,10 @@
         {
             "name": "Business Units",
             "description": "Business Units"
+        },
+        {
+            "name": "External Referees",
+            "description": "External Referees"
         },
         {
             "name": "Forms",

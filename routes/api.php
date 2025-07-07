@@ -6,6 +6,7 @@ use App\Http\Controllers\FormDetailsController;
 use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferralAttachmentController;
 use App\Http\Controllers\ReferralController;
+use App\Http\Controllers\ExternalRefereeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -48,4 +49,6 @@ Route::middleware('token.auth')->group(function () {
     Route::prefix('reference')->controller(ReferenceController::class)->group(function () {
         Route::get('status', 'referralStatus')->name('reference.status');
     });
+
+    Route::apiResource('external-referees', ExternalRefereeController::class);
 });
