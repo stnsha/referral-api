@@ -217,7 +217,7 @@ class ReferralController extends Controller
                     }
 
                     //run through attachments if exist
-                    if (filled($request['attachments'])) {
+                    if (filled($request['attachments']) && $is_filled) {
                         foreach ($validated['attachments'] as $atc) {
                             $referralAttachment = ReferralAttachment::create([
                                 'referral_history_id' => $referral_history_id,
