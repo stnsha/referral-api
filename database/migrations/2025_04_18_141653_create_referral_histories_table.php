@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('referral_id');
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->unsignedBigInteger('business_unit_id'); //refer to business unit id on referral, not department_id (FK)
-            $table->unsignedBigInteger('location');
+            $table->unsignedBigInteger('location')->nullable();
             $table->integer('sequence');
             $table->longText('referral_reason')->nullable();
             $table->longText('referral_condition')->nullable();
