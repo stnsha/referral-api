@@ -194,6 +194,7 @@ class ReferralController extends Controller
                     //create referral history
                     $referralHistory = ReferralHistory::create($data);
                     $referral_history_id = $referralHistory->id;
+                    $business_unit = $is_filled ? $referralHistory->business_unit->name : null;
 
                     //run through first level of business unit
                     if ($business_unit_id == $value['business_unit_id']) {
@@ -218,7 +219,7 @@ class ReferralController extends Controller
 
                     //run through attachments if exist
                     if (filled($request['attachments']) && $is_filled) {
-                        foreach ($validated['attachments'] as $atc) {
+                        foreach ($validated['attachments'] as $key => $atc) {
                             $referralAttachment = ReferralAttachment::create([
                                 'referral_history_id' => $referral_history_id,
                                 'file_name' => $atc['name'],
@@ -227,9 +228,11 @@ class ReferralController extends Controller
                                 'encoded_base' => $atc['base64']
                             ]);
 
-
-                            $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
-                            $referralAttachment->file_name = $prefix . '_' . $atc['name'];
+                            // Get file extension from MIME type
+                            $extension = str_replace('image/', '', $atc['type']);
+                            $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : $atc['name'];
+                            $suffix =  $referral->id . $referral_history_id . $referralAttachment->id;
+                            $referralAttachment->file_name =  $newFileName . '_' . $suffix . '.' . $extension;
                             $referralAttachment->save();
                         }
                     }
@@ -558,6 +561,7 @@ class ReferralController extends Controller
 
                 foreach ($referral->referral_histories as $rh) {
                     if ($rh->business_unit_id == $business_unit_id) {
+                        $is_filled = true;
                         $referral_history_id = $rh->id;
 
                         if (is_null($rh->staff_id) && !empty($validated['referral']['updated_recipient_to'])) {
@@ -565,11 +569,11 @@ class ReferralController extends Controller
                             $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
                         }
 
-                        $rh->is_filled = true;
+                        $rh->is_filled = $is_filled;
                         $rh->save();
 
                         //run through attachments if exist
-                        if (filled($request['attachments'])) {
+                        if (filled($request['attachments']) && $is_filled) {
                             foreach ($validated['attachments'] as $atc) {
                                 $referralAttachment = ReferralAttachment::create([
                                     'referral_history_id' => $referral_history_id,
@@ -579,9 +583,11 @@ class ReferralController extends Controller
                                     'encoded_base' => $atc['base64']
                                 ]);
 
-
-                                $prefix =  $referral->id . $referral_history_id . $referralAttachment->id;
-                                $referralAttachment->file_name = $prefix . '_' . $atc['name'];
+                                $business_unit = $rh->business_unit->name;
+                                $extension = str_replace('image/', '', $atc['type']);
+                                $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : $atc['name'];
+                                $suffix =  $referral->id . $referral_history_id . $referralAttachment->id;
+                                $referralAttachment->file_name =  $newFileName . '_' . $suffix . '.' . $extension;
                                 $referralAttachment->save();
                             }
                         }
