@@ -572,6 +572,23 @@ class ReferralController extends Controller
                         $rh->is_filled = $is_filled;
                         $rh->save();
 
+                        //insert referral details
+                        $formFields = $request->input("form_data.$business_unit_id", []);
+
+                        foreach ($formFields as $field => $value) {
+                            $form_detail = FormDetails::where('field_name', $field)
+                                ->whereHas('form', function ($query) use ($business_unit_id) {
+                                    $query->where('business_unit_id', $business_unit_id);
+                                })
+                                ->first();
+
+                            ReferralDetails::create([
+                                'referral_history_id' => $referral_history_id,
+                                'form_id' => $form_detail->form_id,
+                                'value' => is_array($value) ? json_encode($value) : $value,
+                            ]);
+                        }
+
                         //run through attachments if exist
                         if (filled($request['attachments']) && $is_filled) {
                             foreach ($validated['attachments'] as $atc) {
@@ -596,6 +613,7 @@ class ReferralController extends Controller
 
                 $referral->save();
 
+                //create history for next referee
                 if (isset($validated['refer_another'])) {
                     $refer_business_unit = isset($validated['refer_another']['refer_business_unit']) ? $validated['refer_another']['refer_business_unit'] : null;
                     $refer_location = isset($validated['refer_another']['refer_location']) ? $validated['refer_another']['refer_location'] : null;
@@ -619,22 +637,6 @@ class ReferralController extends Controller
                     ]);
 
                     $referral_history_id = $referral_history->id;
-                }
-
-                $formFields = $request->input("form_data.$business_unit_id", []);
-
-                foreach ($formFields as $field => $value) {
-                    $form_detail = FormDetails::where('field_name', $field)
-                        ->whereHas('form', function ($query) use ($business_unit_id) {
-                            $query->where('business_unit_id', $business_unit_id);
-                        })
-                        ->first();
-
-                    ReferralDetails::create([
-                        'referral_history_id' => $referral_history_id,
-                        'form_id' => $form_detail->form_id,
-                        'value' => is_array($value) ? json_encode($value) : $value,
-                    ]);
                 }
                 DB::commit();
                 return response()->json(['message' => 'Referral updated successfully.'], 200);
