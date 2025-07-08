@@ -45,4 +45,9 @@ class ReferralHistory extends Model
     {
         return $this->hasMany(ReferralAttachment::class, 'referral_history_id', 'id');
     }
+
+    public function external_referee(): BelongsTo
+    {
+        return $this->belongsTo(ExternalReferee::class, 'external_referee_id', 'id');
+    }
 }

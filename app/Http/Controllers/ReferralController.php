@@ -346,9 +346,6 @@ class ReferralController extends Controller
             $referralHistories = $referral->referral_histories
                 ->sortBy('sequence')
                 ->values()
-                ->keyBy(function ($rh) {
-                    return $rh->business_unit_id;
-                })
                 ->map(function ($rh) use (
                     &$referral_reason,
                     &$business_unit_id,
@@ -438,6 +435,12 @@ class ReferralController extends Controller
                         ];
                     });
 
+                    //get external referee
+                    $external_referral = [];
+
+                    if ($rh->external_referee_id) {
+                        $external_referral = $rh->external_referee;
+                    }
                     //return histories data with attachments
                     return [
                         'sequence' => $rh->sequence,
@@ -451,7 +454,8 @@ class ReferralController extends Controller
                         'medical_history' => $rh->medical_history,
                         'additional_remarks' => $rh->additional_remarks,
                         'referral_details' => $forms,
-                        'attachments' => $attachments
+                        'attachments' => $attachments,
+                        'external_referral' => $external_referral,
                     ];
                 });
 
@@ -568,7 +572,9 @@ class ReferralController extends Controller
                 $referral_history_id = '';
 
                 foreach ($referral->referral_histories as $rh) {
-                    if ($rh->business_unit_id == $business_unit_id) {
+                    $is_external = is_null($rh->external_referee_id) ? true : false;
+
+                    if ($rh->business_unit_id == $business_unit_id && $is_external) {
                         $is_filled = true;
                         $referral_history_id = $rh->id;
 

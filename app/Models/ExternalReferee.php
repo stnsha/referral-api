@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExternalReferee extends Model
@@ -28,5 +29,10 @@ class ExternalReferee extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(ExternalOrganization::class, 'external_organization_id', 'id');
+    }
+
+    public function referral_histories(): HasMany
+    {
+        return $this->hasMany(ReferralHistory::class, 'external_referee_id', 'id');
     }
 }
