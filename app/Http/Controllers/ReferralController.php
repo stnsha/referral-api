@@ -440,7 +440,7 @@ class ReferralController extends Controller
 
                     if ($rh->external_referee_id) {
                         $external_referee = $rh->external_referee;
-                        $external_referral = [
+                        $external_referral[] = [
                             'external_referee_id' => $external_referee->id,
                             'name' => $external_referee->name,
                             'email' => $external_referee->email,
