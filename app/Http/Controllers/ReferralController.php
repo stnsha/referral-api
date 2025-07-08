@@ -439,7 +439,21 @@ class ReferralController extends Controller
                     $external_referral = [];
 
                     if ($rh->external_referee_id) {
-                        $external_referral = $rh->external_referee;
+                        $external_referee = $rh->external_referee;
+                        $external_referral = [
+                            'external_referee_id' => $external_referee->id,
+                            'name' => $external_referee->name,
+                            'email' => $external_referee->email,
+                            'phone' => $external_referee->phone,
+                            'position' => $external_referee->position,
+                            'specialty' => $external_referee->specialty,
+                            'external_organization_id' => $external_referee->organization->id,
+                            'organization' => $external_referee->organization->name,
+                            'address' => $external_referee->organization->address,
+                            'postcode' => $external_referee->organization->postcode,
+                            'state' => $external_referee->organization->state,
+                            'country' => $external_referee->organization->country,
+                        ];
                     }
                     //return histories data with attachments
                     return [
