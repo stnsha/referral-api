@@ -101,13 +101,28 @@
                 "operationId": "d8ff3f8b82acbde94b1bc385f9285ab4",
                 "responses": {
                     "200": {
-                        "description": "List of external organizations",
+                        "description": "List of external organizations with their referees",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/ExternalOrganization"
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/ExternalOrganization"
+                                            },
+                                            {
+                                                "properties": {
+                                                    "referees": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/ExternalReferee"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        ]
                                     }
                                 }
                             }
@@ -2194,6 +2209,64 @@
                                 "$ref": "#/components/schemas/ExternalOrganization"
                             }
                         ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExternalRefereeDetails": {
+                "required": [
+                    "external_organization_id",
+                    "name",
+                    "email"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "external_organization_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Dr. John Smith"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "john.smith@example.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "+1234567890",
+                        "nullable": true
+                    },
+                    "position": {
+                        "type": "string",
+                        "example": "Senior Consultant",
+                        "nullable": true
+                    },
+                    "specialty": {
+                        "type": "string",
+                        "example": "Cardiology",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
                         "nullable": true
                     }
                 },

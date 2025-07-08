@@ -14,6 +14,22 @@ use App\Http\Requests\ExternalOrganizationRequest;
 
 /**
  * @OA\Schema(
+ *     schema="ExternalRefereeDetails",
+ *     required={"external_organization_id", "name", "email"},
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="external_organization_id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Dr. John Smith"),
+ *     @OA\Property(property="email", type="string", example="john.smith@example.com"),
+ *     @OA\Property(property="phone", type="string", example="+1234567890", nullable=true),
+ *     @OA\Property(property="position", type="string", example="Senior Consultant", nullable=true),
+ *     @OA\Property(property="specialty", type="string", example="Cardiology", nullable=true),
+ *     @OA\Property(property="is_active", type="boolean", example=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="deleted_at", type="string", format="date-time", nullable=true)
+ * )
+ *
+ * @OA\Schema(
  *     schema="ExternalOrganization",
  *     required={"name", "address", "postcode", "state", "country"},
  *     @OA\Property(property="id", type="integer", example=1),
@@ -36,10 +52,21 @@ class ExternalOrganizationController extends Controller
      *     tags={"External Organizations"},
      *     @OA\Response(
      *         response=200,
-     *         description="List of external organizations",
+     *         description="List of external organizations with their referees",
      *         @OA\JsonContent(
      *             type="array",
-     *             @OA\Items(ref="#/components/schemas/ExternalOrganization")
+     *             @OA\Items(
+     *                 allOf={
+     *                     @OA\Schema(ref="#/components/schemas/ExternalOrganization"),
+     *                     @OA\Schema(
+     *                         @OA\Property(
+     *                             property="referees",
+     *                             type="array",
+     *                             @OA\Items(ref="#/components/schemas/ExternalReferee")
+     *                         )
+     *                     )
+     *                 }
+     *             )
      *         )
      *     )
      * )
@@ -47,7 +74,7 @@ class ExternalOrganizationController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $externalOrganizations = ExternalOrganization::all();
+            $externalOrganizations = ExternalOrganization::with(['referees'])->get();
             return response()->json($externalOrganizations, 200);
         } catch (Throwable $e) {
             return response()->json(['message' => 'Failed to retrieve organizations.', 'error' => $e->getMessage()], 500);
