@@ -165,17 +165,23 @@ class ReferralController extends Controller
 
                 //run through businessunits 
                 foreach (array_values($businessUnits) as $key => $value) {
+
                     //for second level of business unit 
-                    $is_filled = $business_unit_id != $value['business_unit_id'] ? false : true;
+                    $is_filled = false;
+
+                    if (isset($value['business_unit_id']) && $business_unit_id == $value['business_unit_id']) {
+                        $is_filled = true;
+                    }
 
                     //compile data
                     $data = [
                         'referral_id' => $referral->id,
                         'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
-                        'business_unit_id' => $value['business_unit_id'],
-                        'location' => $value['location'],
+                        'business_unit_id' => isset($value['business_unit_id']) ? $value['business_unit_id'] : null,
+                        'location' =>  isset($value['location']) ? $value['location'] : null,
                         'sequence' => $key + 1,
                         'is_filled' => $is_filled,
+                        'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null
                     ];
 
                     //check if exist
@@ -197,7 +203,7 @@ class ReferralController extends Controller
                     $business_unit = $is_filled ? $referralHistory->business_unit->name : null;
 
                     //run through first level of business unit
-                    if ($business_unit_id == $value['business_unit_id']) {
+                    if ($is_filled) {
                         $formFields = $request->input("form_data.$business_unit_id", []);
 
                         foreach ($formFields as $field => $value) {
@@ -209,11 +215,13 @@ class ReferralController extends Controller
                                 ->first();
 
                             //create referral details
-                            ReferralDetails::create([
-                                'referral_history_id' => $referral_history_id,
-                                'form_id' => $form_detail->form_id,
-                                'value' => is_array($value) ? json_encode($value) : $value,
-                            ]);
+                            if ($form_detail) {
+                                ReferralDetails::create([
+                                    'referral_history_id' => $referral_history_id,
+                                    'form_id' => $form_detail->form_id,
+                                    'value' => is_array($value) ? json_encode($value) : $value,
+                                ]);
+                            }
                         }
                     }
 
@@ -238,7 +246,6 @@ class ReferralController extends Controller
                     }
                 }
 
-
                 //return referral id if successfulD
                 DB::commit();
                 return response()->json(['id' => $referral->id], 201);
@@ -257,6 +264,7 @@ class ReferralController extends Controller
             ], 500);
         }
     }
+
     /**
      * @OA\Get(
      *     path="/api/referral/{id}",

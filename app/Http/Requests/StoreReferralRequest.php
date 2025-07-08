@@ -33,8 +33,12 @@ class StoreReferralRequest extends FormRequest
             'business_units.assignee.additional_remarks' => 'nullable|string',
 
             'business_units.recipient.staff_id' => 'nullable|integer',
-            'business_units.recipient.business_unit_id' => 'required|integer',
-            'business_units.recipient.location' => 'required|integer',
+            'business_units.recipient.business_unit_id' => 'nullable|integer',
+            'business_units.recipient.location' => 'nullable|integer',
+
+            'business_units.recipient.organization' => 'nullable|integer',
+            'business_units.recipient.location_organization' => 'nullable|string',
+            'business_units.recipient.referee' => 'nullable|integer',
 
             'referral.customer_id' => 'required|integer',
             'referral.priority' => 'required|integer',
