@@ -10,16 +10,17 @@ return new class extends Migration
     {
         Schema::create('external_referees', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('external_organization_id')->nullable();
             $table->string('name');
             $table->string('email')->unique();
             $table->string('phone')->nullable();
-            $table->string('organization');
             $table->string('position')->nullable();
             $table->string('specialty')->nullable();
-            $table->text('address')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
+
+            $table->foreign('external_organization_id')->references('id')->on('external_organizations')->onDelete('cascade');
         });
     }
 

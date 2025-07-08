@@ -2,12 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ExternalReferee;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Throwable;
 use App\Http\Requests\ExternalRefereeRequest;
+use App\Models\ExternalReferee;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="External Referee API",
+ *     description="API endpoints for managing external referees and their organizations"
+ * )
+ */
+
+/**
+ * @OA\OpenApi(
+ *     @OA\Components(
+ *         @OA\Schema(
+ *             schema="ExternalOrganizationName",
+ *             required={"name"},
+ *             @OA\Property(property="id", type="integer"),
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="address", type="string", nullable=true),
+ *             @OA\Property(property="postcode", type="string", nullable=true),
+ *             @OA\Property(property="state", type="string", nullable=true),
+ *             @OA\Property(property="country", type="string", nullable=true),
+ *             @OA\Property(property="created_at", type="string", format="date-time"),
+ *             @OA\Property(property="updated_at", type="string", format="date-time"),
+ *             @OA\Property(property="deleted_at", type="string", format="date-time", nullable=true)
+ *         ),
+ *         @OA\Schema(
+ *             schema="ExternalReferee",
+ *             required={"name", "email", "phone", "position", "specialty"},
+ *             @OA\Property(property="id", type="integer"),
+ *             @OA\Property(property="external_organization_id", type="integer", nullable=true),
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="email", type="string"),
+ *             @OA\Property(property="phone", type="string"),
+ *             @OA\Property(property="position", type="string"),
+ *             @OA\Property(property="specialty", type="string"),
+ *             @OA\Property(property="is_active", type="boolean", default=true),
+ *             @OA\Property(property="created_at", type="string", format="date-time"),
+ *             @OA\Property(property="updated_at", type="string", format="date-time"),
+ *             @OA\Property(property="deleted_at", type="string", format="date-time", nullable=true),
+ *             @OA\Property(
+ *                 property="organization",
+ *                 ref="#/components/schemas/ExternalOrganization",
+ *                 nullable=true
+ *             )
+ *         )
+ *     )
+ * )
+ */
 class ExternalRefereeController extends Controller
 {
     /**
@@ -19,29 +68,16 @@ class ExternalRefereeController extends Controller
      *         response=200,
      *         description="List of external referees",
      *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="name", type="string", example="Dr. John Doe"),
-     *                     @OA\Property(property="email", type="string", example="john.doe@example.com"),
-     *                     @OA\Property(property="organization", type="string", example="General Hospital"),
-     *                     @OA\Property(property="is_active", type="boolean", example=true)
-     *                 )
-     *             )
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/ExternalReferee")
      *         )
      *     )
      * )
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $referees = ExternalReferee::orderBy('name')->get();
-        if (!$referees) {
-            return response()->json([
-                'message' => 'No results.',
-                'data' => [],
-            ], 204);
-        }
-        return response()->json(['data' => $referees]);
+        $externalReferees = ExternalReferee::with('organization')->get();
+        return response()->json($externalReferees);
     }
 
     /**
@@ -52,27 +88,29 @@ class ExternalRefereeController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "email", "organization"},
-     *             @OA\Property(property="name", type="string", example="Dr. John Doe"),
-     *             @OA\Property(property="email", type="string", example="john.doe@example.com"),
-     *             @OA\Property(property="phone", type="string", example="+1234567890", nullable=true),
-     *             @OA\Property(property="organization", type="string", example="General Hospital"),
-     *             @OA\Property(property="position", type="string", example="Senior Physician", nullable=true),
-     *             @OA\Property(property="specialty", type="string", example="Cardiology", nullable=true),
-     *             @OA\Property(property="address", type="string", example="123 Medical Center Ave", nullable=true)
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="email", type="string"),
+     *             @OA\Property(property="phone", type="string"),
+     *             @OA\Property(property="position", type="string"),
+     *             @OA\Property(property="specialty", type="string"),
+     *             @OA\Property(property="external_organization_id", type="integer", nullable=true),
+     *             @OA\Property(property="organization", type="object", nullable=true,
+     *                 @OA\Property(property="name", type="string"),
+     *                 @OA\Property(property="address", type="string"),
+     *                 @OA\Property(property="postcode", type="string"),
+     *                 @OA\Property(property="state", type="string"),
+     *                 @OA\Property(property="country", type="string")
+     *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="External referee created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="External referee created successfully"),
-     *             @OA\Property(property="data", type="object")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/ExternalReferee")
      *     ),
      *     @OA\Response(
      *         response=422,
-     *         description="Validation failed",
+     *         description="Validation error",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Validation failed"),
      *             @OA\Property(property="errors", type="object")
@@ -80,163 +118,199 @@ class ExternalRefereeController extends Controller
      *     )
      * )
      */
-    public function store(ExternalRefereeRequest $request)
+    public function store(ExternalRefereeRequest $request): JsonResponse
     {
         try {
             DB::beginTransaction();
-            $referee = ExternalReferee::create($request->validated());
-            DB::commit();
+            $validated = $request->validated();
 
+            if (!isset($validated['external_organization_id']) && isset($validated['organization'])) {
+                $organization = ExternalReferee::create($validated['organization']);
+                $validated['external_organization_id'] = $organization->id;
+            }
+
+            unset($validated['organization']);
+
+            $externalReferee = ExternalReferee::create($validated);
+            $externalReferee->load('organization');
+
+            DB::commit();
+            return response()->json($externalReferee, 201);
+        } catch (ValidationException $e) {
+            DB::rollBack();
             return response()->json([
-                'message' => 'External referee created successfully',
-                'data' => $referee
-            ], 201);
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Throwable $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to create external referee',
-                'error' => $e->getMessage()
+                'message' => 'Failed to create external referee.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * @OA\Get(
-     *     path="/api/external-referees/{externalReferee}",
-     *     summary="Get a specific external referee",
+     *     path="/api/external-referees/{referee}",
+     *     summary="Get external referee details",
      *     tags={"External Referees"},
      *     @OA\Parameter(
-     *         name="externalReferee",
+     *         name="referee",
      *         in="path",
      *         required=true,
+     *         description="External referee ID",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Success",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="name", type="string", example="Dr. John Doe"),
-     *                 @OA\Property(property="email", type="string", example="john.doe@example.com"),
-     *                 @OA\Property(property="organization", type="string", example="General Hospital"),
-     *                 @OA\Property(property="is_active", type="boolean", example=true)
-     *             )
-     *         )
+     *         description="External referee details",
+     *         @OA\JsonContent(ref="#/components/schemas/ExternalReferee")
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Not found"
+     *         description="External referee not found"
      *     )
      * )
      */
-    public function show(ExternalReferee $externalReferee)
+    public function show(ExternalReferee $externalReferee): JsonResponse
     {
-        if (!$externalReferee) {
-            return response()->json([
-                'message' => 'No results.',
-                'data' => [],
-            ], 204);
-        }
-        return response()->json(['data' => $externalReferee]);
+        // $externalReferee->load('organization');
+        return response()->json($externalReferee);
     }
 
     /**
      * @OA\Put(
-     *     path="/api/external-referees/{externalReferee}",
+     *     path="/api/external-referees/{referee}",
      *     summary="Update an external referee",
      *     tags={"External Referees"},
      *     @OA\Parameter(
-     *         name="externalReferee",
+     *         name="referee",
      *         in="path",
      *         required=true,
+     *         description="External referee ID",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="name", type="string", example="Dr. John Doe"),
-     *             @OA\Property(property="email", type="string", example="john.doe@example.com"),
-     *             @OA\Property(property="phone", type="string", example="+1234567890", nullable=true),
-     *             @OA\Property(property="organization", type="string", example="General Hospital"),
-     *             @OA\Property(property="position", type="string", example="Senior Physician", nullable=true),
-     *             @OA\Property(property="specialty", type="string", example="Cardiology", nullable=true),
-     *             @OA\Property(property="address", type="string", example="123 Medical Center Ave", nullable=true)
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="email", type="string"),
+     *             @OA\Property(property="phone", type="string"),
+     *             @OA\Property(property="position", type="string"),
+     *             @OA\Property(property="specialty", type="string"),
+     *             @OA\Property(property="external_organization_id", type="integer", nullable=true),
+     *             @OA\Property(property="organization", type="object", nullable=true,
+     *                 @OA\Property(property="name", type="string"),
+     *                 @OA\Property(property="address", type="string"),
+     *                 @OA\Property(property="postcode", type="string"),
+     *                 @OA\Property(property="state", type="string"),
+     *                 @OA\Property(property="country", type="string")
+     *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="External referee updated successfully"),
-     *             @OA\Property(property="data", type="object")
-     *         )
+     *         description="External referee updated successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/ExternalReferee")
      *     ),
      *     @OA\Response(
      *         response=422,
-     *         description="Validation failed"
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed"),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="External referee not found"
      *     )
      * )
      */
-    public function update(ExternalRefereeRequest $request, ExternalReferee $externalReferee)
+    public function update(ExternalRefereeRequest $request, ExternalReferee $externalReferee): JsonResponse
     {
         try {
             DB::beginTransaction();
-            $externalReferee->update($request->validated());
-            DB::commit();
+            $validated = $request->validated();
 
+            if (!isset($validated['external_organization_id']) && isset($validated['organization'])) {
+                $organization = ExternalReferee::create($validated['organization']);
+                $validated['external_organization_id'] = $organization->id;
+            }
+
+            unset($validated['organization']);
+
+            $externalReferee->update($validated);
+            $externalReferee->load('organization');
+
+            DB::commit();
+            return response()->json($externalReferee);
+        } catch (ValidationException $e) {
+            DB::rollBack();
             return response()->json([
-                'message' => 'External referee updated successfully',
-                'data' => $externalReferee
-            ]);
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'External referee not found.',
+            ], 404);
         } catch (Throwable $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to update external referee',
-                'error' => $e->getMessage()
+                'message' => 'Failed to update external referee.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * @OA\Delete(
-     *     path="/api/external-referees/{externalReferee}",
+     *     path="/api/external-referees/{referee}",
      *     summary="Delete an external referee",
      *     tags={"External Referees"},
      *     @OA\Parameter(
-     *         name="externalReferee",
+     *         name="referee",
      *         in="path",
      *         required=true,
+     *         description="External referee ID",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Deleted successfully",
+     *         description="External referee deleted successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="External referee deleted successfully")
      *         )
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Not found"
+     *         description="External referee not found"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
      *     )
      * )
      */
-    public function destroy(ExternalReferee $externalReferee)
+    public function destroy(ExternalReferee $externalReferee): JsonResponse
     {
         try {
-            DB::beginTransaction();
             $externalReferee->delete();
-            DB::commit();
-
             return response()->json([
-                'message' => 'External referee deleted successfully'
+                'message' => 'External referee deleted successfully',
             ]);
-        } catch (Throwable $e) {
-            DB::rollBack();
+        } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Failed to delete external referee',
-                'error' => $e->getMessage()
+                'message' => 'External referee not found.',
+            ], 404);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to delete external referee.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -92,6 +92,326 @@
                 ]
             }
         },
+        "/api/external-organizations": {
+            "get": {
+                "tags": [
+                    "External Organizations"
+                ],
+                "summary": "Get list of external organizations",
+                "operationId": "d8ff3f8b82acbde94b1bc385f9285ab4",
+                "responses": {
+                    "200": {
+                        "description": "List of external organizations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ExternalOrganization"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "External Organizations"
+                ],
+                "summary": "Create a new external organization",
+                "operationId": "f7a5356221abe46bddfd5425a162c684",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Sample Organization"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123 Main Street",
+                                        "nullable": true
+                                    },
+                                    "postcode": {
+                                        "type": "string",
+                                        "example": "12345",
+                                        "nullable": true
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "California",
+                                        "nullable": true
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "United States",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Organization created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExternalOrganization"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/external-organizations/{externalOrganization}": {
+            "get": {
+                "tags": [
+                    "External Organizations"
+                ],
+                "summary": "Get external organization details",
+                "operationId": "21aa313fba8dd5576eff50793bc764df",
+                "parameters": [
+                    {
+                        "name": "externalOrganization",
+                        "in": "path",
+                        "description": "External organization ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Organization details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/ExternalOrganization"
+                                        },
+                                        {
+                                            "properties": {
+                                                "referees": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/ExternalReferee"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Organization not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Organization not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "External Organizations"
+                ],
+                "summary": "Update an external organization",
+                "operationId": "5d3278d55d467edb67be86c9290495cc",
+                "parameters": [
+                    {
+                        "name": "externalOrganization",
+                        "in": "path",
+                        "description": "External organization ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Sample Organization"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123 Main Street",
+                                        "nullable": true
+                                    },
+                                    "postcode": {
+                                        "type": "string",
+                                        "example": "12345",
+                                        "nullable": true
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "California",
+                                        "nullable": true
+                                    },
+                                    "country": {
+                                        "type": "string",
+                                        "example": "United States",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Organization updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExternalOrganization"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Organization not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Organization not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "External Organizations"
+                ],
+                "summary": "Delete an external organization",
+                "operationId": "cc3b875e7c6860451f3e12b02e895284",
+                "parameters": [
+                    {
+                        "name": "externalOrganization",
+                        "in": "path",
+                        "description": "External organization ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Organization deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Organization deleted successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Organization not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Organization not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/external-referees": {
             "get": {
                 "tags": [
@@ -105,37 +425,10 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "name": {
-                                                        "type": "string",
-                                                        "example": "Dr. John Doe"
-                                                    },
-                                                    "email": {
-                                                        "type": "string",
-                                                        "example": "john.doe@example.com"
-                                                    },
-                                                    "organization": {
-                                                        "type": "string",
-                                                        "example": "General Hospital"
-                                                    },
-                                                    "is_active": {
-                                                        "type": "boolean",
-                                                        "example": true
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ExternalReferee"
+                                    }
                                 }
                             }
                         }
@@ -153,42 +446,45 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "name",
-                                    "email",
-                                    "organization"
-                                ],
                                 "properties": {
                                     "name": {
-                                        "type": "string",
-                                        "example": "Dr. John Doe"
+                                        "type": "string"
                                     },
                                     "email": {
-                                        "type": "string",
-                                        "example": "john.doe@example.com"
+                                        "type": "string"
                                     },
                                     "phone": {
-                                        "type": "string",
-                                        "example": "+1234567890",
+                                        "type": "string"
+                                    },
+                                    "position": {
+                                        "type": "string"
+                                    },
+                                    "specialty": {
+                                        "type": "string"
+                                    },
+                                    "external_organization_id": {
+                                        "type": "integer",
                                         "nullable": true
                                     },
                                     "organization": {
-                                        "type": "string",
-                                        "example": "General Hospital"
-                                    },
-                                    "position": {
-                                        "type": "string",
-                                        "example": "Senior Physician",
-                                        "nullable": true
-                                    },
-                                    "specialty": {
-                                        "type": "string",
-                                        "example": "Cardiology",
-                                        "nullable": true
-                                    },
-                                    "address": {
-                                        "type": "string",
-                                        "example": "123 Medical Center Ave",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "address": {
+                                                "type": "string"
+                                            },
+                                            "postcode": {
+                                                "type": "string"
+                                            },
+                                            "state": {
+                                                "type": "string"
+                                            },
+                                            "country": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object",
                                         "nullable": true
                                     }
                                 },
@@ -203,22 +499,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "External referee created successfully"
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/ExternalReferee"
                                 }
                             }
                         }
                     },
                     "422": {
-                        "description": "Validation failed",
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -239,17 +526,18 @@
                 }
             }
         },
-        "/api/external-referees/{externalReferee}": {
+        "/api/external-referees/{referee}": {
             "get": {
                 "tags": [
                     "External Referees"
                 ],
-                "summary": "Get a specific external referee",
-                "operationId": "72ec10dcd668c2a496f250c5c0e956a6",
+                "summary": "Get external referee details",
+                "operationId": "ae88010ab5465e711f40bc3e9880bb8c",
                 "parameters": [
                     {
-                        "name": "externalReferee",
+                        "name": "referee",
                         "in": "path",
+                        "description": "External referee ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -258,44 +546,17 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "External referee details",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "name": {
-                                                    "type": "string",
-                                                    "example": "Dr. John Doe"
-                                                },
-                                                "email": {
-                                                    "type": "string",
-                                                    "example": "john.doe@example.com"
-                                                },
-                                                "organization": {
-                                                    "type": "string",
-                                                    "example": "General Hospital"
-                                                },
-                                                "is_active": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
+                                    "$ref": "#/components/schemas/ExternalReferee"
                                 }
                             }
                         }
                     },
                     "404": {
-                        "description": "Not found"
+                        "description": "External referee not found"
                     }
                 }
             },
@@ -304,11 +565,12 @@
                     "External Referees"
                 ],
                 "summary": "Update an external referee",
-                "operationId": "53301f7619b16ec51606d947d64d5d46",
+                "operationId": "95bb654ad87646c4bd2c9e454c910aa5",
                 "parameters": [
                     {
-                        "name": "externalReferee",
+                        "name": "referee",
                         "in": "path",
+                        "description": "External referee ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -322,35 +584,43 @@
                             "schema": {
                                 "properties": {
                                     "name": {
-                                        "type": "string",
-                                        "example": "Dr. John Doe"
+                                        "type": "string"
                                     },
                                     "email": {
-                                        "type": "string",
-                                        "example": "john.doe@example.com"
+                                        "type": "string"
                                     },
                                     "phone": {
-                                        "type": "string",
-                                        "example": "+1234567890",
+                                        "type": "string"
+                                    },
+                                    "position": {
+                                        "type": "string"
+                                    },
+                                    "specialty": {
+                                        "type": "string"
+                                    },
+                                    "external_organization_id": {
+                                        "type": "integer",
                                         "nullable": true
                                     },
                                     "organization": {
-                                        "type": "string",
-                                        "example": "General Hospital"
-                                    },
-                                    "position": {
-                                        "type": "string",
-                                        "example": "Senior Physician",
-                                        "nullable": true
-                                    },
-                                    "specialty": {
-                                        "type": "string",
-                                        "example": "Cardiology",
-                                        "nullable": true
-                                    },
-                                    "address": {
-                                        "type": "string",
-                                        "example": "123 Medical Center Ave",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "address": {
+                                                "type": "string"
+                                            },
+                                            "postcode": {
+                                                "type": "string"
+                                            },
+                                            "state": {
+                                                "type": "string"
+                                            },
+                                            "country": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object",
                                         "nullable": true
                                     }
                                 },
@@ -361,16 +631,26 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Updated successfully",
+                        "description": "External referee updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExternalReferee"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "External referee updated successfully"
+                                            "example": "Validation failed"
                                         },
-                                        "data": {
+                                        "errors": {
                                             "type": "object"
                                         }
                                     },
@@ -379,8 +659,8 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Validation failed"
+                    "404": {
+                        "description": "External referee not found"
                     }
                 }
             },
@@ -389,11 +669,12 @@
                     "External Referees"
                 ],
                 "summary": "Delete an external referee",
-                "operationId": "a563a4c5a47d08f7ad67c94cd75c4a3f",
+                "operationId": "f651ea635355730989eebc94100687e0",
                 "parameters": [
                     {
-                        "name": "externalReferee",
+                        "name": "referee",
                         "in": "path",
+                        "description": "External referee ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -402,7 +683,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Deleted successfully",
+                        "description": "External referee deleted successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -418,7 +699,10 @@
                         }
                     },
                     "404": {
-                        "description": "Not found"
+                        "description": "External referee not found"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 }
             }
@@ -1811,10 +2095,177 @@
             }
         }
     },
+    "components": {
+        "schemas": {
+            "ExternalOrganizationName": {
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "postcode": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "state": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "country": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExternalReferee": {
+                "required": [
+                    "name",
+                    "email",
+                    "phone",
+                    "position",
+                    "specialty"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "external_organization_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "type": "string"
+                    },
+                    "specialty": {
+                        "type": "string"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "organization": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ExternalOrganization"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ExternalOrganization": {
+                "required": [
+                    "name",
+                    "address",
+                    "postcode",
+                    "state",
+                    "country"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Sample Organization"
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "123 Main Street"
+                    },
+                    "postcode": {
+                        "type": "string",
+                        "example": "12345"
+                    },
+                    "state": {
+                        "type": "string",
+                        "example": "California"
+                    },
+                    "country": {
+                        "type": "string",
+                        "example": "United States"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "apiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "Authorization",
+                "description": "Pass your API key in the Authorization header. Example: `Authorization: {apiKey}`"
+            }
+        }
+    },
     "tags": [
         {
             "name": "Business Units",
             "description": "Business Units"
+        },
+        {
+            "name": "External Organizations",
+            "description": "External Organizations"
         },
         {
             "name": "External Referees",
@@ -1837,16 +2288,6 @@
             "description": "Referrals"
         }
     ],
-    "components": {
-        "securitySchemes": {
-            "apiKeyAuth": {
-                "type": "apiKey",
-                "in": "header",
-                "name": "Authorization",
-                "description": "Pass your API key in the Authorization header. Example: `Authorization: {apiKey}`"
-            }
-        }
-    },
     "security": [
         {
             "apiKeyAuth": []

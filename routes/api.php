@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BusinessUnitController;
+use App\Http\Controllers\ExternalOrganizationController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\FormDetailsController;
 use App\Http\Controllers\ReferenceController;
@@ -51,4 +52,5 @@ Route::middleware('token.auth')->group(function () {
     });
 
     Route::apiResource('external-referees', ExternalRefereeController::class);
+    Route::apiResource('external-organizations', ExternalOrganizationController::class);
 });
