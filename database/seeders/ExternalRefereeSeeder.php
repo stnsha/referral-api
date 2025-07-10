@@ -13,7 +13,7 @@ class ExternalRefereeSeeder extends Seeder
      */
     public function run(): void
     {
-        $organization = ExternalOrganization::create([
+        $organization = ExternalOrganization::firstOrCreate([
             'name' => 'Medical Center Hospital',
             'address' => '123 Medical Center Ave, Suite 100',
             'postcode' => '12345',
@@ -105,7 +105,7 @@ class ExternalRefereeSeeder extends Seeder
         ];
 
         foreach ($referees as $referee) {
-            ExternalReferee::create($referee);
+            ExternalReferee::firstOrCreate($referee);
         }
     }
 }
