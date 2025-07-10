@@ -11,6 +11,7 @@ use App\Models\ReferralAttachment;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +34,8 @@ class ReferralController extends Controller
      *                     @OA\Property(property="ref_id", type="string", example="#REF0001"),
      *                     @OA\Property(property="reason", type="string", example="Vestibular-Related Balance Issue"),
      *                     @OA\Property(property="business_unit", type="string", example="Alpro Physio"),
-     *                     @OA\Property(property="status", type="string", example="Open")
+     *                     @OA\Property(property="status", type="string", example="Open"),
+     *                     @OA\Property(property="created_at", type="string", example="1 July 2025, Sunday")
      *                 )
      *             )
      *         )
@@ -70,7 +72,8 @@ class ReferralController extends Controller
                         'reason' => $rh->referral_reason,
                         'business_unit' => $rh->business_unit->name,
                         'ori_status' => $ref->status,
-                        'status' => $this->getStatus($ref->status)
+                        'status' => $this->getStatus($ref->status),
+                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l')
                     ];
                 }
             }
@@ -682,6 +685,18 @@ class ReferralController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function status()
+    {
+        $data = [
+            '1' => 'Open',
+            '2' => 'In Progress',
+            '3' => 'Referred',
+            '4' => 'Closed',
+        ];
+
+        return response()->json($data, 200);
     }
 
     private function getStatus($ref_status)

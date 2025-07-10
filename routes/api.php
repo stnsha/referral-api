@@ -8,6 +8,7 @@ use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferralAttachmentController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ExternalRefereeController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,16 +42,21 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');
+        Route::get('status', 'status')->name('referral.status');
     });
 
     Route::prefix('attachment')->controller(ReferralAttachmentController::class)->group(function () {
         Route::get('{attachment}', 'download')->name('attachment.download');
     });
 
-    Route::prefix('reference')->controller(ReferenceController::class)->group(function () {
-        Route::get('status', 'referralStatus')->name('reference.status');
-    });
-
     Route::apiResource('external-referees', ExternalRefereeController::class);
     Route::apiResource('external-organizations', ExternalOrganizationController::class);
+
+    Route::prefix('report')->controller(ReportController::class)->group(function () {
+        Route::get('chart', 'chart')->name('report.chart');
+        Route::get('business-unit', 'reportByBusinessUnit')->name('report.business-unit');
+        Route::get('priority', 'reportByPriority')->name('report.priority');
+        Route::get('status', 'reportByStatus')->name('report.status');
+        Route::get('time-period', 'reportByTimePeriod')->name('report.time-period');
+    });
 });

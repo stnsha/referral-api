@@ -1537,6 +1537,10 @@
                                                     "status": {
                                                         "type": "string",
                                                         "example": "Open"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "1 July 2025, Sunday"
                                                     }
                                                 },
                                                 "type": "object"
@@ -2108,6 +2112,428 @@
                     }
                 }
             }
+        },
+        "/api/report/chart": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get chart data for Total Referral by Business Unit",
+                "description": "Returns data formatted for Chart.js to display a bar chart of referral counts grouped by business unit",
+                "operationId": "95648a31d2b22c7c5f4684a8cd0ebf3c",
+                "responses": {
+                    "200": {
+                        "description": "Chart data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "labels": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": [
+                                                "Emergency Department",
+                                                "Cardiology",
+                                                "Neurology"
+                                            ]
+                                        },
+                                        "datasets": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "backgroundColor": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "data": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "options": {
+                                            "properties": {
+                                                "responsive": {
+                                                    "type": "boolean"
+                                                },
+                                                "maintainAspectRatio": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No referrals found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/report/business-unit": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get referral report grouped by business unit",
+                "description": "Returns referral counts and status breakdown for each business unit",
+                "operationId": "28bfede54dcb6867b11bdfca49b39d4f",
+                "responses": {
+                    "200": {
+                        "description": "Business unit report retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "business_unit": {
+                                                        "type": "string",
+                                                        "example": "Emergency Department"
+                                                    },
+                                                    "total_referrals": {
+                                                        "type": "integer",
+                                                        "example": 25
+                                                    },
+                                                    "status_breakdown": {
+                                                        "properties": {
+                                                            "open": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "in_progress": {
+                                                                "type": "integer",
+                                                                "example": 10
+                                                            },
+                                                            "referred": {
+                                                                "type": "integer",
+                                                                "example": 8
+                                                            },
+                                                            "closed": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "total_business_units": {
+                                            "type": "integer",
+                                            "example": 5
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No referrals found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/report/priority": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get referral report grouped by priority level",
+                "description": "Returns referral counts and percentages for each priority level (Low, Medium, High, Critical)",
+                "operationId": "81937dca058fe9a04ca7901fdd0e4cc8",
+                "responses": {
+                    "200": {
+                        "description": "Priority report retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "priority": {
+                                                        "type": "string",
+                                                        "example": "High"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer",
+                                                        "example": 15
+                                                    },
+                                                    "percentage": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 35.5
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "total_referrals": {
+                                            "type": "integer",
+                                            "example": 42
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No referrals found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/report/status": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get referral report grouped by status",
+                "description": "Returns referral counts and percentages for each status (Open, In Progress, Referred, Closed)",
+                "operationId": "d08c60233d47f8116f6603060669d2b2",
+                "responses": {
+                    "200": {
+                        "description": "Status report retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "In Progress"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer",
+                                                        "example": 18
+                                                    },
+                                                    "percentage": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 42.86
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "total_referrals": {
+                                            "type": "integer",
+                                            "example": 42
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No referrals found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/report/time-period": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get referral report grouped by time periods",
+                "description": "Returns referral counts grouped by weekly or monthly periods based on creation date",
+                "operationId": "c2d398bdbff92a92f32e494acf7c746c",
+                "parameters": [
+                    {
+                        "name": "period",
+                        "in": "query",
+                        "description": "Time period grouping (weekly or monthly)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "monthly",
+                            "enum": [
+                                "weekly",
+                                "monthly"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Time period report retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "period": {
+                                                        "type": "string",
+                                                        "example": "July 2024"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "date_key": {
+                                                        "type": "string",
+                                                        "example": "2024-07"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "period_type": {
+                                            "type": "string",
+                                            "example": "monthly"
+                                        },
+                                        "total_periods": {
+                                            "type": "integer",
+                                            "example": 6
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No referrals found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No results."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -2332,6 +2758,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Reports",
+            "description": "API Endpoints for generating various reports"
+        },
         {
             "name": "Business Units",
             "description": "Business Units"
