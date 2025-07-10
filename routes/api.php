@@ -38,12 +38,12 @@ Route::middleware('token.auth')->group(function () {
 
     Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
 
-    Route::resource('referral', ReferralController::class)->only(['index', 'store', 'show']);
-
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
+        Route::get('displayStatus', 'displayStatus')->name('referral.displayStatus');
         Route::put('', 'update')->name('referral.update');
-        Route::get('status', 'status')->name('referral.status');
     });
+
+    Route::resource('referral', ReferralController::class)->only(['index', 'store', 'show']);
 
     Route::prefix('attachment')->controller(ReferralAttachmentController::class)->group(function () {
         Route::get('{attachment}', 'download')->name('attachment.download');

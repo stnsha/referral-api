@@ -687,7 +687,7 @@ class ReferralController extends Controller
         }
     }
 
-    public function status()
+    public function displayStatus()
     {
         $data = [
             '1' => 'Open',
