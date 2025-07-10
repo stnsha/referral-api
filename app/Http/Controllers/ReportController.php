@@ -5,51 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\Referral;
 use Illuminate\Http\Request;
 
-/**
- * @OA\Tag(
- *     name="Reports",
- *     description="API Endpoints for generating various reports"
- * )
- */
 class ReportController extends Controller
 {
     /**
      * @OA\Get(
      *     path="/api/report/chart",
      *     summary="Get chart data for Total Referral by Business Unit",
-     *     description="Returns data formatted for Chart.js to display a bar chart of referral counts grouped by business unit",
      *     tags={"Reports"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="Chart data retrieved successfully",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="labels", type="array", @OA\Items(type="string"), example={"Emergency Department", "Cardiology", "Neurology"}),
-     *             @OA\Property(
-     *                 property="datasets",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="backgroundColor", type="array", @OA\Items(type="string")),
-     *                     @OA\Property(property="data", type="array", @OA\Items(type="integer"))
-     *                 )
-     *             ),
-     *             @OA\Property(
-     *                 property="options",
-     *                 type="object",
-     *                 @OA\Property(property="responsive", type="boolean"),
-     *                 @OA\Property(property="maintainAspectRatio", type="boolean")
-     *             )
+     *             @OA\Property(property="datasets", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="options", type="object")
      *         )
      *     ),
      *     @OA\Response(
      *         response=204,
      *         description="No referrals found",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items())
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
@@ -134,32 +111,17 @@ class ReportController extends Controller
     /**
      * @OA\Get(
      *     path="/api/report/business-unit",
-     *     summary="Get referral report grouped by business unit",
-     *     description="Returns referral counts and status breakdown for each business unit",
+     *     summary="Get referral report grouped by business units",
      *     tags={"Reports"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="Business unit report retrieved successfully",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="business_unit", type="string", example="Emergency Department"),
-     *                     @OA\Property(property="total_referrals", type="integer", example=25),
-     *                     @OA\Property(
-     *                         property="status_breakdown",
-     *                         type="object",
-     *                         @OA\Property(property="open", type="integer", example=5),
-     *                         @OA\Property(property="in_progress", type="integer", example=10),
-     *                         @OA\Property(property="referred", type="integer", example=8),
-     *                         @OA\Property(property="closed", type="integer", example=2)
-     *                     )
-     *                 )
-     *             ),
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="business_unit", type="string", example="Emergency Department"),
+     *                 @OA\Property(property="total_referrals", type="integer", example=25),
+     *                 @OA\Property(property="status_breakdown", type="object")
+     *             )),
      *             @OA\Property(property="total_business_units", type="integer", example=5)
      *         )
      *     ),
@@ -167,9 +129,8 @@ class ReportController extends Controller
      *         response=204,
      *         description="No referrals found",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items())
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
@@ -235,25 +196,17 @@ class ReportController extends Controller
     /**
      * @OA\Get(
      *     path="/api/report/priority",
-     *     summary="Get referral report grouped by priority level",
-     *     description="Returns referral counts and percentages for each priority level (Low, Medium, High, Critical)",
+     *     summary="Get referral report grouped by priority levels",
      *     tags={"Reports"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="Priority report retrieved successfully",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="priority", type="string", example="High"),
-     *                     @OA\Property(property="count", type="integer", example=15),
-     *                     @OA\Property(property="percentage", type="number", format="float", example=35.5)
-     *                 )
-     *             ),
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="priority", type="string", example="High"),
+     *                 @OA\Property(property="count", type="integer", example=15),
+     *                 @OA\Property(property="percentage", type="number", format="float", example=35.5)
+     *             )),
      *             @OA\Property(property="total_referrals", type="integer", example=42)
      *         )
      *     ),
@@ -261,9 +214,8 @@ class ReportController extends Controller
      *         response=204,
      *         description="No referrals found",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items())
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
@@ -307,24 +259,16 @@ class ReportController extends Controller
      * @OA\Get(
      *     path="/api/report/status",
      *     summary="Get referral report grouped by status",
-     *     description="Returns referral counts and percentages for each status (Open, In Progress, Referred, Closed)",
      *     tags={"Reports"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="Status report retrieved successfully",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="status", type="string", example="In Progress"),
-     *                     @OA\Property(property="count", type="integer", example=18),
-     *                     @OA\Property(property="percentage", type="number", format="float", example=42.86)
-     *                 )
-     *             ),
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="status", type="string", example="In Progress"),
+     *                 @OA\Property(property="count", type="integer", example=18),
+     *                 @OA\Property(property="percentage", type="number", format="float", example=42.86)
+     *             )),
      *             @OA\Property(property="total_referrals", type="integer", example=42)
      *         )
      *     ),
@@ -332,9 +276,8 @@ class ReportController extends Controller
      *         response=204,
      *         description="No referrals found",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items())
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
@@ -380,35 +323,23 @@ class ReportController extends Controller
      * @OA\Get(
      *     path="/api/report/time-period",
      *     summary="Get referral report grouped by time periods",
-     *     description="Returns referral counts grouped by weekly or monthly periods based on creation date",
      *     tags={"Reports"},
-     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="period",
      *         in="query",
-     *         description="Time period grouping (weekly or monthly)",
      *         required=false,
-     *         @OA\Schema(
-     *             type="string",
-     *             enum={"weekly", "monthly"},
-     *             default="monthly"
-     *         )
+     *         description="Time period grouping (weekly or monthly)",
+     *         @OA\Schema(type="string", enum={"weekly", "monthly"}, example="monthly")
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Time period report retrieved successfully",
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="period", type="string", example="July 2024"),
-     *                     @OA\Property(property="count", type="integer", example=12),
-     *                     @OA\Property(property="date_key", type="string", example="2024-07")
-     *                 )
-     *             ),
+     *             @OA\Property(property="data", type="array", @OA\Items(
+     *                 @OA\Property(property="period", type="string", example="July 2024"),
+     *                 @OA\Property(property="count", type="integer", example=12),
+     *                 @OA\Property(property="date_key", type="string", example="2024-07")
+     *             )),
      *             @OA\Property(property="period_type", type="string", example="monthly"),
      *             @OA\Property(property="total_periods", type="integer", example=6)
      *         )
@@ -417,9 +348,8 @@ class ReportController extends Controller
      *         response=204,
      *         description="No referrals found",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items())
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )

@@ -2119,7 +2119,6 @@
                     "Reports"
                 ],
                 "summary": "Get chart data for Total Referral by Business Unit",
-                "description": "Returns data formatted for Chart.js to display a bar chart of referral counts grouped by business unit",
                 "operationId": "95648a31d2b22c7c5f4684a8cd0ebf3c",
                 "responses": {
                     "200": {
@@ -2142,32 +2141,10 @@
                                         "datasets": {
                                             "type": "array",
                                             "items": {
-                                                "properties": {
-                                                    "backgroundColor": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "data": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "integer"
-                                                        }
-                                                    }
-                                                },
                                                 "type": "object"
                                             }
                                         },
                                         "options": {
-                                            "properties": {
-                                                "responsive": {
-                                                    "type": "boolean"
-                                                },
-                                                "maintainAspectRatio": {
-                                                    "type": "boolean"
-                                                }
-                                            },
                                             "type": "object"
                                         }
                                     },
@@ -2188,7 +2165,9 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2196,12 +2175,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/report/business-unit": {
@@ -2209,8 +2183,7 @@
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get referral report grouped by business unit",
-                "description": "Returns referral counts and status breakdown for each business unit",
+                "summary": "Get referral report grouped by business units",
                 "operationId": "28bfede54dcb6867b11bdfca49b39d4f",
                 "responses": {
                     "200": {
@@ -2232,24 +2205,6 @@
                                                         "example": 25
                                                     },
                                                     "status_breakdown": {
-                                                        "properties": {
-                                                            "open": {
-                                                                "type": "integer",
-                                                                "example": 5
-                                                            },
-                                                            "in_progress": {
-                                                                "type": "integer",
-                                                                "example": 10
-                                                            },
-                                                            "referred": {
-                                                                "type": "integer",
-                                                                "example": 8
-                                                            },
-                                                            "closed": {
-                                                                "type": "integer",
-                                                                "example": 2
-                                                            }
-                                                        },
                                                         "type": "object"
                                                     }
                                                 },
@@ -2278,7 +2233,9 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2286,12 +2243,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/report/priority": {
@@ -2299,8 +2251,7 @@
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get referral report grouped by priority level",
-                "description": "Returns referral counts and percentages for each priority level (Low, Medium, High, Critical)",
+                "summary": "Get referral report grouped by priority levels",
                 "operationId": "81937dca058fe9a04ca7901fdd0e4cc8",
                 "responses": {
                     "200": {
@@ -2352,7 +2303,9 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2360,12 +2313,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/report/status": {
@@ -2374,7 +2322,6 @@
                     "Reports"
                 ],
                 "summary": "Get referral report grouped by status",
-                "description": "Returns referral counts and percentages for each status (Open, In Progress, Referred, Closed)",
                 "operationId": "d08c60233d47f8116f6603060669d2b2",
                 "responses": {
                     "200": {
@@ -2426,7 +2373,9 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2434,12 +2383,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/report/time-period": {
@@ -2448,7 +2392,6 @@
                     "Reports"
                 ],
                 "summary": "Get referral report grouped by time periods",
-                "description": "Returns referral counts grouped by weekly or monthly periods based on creation date",
                 "operationId": "c2d398bdbff92a92f32e494acf7c746c",
                 "parameters": [
                     {
@@ -2458,11 +2401,11 @@
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "monthly",
                             "enum": [
                                 "weekly",
                                 "monthly"
-                            ]
+                            ],
+                            "example": "monthly"
                         }
                     }
                 ],
@@ -2519,7 +2462,9 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2527,12 +2472,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         }
     },
@@ -2759,10 +2699,6 @@
     },
     "tags": [
         {
-            "name": "Reports",
-            "description": "API Endpoints for generating various reports"
-        },
-        {
             "name": "Business Units",
             "description": "Business Units"
         },
@@ -2789,6 +2725,10 @@
         {
             "name": "Referrals",
             "description": "Referrals"
+        },
+        {
+            "name": "Reports",
+            "description": "Reports"
         }
     ],
     "security": [
