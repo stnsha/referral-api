@@ -7,32 +7,10 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    /**
-     * @OA\Get(
-     *     path="/api/report/chart",
-     *     summary="Get chart data for Total Referral by Business Unit",
-     *     tags={"Reports"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Chart data retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="labels", type="array", @OA\Items(type="string"), example={"Emergency Department", "Cardiology", "Neurology"}),
-     *             @OA\Property(property="datasets", type="array", @OA\Items(type="object")),
-     *             @OA\Property(property="options", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="No referrals found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
+
     public function chart()
     {
+
         $referrals = Referral::with(['referral_histories.business_unit'])->get();
 
         if ($referrals->isEmpty()) {
@@ -42,99 +20,36 @@ class ReportController extends Controller
             ], 204);
         }
 
-        // Count referrals by business unit
-        $businessUnitCounts = [];
+        $results = [];
 
         foreach ($referrals as $referral) {
-            foreach ($referral->referral_histories as $history) {
-                if ($history->business_unit && $history->sequence == 1) {
-                    $businessUnitName = $history->business_unit->name;
-                    if (!isset($businessUnitCounts[$businessUnitName])) {
-                        $businessUnitCounts[$businessUnitName] = 0;
+            foreach ($referral->referral_histories as $rh) {
+                if ($rh->business_unit != null) {
+                    $businessUnit = $rh->business_unit->name;
+
+                    // Initialize business unit if not exists
+                    if (!isset($results[$businessUnit])) {
+                        $results[$businessUnit] = [
+                            [
+                                'sent' => 0,
+                                'received' => 0
+                            ]
+                        ];
                     }
-                    $businessUnitCounts[$businessUnitName]++;
+
+                    // Count sent (sequence == 1) or received (sequence != 1)
+                    if ($rh->sequence == 1) {
+                        $results[$businessUnit][0]['sent']++;
+                    } else {
+                        $results[$businessUnit][0]['received']++;
+                    }
                 }
             }
         }
 
-        // Prepare chart data
-        $labels = array_keys($businessUnitCounts);
-        $values = array_values($businessUnitCounts);
-
-        // Define colors for business units
-        $colors = ["#1e4384", "#17b2a6", "#194621", "#19b8d3", "#21a2dc", "orange", "#204296"];
-        $barColors = [];
-
-        for ($i = 0; $i < count($labels); $i++) {
-            $barColors[] = $colors[$i % count($colors)];
-        }
-
-        $chartData = [
-            'labels' => $labels,
-            'datasets' => [[
-                'backgroundColor' => $barColors,
-                'data' => $values
-            ]],
-            'options' => [
-                'responsive' => true,
-                'maintainAspectRatio' => false,
-                'legend' => [
-                    'display' => false
-                ],
-                'scales' => [
-                    'xAxes' => [[
-                        'scaleLabel' => [
-                            'display' => true,
-                            'labelString' => 'Business Unit'
-                        ]
-                    ]],
-                    'yAxes' => [[
-                        'scaleLabel' => [
-                            'display' => true,
-                            'labelString' => 'Total Referral'
-                        ],
-                        'ticks' => [
-                            'beginAtZero' => true
-                        ]
-                    ]]
-                ],
-                'title' => [
-                    'display' => true,
-                    'text' => 'Total Referral by Business Unit'
-                ]
-            ]
-        ];
-
-        return response()->json($chartData, 200);
+        return response()->json($results, 200);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/report/business-unit",
-     *     summary="Get referral report grouped by business units",
-     *     tags={"Reports"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Business unit report retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(
-     *                 @OA\Property(property="business_unit", type="string", example="Emergency Department"),
-     *                 @OA\Property(property="total_referrals", type="integer", example=25),
-     *                 @OA\Property(property="status_breakdown", type="object")
-     *             )),
-     *             @OA\Property(property="total_business_units", type="integer", example=5)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="No referrals found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
     public function reportByBusinessUnit()
     {
         $referrals = Referral::with(['referral_histories.business_unit'])->get();
@@ -193,33 +108,6 @@ class ReportController extends Controller
         ], 200);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/report/priority",
-     *     summary="Get referral report grouped by priority levels",
-     *     tags={"Reports"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Priority report retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(
-     *                 @OA\Property(property="priority", type="string", example="High"),
-     *                 @OA\Property(property="count", type="integer", example=15),
-     *                 @OA\Property(property="percentage", type="number", format="float", example=35.5)
-     *             )),
-     *             @OA\Property(property="total_referrals", type="integer", example=42)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="No referrals found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
     public function reportByPriority()
     {
         $referrals = Referral::with(['referral_histories.business_unit'])->get();
@@ -255,33 +143,6 @@ class ReportController extends Controller
         ], 200);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/report/status",
-     *     summary="Get referral report grouped by status",
-     *     tags={"Reports"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Status report retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(
-     *                 @OA\Property(property="status", type="string", example="In Progress"),
-     *                 @OA\Property(property="count", type="integer", example=18),
-     *                 @OA\Property(property="percentage", type="number", format="float", example=42.86)
-     *             )),
-     *             @OA\Property(property="total_referrals", type="integer", example=42)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="No referrals found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
     public function reportByStatus()
     {
         $referrals = Referral::all();
@@ -319,41 +180,6 @@ class ReportController extends Controller
         ], 200);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/report/time-period",
-     *     summary="Get referral report grouped by time periods",
-     *     tags={"Reports"},
-     *     @OA\Parameter(
-     *         name="period",
-     *         in="query",
-     *         required=false,
-     *         description="Time period grouping (weekly or monthly)",
-     *         @OA\Schema(type="string", enum={"weekly", "monthly"}, example="monthly")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Time period report retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(
-     *                 @OA\Property(property="period", type="string", example="July 2024"),
-     *                 @OA\Property(property="count", type="integer", example=12),
-     *                 @OA\Property(property="date_key", type="string", example="2024-07")
-     *             )),
-     *             @OA\Property(property="period_type", type="string", example="monthly"),
-     *             @OA\Property(property="total_periods", type="integer", example=6)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="No referrals found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No results."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
     public function reportByTimePeriod(Request $request)
     {
         $period = $request->query('period', 'monthly'); // weekly or monthly
