@@ -64,19 +64,27 @@ class ReferralController extends Controller
         $refs = [];
 
         foreach ($referrals as $ref) {
-            foreach ($ref->referral_histories as $rh) {
-                if ($rh->sequence == 1) {
-                    $refs[] = [
-                        'id' => $ref->id,
-                        'ref_id' => $this->createRefId($ref->id),
-                        'reason' => $rh->referral_reason,
-                        'business_unit' => $rh->business_unit->name,
-                        'ori_status' => $ref->status,
-                        'status' => $this->getStatus($ref->status),
-                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l')
-                    ];
-                }
-            }
+            // Find the latest sequence (maximum sequence number)
+            $latestSequence = $ref->referral_histories->max('sequence');
+            
+            // Get the referral history with the latest sequence
+            $latestReferralHistory = $ref->referral_histories->where('sequence', $latestSequence)->first();
+            
+            // Get the first sequence for referral reason (from original logic)
+            $firstReferralHistory = $ref->referral_histories->where('sequence', 1)->first();
+            
+            if ($latestReferralHistory && $firstReferralHistory) {
+                 $refs[] = [
+                     'id' => $ref->id,
+                     'ref_id' => $this->createRefId($ref->id),
+                     'reason' => $firstReferralHistory->referral_reason,
+                     'from_business_unit' => $firstReferralHistory->business_unit->name,
+                     'to_business_unit' => $latestReferralHistory->business_unit->name,
+                     'ori_status' => $ref->status,
+                     'status' => $this->getStatus($ref->status),
+                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l')
+                 ];
+             }
         }
 
         return response()->json(['data' => $refs], 200);
