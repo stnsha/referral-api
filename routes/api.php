@@ -54,7 +54,8 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('report')->controller(ReportController::class)->group(function () {
         Route::get('chart', 'chart')->name('report.chart');
-        // Route::get('business-unit', 'reportByBusinessUnit')->name('report.business-unit');
+        Route::get('dashboard', 'dashboard')->name('report.dashboard');
+        // Route::get('businessUnit/{buId}', 'businessUnit')->name('report.businessUnit');
         // Route::get('priority', 'reportByPriority')->name('report.priority');
         // Route::get('status', 'reportByStatus')->name('report.status');
         // Route::get('time-period', 'reportByTimePeriod')->name('report.time-period');
