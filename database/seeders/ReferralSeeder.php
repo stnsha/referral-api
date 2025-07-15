@@ -92,7 +92,7 @@ class ReferralSeeder extends Seeder
             ],
             [
                 'customer_id' => 10,
-                'priority' => 3, // Low
+                'priority' => 2, // Low
                 'status' => 3, // Referred
                 'histories' => [
                     [
@@ -168,18 +168,27 @@ class ReferralSeeder extends Seeder
             ]
         ];
 
+        $referralIndex = 0;
         foreach ($referrals as $referralData) {
-            // Create referral
+            // Create referral with incremental timestamps
+            $baseDate = Carbon::now()->subDays(30); // Start 30 days ago
+            $referralCreatedAt = $baseDate->copy()->addDays($referralIndex * 5); // 5 days apart
+            $referralUpdatedAt = $referralCreatedAt->copy()->addDays(rand(1, 3)); // 1-3 days after creation
+
             $referral = Referral::firstOrCreate([
                 'customer_id' => $referralData['customer_id'],
                 'priority' => $referralData['priority'],
                 'status' => $referralData['status'],
-                'created_at' => Carbon::now()->subDays(rand(1, 30)),
-                'updated_at' => Carbon::now()->subDays(rand(0, 5))
+                'created_at' => $referralCreatedAt,
+                'updated_at' => $referralUpdatedAt
             ]);
 
             // Create referral histories
+            $historyIndex = 0;
             foreach ($referralData['histories'] as $historyData) {
+                $historyCreatedAt = $referralCreatedAt->copy()->addHours($historyIndex * 2); // 2 hours apart
+                $historyUpdatedAt = $historyCreatedAt->copy()->addMinutes(rand(30, 120)); // 30-120 minutes after creation
+
                 $referralHistory = ReferralHistory::firstOrCreate([
                     'referral_id' => $referral->id,
                     'staff_id' => $historyData['staff_id'],
@@ -191,15 +200,17 @@ class ReferralSeeder extends Seeder
                     'medical_history' => $historyData['medical_history'],
                     'additional_remarks' => $historyData['additional_remarks'],
                     'is_filled' => $historyData['is_filled'],
-                    'created_at' => Carbon::now()->subDays(rand(1, 25)),
-                    'updated_at' => Carbon::now()->subDays(rand(0, 3))
+                    'created_at' => $historyCreatedAt,
+                    'updated_at' => $historyUpdatedAt
                 ]);
 
                 // Create referral details only for filled histories
                 if ($historyData['is_filled']) {
                     $this->createReferralDetails($referralHistory, $historyData['business_unit_id']);
                 }
+                $historyIndex++;
             }
+            $referralIndex++;
         }
 
         // Create 2 dummy external referrals
@@ -267,17 +278,24 @@ class ReferralSeeder extends Seeder
         ];
 
         foreach ($externalReferrals as $referralData) {
-            // Create external referral
+            // Create external referral with incremental timestamps
+            $referralCreatedAt = $baseDate->copy()->addDays($referralIndex * 5); // Continue from previous referrals
+            $referralUpdatedAt = $referralCreatedAt->copy()->addDays(rand(1, 3));
+
             $referral = Referral::firstOrCreate([
                 'customer_id' => $referralData['customer_id'],
                 'priority' => $referralData['priority'],
                 'status' => $referralData['status'],
-                'created_at' => Carbon::now()->subDays(rand(1, 30)),
-                'updated_at' => Carbon::now()->subDays(rand(0, 5))
+                'created_at' => $referralCreatedAt,
+                'updated_at' => $referralUpdatedAt
             ]);
 
             // Create referral histories for external referrals
+            $historyIndex = 0;
             foreach ($referralData['histories'] as $historyData) {
+                $historyCreatedAt = $referralCreatedAt->copy()->addHours($historyIndex * 2);
+                $historyUpdatedAt = $historyCreatedAt->copy()->addMinutes(rand(30, 120));
+
                 $referralHistory = ReferralHistory::firstOrCreate([
                     'referral_id' => $referral->id,
                     'staff_id' => $historyData['staff_id'],
@@ -290,15 +308,17 @@ class ReferralSeeder extends Seeder
                     'additional_remarks' => $historyData['additional_remarks'],
                     'is_filled' => $historyData['is_filled'],
                     'external_referee_id' => $historyData['external_referee_id'] ?? null,
-                    'created_at' => Carbon::now()->subDays(rand(1, 25)),
-                    'updated_at' => Carbon::now()->subDays(rand(0, 3))
+                    'created_at' => $historyCreatedAt,
+                    'updated_at' => $historyUpdatedAt
                 ]);
 
                 // Create referral details only for filled histories
                 if ($historyData['is_filled']) {
                     $this->createReferralDetails($referralHistory, $historyData['business_unit_id']);
                 }
+                $historyIndex++;
             }
+            $referralIndex++;
         }
     }
 
