@@ -512,6 +512,7 @@ class ReferralController extends Controller
                 'medical_history' => $medical_history,
                 'priority' => $referral->priority,
                 'status' => $referral->status,
+                'status_note' => $referral->status_note,
             ];
 
             //grouped all data
@@ -634,20 +635,22 @@ class ReferralController extends Controller
                         $rh->save();
 
                         //insert referral details
-                        $formFields = $request->input("form_data.$business_unit_id", []);
+                        if (isset($validated['form_data']) && filled($validated['form_data'])) {
+                            $formFields = $request->input("form_data.$business_unit_id", []);
 
-                        foreach ($formFields as $field => $value) {
-                            $form_detail = FormDetails::where('field_name', $field)
-                                ->whereHas('form', function ($query) use ($business_unit_id) {
-                                    $query->where('business_unit_id', $business_unit_id);
-                                })
-                                ->first();
+                            foreach ($formFields as $field => $value) {
+                                $form_detail = FormDetails::where('field_name', $field)
+                                    ->whereHas('form', function ($query) use ($business_unit_id) {
+                                        $query->where('business_unit_id', $business_unit_id);
+                                    })
+                                    ->first();
 
-                            ReferralDetails::create([
-                                'referral_history_id' => $referral_history_id,
-                                'form_id' => $form_detail->form_id,
-                                'value' => is_array($value) ? json_encode($value) : $value,
-                            ]);
+                                ReferralDetails::create([
+                                    'referral_history_id' => $referral_history_id,
+                                    'form_id' => $form_detail->form_id,
+                                    'value' => is_array($value) ? json_encode($value) : $value,
+                                ]);
+                            }
                         }
 
                         //run through attachments if exist
