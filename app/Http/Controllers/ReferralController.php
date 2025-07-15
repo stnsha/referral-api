@@ -611,6 +611,11 @@ class ReferralController extends Controller
 
                 //update status
                 $referral->status = $validated['referral']['status'];
+
+                if ($validated['referral']['status'] == 5 && $validated['referral']['status_note'] != '') {
+                    $referral->status_note = $validated['referral']['status_note'];
+                }
+
                 $referral_history_id = '';
 
                 foreach ($referral->referral_histories as $rh) {
@@ -719,6 +724,7 @@ class ReferralController extends Controller
             '2' => 'In Progress',
             '3' => 'Referred',
             '4' => 'Closed',
+            '5' => 'Not Present',
         ];
 
         return response()->json($data, 200);
@@ -749,6 +755,10 @@ class ReferralController extends Controller
 
             case '4':
                 $status = 'Closed';
+                break;
+
+            case '5':
+                $status = 'Not Present';
                 break;
 
             default:

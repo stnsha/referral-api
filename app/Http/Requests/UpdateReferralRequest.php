@@ -27,6 +27,7 @@ class UpdateReferralRequest extends FormRequest
             'referral.business_unit_id_reply' => 'required|integer',
             'referral.updated_recipient_to' => 'nullable|integer',
             'referral.status' => 'required|integer',
+            'referral.status_note' => 'nullable|string',
             'referral.additional_remarks' => 'nullable|string',
 
             'refer_another.refer_business_unit' => 'nullable|integer',

@@ -163,17 +163,6 @@ class ReferralSeeder extends Seeder
                         'medical_history' => '',
                         'additional_remarks' => '',
                         'is_filled' => false
-                    ],
-                    [
-                        'sequence' => 3,
-                        'business_unit_id' => 6, // Alpro Physio
-                        'staff_id' => null,
-                        'location' => $getStaffByBusinessUnit(6)['location'],
-                        'referral_reason' => '',
-                        'referral_condition' => '',
-                        'medical_history' => '',
-                        'additional_remarks' => '',
-                        'is_filled' => false
                     ]
                 ]
             ]
