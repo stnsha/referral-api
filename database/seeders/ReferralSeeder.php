@@ -212,6 +212,105 @@ class ReferralSeeder extends Seeder
                 }
             }
         }
+
+        // Create 2 dummy external referrals
+        $externalReferrals = [
+            [
+                'customer_id' => 10,
+                'priority' => 1, // High
+                'status' => 1, // Referred
+                'histories' => [
+                    [
+                        'sequence' => 1,
+                        'business_unit_id' => 3, // Alpro Clinic
+                        'staff_id' => $getStaffByBusinessUnit(3)['staff_id'],
+                        'location' => $getStaffByBusinessUnit(3)['location'],
+                        'referral_reason' => 'Complex cardiac condition requiring specialist care',
+                        'referral_condition' => 'Patient presents with irregular heartbeat and chest pain',
+                        'medical_history' => 'Previous heart attack, family history of cardiac disease',
+                        'additional_remarks' => 'Urgent referral to cardiology specialist',
+                        'is_filled' => true
+                    ],
+                    [
+                        'sequence' => 2,
+                        'business_unit_id' => null,
+                        'staff_id' => null,
+                        'location' => null,
+                        'referral_reason' => '',
+                        'referral_condition' => '',
+                        'medical_history' => '',
+                        'additional_remarks' => '',
+                        'is_filled' => false,
+                        'external_referee_id' => 1 // Dr. John Smith - Cardiology
+                    ]
+                ]
+            ],
+            [
+                'customer_id' => 10,
+                'priority' => 2, // Medium
+                'status' => 1, // In Progress
+                'histories' => [
+                    [
+                        'sequence' => 1,
+                        'business_unit_id' => 1, // Alpro Audiology
+                        'staff_id' => $getStaffByBusinessUnit(1)['staff_id'],
+                        'location' => $getStaffByBusinessUnit(1)['location'],
+                        'referral_reason' => 'Neurological hearing assessment required',
+                        'referral_condition' => 'Patient experiencing sudden hearing loss with neurological symptoms',
+                        'medical_history' => 'Recent head trauma, tinnitus',
+                        'additional_remarks' => 'Requires specialized neurological evaluation',
+                        'is_filled' => true
+                    ],
+                    [
+                        'sequence' => 2,
+                        'business_unit_id' => null,
+                        'staff_id' => null,
+                        'location' => null,
+                        'referral_reason' => '',
+                        'referral_condition' => '',
+                        'medical_history' => '',
+                        'additional_remarks' => '',
+                        'is_filled' => false,
+                        'external_referee_id' => 3 // Dr. Michael Chen - Neurology
+                    ]
+                ]
+            ]
+        ];
+
+        foreach ($externalReferrals as $referralData) {
+            // Create external referral
+            $referral = Referral::firstOrCreate([
+                'customer_id' => $referralData['customer_id'],
+                'priority' => $referralData['priority'],
+                'status' => $referralData['status'],
+                'created_at' => Carbon::now()->subDays(rand(1, 30)),
+                'updated_at' => Carbon::now()->subDays(rand(0, 5))
+            ]);
+
+            // Create referral histories for external referrals
+            foreach ($referralData['histories'] as $historyData) {
+                $referralHistory = ReferralHistory::firstOrCreate([
+                    'referral_id' => $referral->id,
+                    'staff_id' => $historyData['staff_id'],
+                    'business_unit_id' => $historyData['business_unit_id'],
+                    'location' => $historyData['location'],
+                    'sequence' => $historyData['sequence'],
+                    'referral_reason' => $historyData['referral_reason'],
+                    'referral_condition' => $historyData['referral_condition'],
+                    'medical_history' => $historyData['medical_history'],
+                    'additional_remarks' => $historyData['additional_remarks'],
+                    'is_filled' => $historyData['is_filled'],
+                    'external_referee_id' => $historyData['external_referee_id'] ?? null,
+                    'created_at' => Carbon::now()->subDays(rand(1, 25)),
+                    'updated_at' => Carbon::now()->subDays(rand(0, 3))
+                ]);
+
+                // Create referral details only for filled histories
+                if ($historyData['is_filled']) {
+                    $this->createReferralDetails($referralHistory, $historyData['business_unit_id']);
+                }
+            }
+        }
     }
 
     /**

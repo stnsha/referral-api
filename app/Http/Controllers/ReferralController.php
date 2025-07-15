@@ -52,7 +52,7 @@ class ReferralController extends Controller
      */
     public function index()
     {
-        $referrals = Referral::with(['referral_histories'])->orderByDesc('created_at')->get();
+        $referrals = Referral::with(['referral_histories.business_unit', 'referral_histories.external_referee'])->orderByDesc('created_at')->get();
 
         if ($referrals->isEmpty()) {
             return response()->json([
@@ -66,25 +66,42 @@ class ReferralController extends Controller
         foreach ($referrals as $ref) {
             // Find the latest sequence (maximum sequence number)
             $latestSequence = $ref->referral_histories->max('sequence');
-            
+
             // Get the referral history with the latest sequence
             $latestReferralHistory = $ref->referral_histories->where('sequence', $latestSequence)->first();
-            
+
             // Get the first sequence for referral reason (from original logic)
             $firstReferralHistory = $ref->referral_histories->where('sequence', 1)->first();
-            
-            if ($latestReferralHistory && $firstReferralHistory) {
-                 $refs[] = [
-                     'id' => $ref->id,
-                     'ref_id' => $this->createRefId($ref->id),
-                     'reason' => $firstReferralHistory->referral_reason,
-                     'from_business_unit' => $firstReferralHistory->business_unit->name,
-                     'to_business_unit' => $latestReferralHistory->business_unit->name,
-                     'ori_status' => $ref->status,
-                     'status' => $this->getStatus($ref->status),
-                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l')
-                 ];
-             }
+
+            $is_external = $latestReferralHistory->external_referee_id != null ? true : false;
+
+            if ($latestReferralHistory && $firstReferralHistory && !$is_external) {
+                $refs[] = [
+                    'id' => $ref->id,
+                    'ref_id' => $this->createRefId($ref->id),
+                    'reason' => $firstReferralHistory->referral_reason,
+                    'from_business_unit' => $firstReferralHistory->business_unit->name,
+                    'to_business_unit' => $latestReferralHistory->business_unit->name,
+                    'ori_status' => $ref->status,
+                    'status' => $this->getStatus($ref->status),
+                    'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                    'ori_created_at' => $ref->created_at,
+                    'is_external' => $is_external
+                ];
+            } else {
+                $refs[] = [
+                    'id' => $ref->id,
+                    'ref_id' => $this->createRefId($ref->id),
+                    'reason' => $firstReferralHistory->referral_reason,
+                    'from_business_unit' => $firstReferralHistory->business_unit->name,
+                    'to_business_unit' => $latestReferralHistory->external_referee->name,
+                    'ori_status' => $ref->status,
+                    'status' => $this->getStatus($ref->status),
+                    'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                    'ori_created_at' => $ref->created_at,
+                    'is_external' => $is_external
+                ];
+            }
         }
 
         return response()->json(['data' => $refs], 200);
