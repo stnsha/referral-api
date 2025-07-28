@@ -186,7 +186,7 @@ class ReportController extends Controller
                             // Prepare referral data with status name
                             $referralData = $rh->referral ? $rh->referral->makeHidden(['id', 'deleted_at'])->toArray() : null;
                             if ($referralData && isset($referralData['status'])) {
-                                $referralData['status_name'] = $this->getStatus($referralData['status']);
+                                $referralData['status_name'] = getStatus($referralData['status']);
                                 unset($referralData['status']); // Remove the numeric status field
                             }
 
@@ -376,66 +376,5 @@ class ReportController extends Controller
             'total_business_unit' => $businessUnits->count(),
             'business_units' => array_values($businessUnitCounts)
         ], 200);
-    }
-
-    public function businessUnit($buId)
-    {
-        // $businessUnit = BusinessUnit::findOrFail($buId);
-        $referralHistories = ReferralHistory::where('business_unit_id', $buId)->get();
-
-        // $results = [];
-
-        // foreach($referralHistories as $rh)
-        // {
-
-        // }
-
-    }
-
-    /**
-     * Get status name from status number
-     * Copied from ReferralController
-     */
-    private function getStatus($ref_status)
-    {
-        /**
-         * Status
-         * 1 = Open
-         * 2 = In Progress
-          3 = Referred
-         * 4 = Closed
-         * 5 = Not Present
-         */
-        switch ($ref_status) {
-            case '1':
-            case 1:
-                $status = 'Open';
-                break;
-
-            case '2':
-            case 2:
-                $status = 'In Progress';
-                break;
-
-            case '3':
-            case 3:
-                $status = 'Referred';
-                break;
-
-            case '4':
-            case 4:
-                $status = 'Closed';
-                break;
-
-            case '5':
-            case 5:
-                $status = 'Not Present';
-                break;
-
-            default:
-                $status = 'Submitted';
-                break;
-        }
-        return $status;
     }
 }

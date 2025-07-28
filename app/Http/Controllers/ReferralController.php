@@ -78,12 +78,12 @@ class ReferralController extends Controller
             if ($latestReferralHistory && $firstReferralHistory && !$is_external) {
                 $refs[] = [
                     'id' => $ref->id,
-                    'ref_id' => $this->createRefId($ref->id),
+                    'ref_id' => createRefId($ref->id),
                     'reason' => $firstReferralHistory->referral_reason,
                     'from_business_unit' => $firstReferralHistory->business_unit->name,
                     'to_business_unit' => $latestReferralHistory->business_unit->name,
                     'ori_status' => $ref->status,
-                    'status' => $this->getStatus($ref->status),
+                    'status' => getStatus($ref->status),
                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                     'ori_created_at' => $ref->created_at,
                     'is_external' => $is_external
@@ -91,12 +91,12 @@ class ReferralController extends Controller
             } else {
                 $refs[] = [
                     'id' => $ref->id,
-                    'ref_id' => $this->createRefId($ref->id),
+                    'ref_id' => createRefId($ref->id),
                     'reason' => $firstReferralHistory->referral_reason,
                     'from_business_unit' => $firstReferralHistory->business_unit->name,
                     'to_business_unit' => $latestReferralHistory->external_referee->name,
                     'ori_status' => $ref->status,
-                    'status' => $this->getStatus($ref->status),
+                    'status' => getStatus($ref->status),
                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                     'ori_created_at' => $ref->created_at,
                     'is_external' => $is_external
@@ -731,52 +731,5 @@ class ReferralController extends Controller
         ];
 
         return response()->json($data, 200);
-    }
-
-    private function getStatus($ref_status)
-    {
-
-        /**
-         * Status
-         * 1 = Open
-         * 2 = In Progress
-         * 3 = Referred
-         * 4 = Closed
-         */
-        switch ($ref_status) {
-            case '1':
-                $status = 'Open';
-                break;
-
-            case '2':
-                $status = 'In Progress';
-                break;
-
-            case '3':
-                $status = 'Referred';
-                break;
-
-            case '4':
-                $status = 'Closed';
-                break;
-
-            case '5':
-                $status = 'Not Present';
-                break;
-
-            default:
-                $status = 'Submitted';
-                break;
-        }
-        return $status;
-    }
-
-    private function createRefId($id)
-    {
-        $param = '#REF';
-
-        $updatedId = $param . str_pad($id, 4, '0', STR_PAD_LEFT);
-
-        return $updatedId;
     }
 }
