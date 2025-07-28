@@ -25,3 +25,4 @@ package.json
 composer.lock
 package-lock.json
 vite.config.js
+/public/report

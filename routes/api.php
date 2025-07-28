@@ -53,6 +53,7 @@ Route::middleware('token.auth')->group(function () {
     Route::apiResource('external-organizations', ExternalOrganizationController::class);
 
     Route::prefix('report')->controller(ReportController::class)->group(function () {
+        Route::post('/', 'index')->name('report.index');
         Route::get('chart', 'chart')->name('report.chart');
         Route::get('dashboard', 'dashboard')->name('report.dashboard');
         // Route::get('businessUnit/{buId}', 'businessUnit')->name('report.businessUnit');
