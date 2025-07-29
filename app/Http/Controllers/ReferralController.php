@@ -655,6 +655,16 @@ class ReferralController extends Controller
 
                         //run through attachments if exist
                         if (filled($request['attachments']) && $is_filled) {
+                            $mimeMap = [
+                                'image/jpeg' => 'jpg',
+                                'image/png' => 'png',
+                                'application/pdf' => 'pdf',
+                                'application/msword' => 'doc',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+                                'application/vnd.ms-excel' => 'xls',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx'
+                            ];
+
                             foreach ($validated['attachments'] as $atc) {
                                 $referralAttachment = ReferralAttachment::create([
                                     'referral_history_id' => $referral_history_id,
@@ -665,10 +675,10 @@ class ReferralController extends Controller
                                 ]);
 
                                 $business_unit = $rh->business_unit->name;
-                                $extension = str_replace('image/', '', $atc['type']);
+                                $extension = $mimeMap[$atc['type']] ?? 'bin';
                                 $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : $atc['name'];
-                                $suffix =  $referral->id . $referral_history_id . $referralAttachment->id;
-                                $referralAttachment->file_name =  $newFileName . '_' . $suffix . '.' . $extension;
+                                $suffix = $referral->id . $referral_history_id . $referralAttachment->id;
+                                $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
                                 $referralAttachment->save();
                             }
                         }
