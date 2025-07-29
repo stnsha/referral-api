@@ -504,7 +504,7 @@ class ReferralController extends Controller
             //create referring indication data
             $referringIndication = [
                 'id' => $referral->id,
-                'referral_id' => $this->createRefId($referral->id),
+                'referral_id' => createRefId($referral->id),
                 'customer_id' => $referral->customer_id,
                 'business_unit_id' => $business_unit_id,
                 'referral_reason' => $referral_reason,
