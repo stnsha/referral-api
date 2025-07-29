@@ -256,7 +256,19 @@ class ReferralController extends Controller
 
                     //run through attachments if exist
                     if (filled($request['attachments']) && $is_filled) {
-                        foreach ($validated['attachments'] as $key => $atc) {
+                        $mimeMap = [
+                            'image/jpeg' => 'jpg',
+                            'image/png' => 'png',
+                            'application/pdf' => 'pdf',
+                            'application/msword' => 'doc',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+                            'application/vnd.ms-excel' => 'xls',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx'
+                        ];
+
+                        foreach ($validated['attachments'] as $atc) {
+                            Log::info('Processing attachment', ['raw' => $atc]);
+
                             $referralAttachment = ReferralAttachment::create([
                                 'referral_history_id' => $referral_history_id,
                                 'file_name' => $atc['name'],
@@ -265,12 +277,36 @@ class ReferralController extends Controller
                                 'encoded_base' => $atc['base64']
                             ]);
 
-                            // Get file extension from MIME type
-                            $extension = str_replace('image/', '', $atc['type']);
-                            $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : $atc['name'];
-                            $suffix =  $referral->id . $referral_history_id . $referralAttachment->id;
-                            $referralAttachment->file_name =  $newFileName . '_' . $suffix . '.' . $extension;
+                            Log::info('Created referral attachment record', [
+                                'id' => $referralAttachment->id,
+                                'initial_file_name' => $atc['name'],
+                                'file_type' => $atc['type']
+                            ]);
+
+                            $business_unit = $rh->business_unit->name;
+                            $extension = $mimeMap[$atc['type']] ?? pathinfo($atc['name'], PATHINFO_EXTENSION);
+
+                            Log::info('Extension determined', [
+                                'mime_type' => $atc['type'],
+                                'mapped_extension' => $mimeMap[$atc['type']] ?? null,
+                                'final_extension' => $extension
+                            ]);
+
+                            $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : pathinfo($atc['name'], PATHINFO_FILENAME);
+                            $suffix = $referral->id . $referral_history_id . $referralAttachment->id;
+
+                            Log::info('Building final file name', [
+                                'business_unit' => $business_unit,
+                                'newFileName' => $newFileName,
+                                'suffix' => $suffix
+                            ]);
+
+                            $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
                             $referralAttachment->save();
+
+                            Log::info('Final file name saved', [
+                                'saved_file_name' => $referralAttachment->file_name
+                            ]);
                         }
                     }
                 }
