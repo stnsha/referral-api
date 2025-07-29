@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use DateTime;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -666,6 +667,8 @@ class ReferralController extends Controller
                             ];
 
                             foreach ($validated['attachments'] as $atc) {
+                                Log::info('Processing attachment', ['raw' => $atc]);
+
                                 $referralAttachment = ReferralAttachment::create([
                                     'referral_history_id' => $referral_history_id,
                                     'file_name' => $atc['name'],
@@ -674,12 +677,36 @@ class ReferralController extends Controller
                                     'encoded_base' => $atc['base64']
                                 ]);
 
+                                Log::info('Created referral attachment record', [
+                                    'id' => $referralAttachment->id,
+                                    'initial_file_name' => $atc['name'],
+                                    'file_type' => $atc['type']
+                                ]);
+
                                 $business_unit = $rh->business_unit->name;
-                                $extension = $mimeMap[$atc['type']] ?? 'bin';
-                                $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : $atc['name'];
+                                $extension = $mimeMap[$atc['type']] ?? pathinfo($atc['name'], PATHINFO_EXTENSION);
+
+                                Log::info('Extension determined', [
+                                    'mime_type' => $atc['type'],
+                                    'mapped_extension' => $mimeMap[$atc['type']] ?? null,
+                                    'final_extension' => $extension
+                                ]);
+
+                                $newFileName = $business_unit != null ? str_replace(' ', '_', $business_unit) : pathinfo($atc['name'], PATHINFO_FILENAME);
                                 $suffix = $referral->id . $referral_history_id . $referralAttachment->id;
+
+                                Log::info('Building final file name', [
+                                    'business_unit' => $business_unit,
+                                    'newFileName' => $newFileName,
+                                    'suffix' => $suffix
+                                ]);
+
                                 $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
                                 $referralAttachment->save();
+
+                                Log::info('Final file name saved', [
+                                    'saved_file_name' => $referralAttachment->file_name
+                                ]);
                             }
                         }
                     }
