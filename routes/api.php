@@ -56,5 +56,6 @@ Route::middleware('token.auth')->group(function () {
         Route::post('/', 'index')->name('report.index');
         Route::get('chart', 'chart')->name('report.chart');
         Route::get('dashboard', 'dashboard')->name('report.dashboard');
+        Route::post('summary/{businessUnitId}', 'summary')->name('report.summary');
     });
 });

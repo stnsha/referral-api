@@ -2122,8 +2122,7 @@
                 "description": "Generate a comprehensive Excel report of referral histories with optional filtering parameters",
                 "operationId": "generateReport",
                 "requestBody": {
-                    "description": "Filter parameters for generating the report",
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -2176,6 +2175,16 @@
                                     }
                                 },
                                 "type": "object"
+                            },
+                            "example": {
+                                "business_unit_id": null,
+                                "location": 103,
+                                "is_external": false,
+                                "priority": null,
+                                "is_referred": false,
+                                "status": null,
+                                "month": null,
+                                "year": null
                             }
                         }
                     }
@@ -2189,32 +2198,6 @@
                                     "oneOf": [
                                         {
                                             "properties": {
-                                                "results": {
-                                                    "description": "Array of referral data with histories",
-                                                    "type": "array",
-                                                    "items": {
-                                                        "properties": {
-                                                            "referral_id": {
-                                                                "description": "Formatted referral ID",
-                                                                "type": "string",
-                                                                "example": "#REF0001"
-                                                            },
-                                                            "referral": {
-                                                                "description": "Referral details with status name",
-                                                                "type": "object",
-                                                                "nullable": true
-                                                            },
-                                                            "referral_histories": {
-                                                                "description": "Array of referral history entries",
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "object"
-                                                                }
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    }
-                                                },
                                                 "download_url": {
                                                     "description": "URL to download the generated Excel report",
                                                     "type": "string",
@@ -2683,7 +2666,7 @@
     "tags": [
         {
             "name": "Reports",
-            "description": "Generate and display reports"
+            "description": "API endpoints for generating and managing reports"
         },
         {
             "name": "Business Units",
