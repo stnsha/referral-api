@@ -2114,109 +2114,72 @@
             }
         },
         "/api/report": {
-            "get": {
+            "post": {
                 "tags": [
                     "Reports"
                 ],
                 "summary": "Generate and export referral report",
                 "description": "Generate a comprehensive Excel report of referral histories with optional filtering parameters",
                 "operationId": "generateReport",
-                "parameters": [
-                    {
-                        "name": "business_unit_id",
-                        "in": "query",
-                        "description": "Filter by specific business unit ID",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
-                        }
-                    },
-                    {
-                        "name": "location",
-                        "in": "query",
-                        "description": "Filter by location",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "Main Office"
-                        }
-                    },
-                    {
-                        "name": "is_external",
-                        "in": "query",
-                        "description": "Filter for external referees only",
-                        "required": false,
-                        "schema": {
-                            "type": "boolean",
-                            "example": false
-                        }
-                    },
-                    {
-                        "name": "priority",
-                        "in": "query",
-                        "description": "Filter by priority level (1=Low, 2=Medium, 3=High, 4=Critical)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                1,
-                                2,
-                                3,
-                                4
-                            ],
-                            "example": 2
-                        }
-                    },
-                    {
-                        "name": "is_referred",
-                        "in": "query",
-                        "description": "Filter for referrals that have been referred (more than 2 history entries)",
-                        "required": false,
-                        "schema": {
-                            "type": "boolean",
-                            "example": false
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "description": "Filter by referral status (1=Open, 2=In Progress, 3=Referred, 4=Closed)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "enum": [
-                                1,
-                                2,
-                                3,
-                                4
-                            ],
-                            "example": 1
-                        }
-                    },
-                    {
-                        "name": "month",
-                        "in": "query",
-                        "description": "Filter by month (1-12)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "maximum": 12,
-                            "minimum": 1,
-                            "example": 3
-                        }
-                    },
-                    {
-                        "name": "year",
-                        "in": "query",
-                        "description": "Filter by year",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 2024
+                "requestBody": {
+                    "description": "Filter parameters for generating the report",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "business_unit_id": {
+                                        "description": "Filter by specific business unit ID",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    },
+                                    "location": {
+                                        "description": "Filter by location ID",
+                                        "type": "integer",
+                                        "example": 103,
+                                        "nullable": true
+                                    },
+                                    "is_external": {
+                                        "description": "Filter for external referees only",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "priority": {
+                                        "description": "Filter by priority level (1=Low, 2=Medium, 3=High, 4=Critical)",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    },
+                                    "is_referred": {
+                                        "description": "Filter for referrals that have been referred (more than 2 history entries)",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "status": {
+                                        "description": "Filter by referral status (1=Open, 2=In Progress, 3=Referred, 4=Closed)",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    },
+                                    "month": {
+                                        "description": "Filter by month (1-12)",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    },
+                                    "year": {
+                                        "description": "Filter by year",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "Report operation completed",
@@ -2226,6 +2189,32 @@
                                     "oneOf": [
                                         {
                                             "properties": {
+                                                "results": {
+                                                    "description": "Array of referral data with histories",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "referral_id": {
+                                                                "description": "Formatted referral ID",
+                                                                "type": "string",
+                                                                "example": "#REF0001"
+                                                            },
+                                                            "referral": {
+                                                                "description": "Referral details with status name",
+                                                                "type": "object",
+                                                                "nullable": true
+                                                            },
+                                                            "referral_histories": {
+                                                                "description": "Array of referral history entries",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object"
+                                                                }
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
                                                 "download_url": {
                                                     "description": "URL to download the generated Excel report",
                                                     "type": "string",
@@ -2694,7 +2683,7 @@
     "tags": [
         {
             "name": "Reports",
-            "description": "API endpoints for generating and managing reports"
+            "description": "Generate and display reports"
         },
         {
             "name": "Business Units",
