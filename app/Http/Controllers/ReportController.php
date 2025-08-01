@@ -709,7 +709,11 @@ class ReportController extends Controller
             'referral',
             'business_unit',
             'external_referee'
-        ])->where('business_unit_id', $businessUnitId)->get();
+        ])
+            ->where('business_unit_id', $businessUnitId)
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->get();
 
         // Initialize statistics with all possible status values set to 0
         $stats = [
