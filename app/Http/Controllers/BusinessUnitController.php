@@ -52,7 +52,7 @@ class BusinessUnitController extends Controller
     public function index()
     {
         try {
-            $bus = BusinessUnit::select('name', 'staff_department_id')->get();
+            $bus = BusinessUnit::select('id', 'name', 'staff_department_id')->get();
 
             if ($bus->isEmpty()) {
                 return response()->json([

@@ -587,6 +587,34 @@ class ReportController extends Controller
      *                 )
      *             ),
      *             @OA\Property(
+     *                 property="priority",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="low",
+     *                     type="integer",
+     *                     example=15,
+     *                     description="Number of low priority referrals"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="medium",
+     *                     type="integer",
+     *                     example=20,
+     *                     description="Number of medium priority referrals"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="high",
+     *                     type="integer",
+     *                     example=10,
+     *                     description="Number of high priority referrals"
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="total_priority",
+     *                 type="integer",
+     *                 example=45,
+     *                 description="Total count of all priority referrals"
+     *             ),
+     *             @OA\Property(
      *                 property="total_business_unit",
      *                 type="integer",
      *                 example=5,
@@ -653,10 +681,18 @@ class ReportController extends Controller
 
         // Count referrals by status
         $statusCounts = [
-            'open' => 0,
-            'in_progress' => 0,
-            'referred' => 0,
-            'closed' => 0
+            '1' => 0,
+            '2' => 0,
+            '3' => 0,
+            '4' => 0,
+            '5' => 0,
+        ];
+
+        // Count referrals by priority (1=Low, 2=Medium, 3=High)
+        $priorityCounts = [
+            '1' => 0,     // Priority 1
+            '2' => 0,  // Priority 2
+            '3' => 0,    // Priority 3
         ];
 
         // Initialize business unit counts
@@ -673,16 +709,32 @@ class ReportController extends Controller
             // Count by status (1=Open, 2=In Progress, 3=Referred, 4=Closed)
             switch ($referral->status) {
                 case 1:
-                    $statusCounts['open']++;
+                    $statusCounts['1']++;
                     break;
                 case 2:
-                    $statusCounts['in_progress']++;
+                    $statusCounts['2']++;
                     break;
                 case 3:
-                    $statusCounts['referred']++;
+                    $statusCounts['3']++;
                     break;
                 case 4:
-                    $statusCounts['closed']++;
+                    $statusCounts['4']++;
+                    break;
+                case 5:
+                    $statusCounts['5']++;
+                    break;
+            }
+
+            // Count by priority (1=Low, 2=Medium, 3=High)
+            switch ($referral->priority) {
+                case 1:
+                    $priorityCounts['1']++;
+                    break;
+                case 2:
+                    $priorityCounts['2']++;
+                    break;
+                case 3:
+                    $priorityCounts['3']++;
                     break;
             }
 
@@ -696,7 +748,9 @@ class ReportController extends Controller
 
         return response()->json([
             'total_referral' => $referrals->count(),
-            'referrals' => $statusCounts,
+            'status_count' => $statusCounts,
+            'priority_count' => $priorityCounts,
+            'total_priority' => array_sum($priorityCounts),
             'total_business_unit' => $businessUnits->count(),
             'business_units' => array_values($businessUnitCounts)
         ], 200);
@@ -729,11 +783,11 @@ class ReportController extends Controller
                 'Referred' => 0,
                 'Closed' => 0,
                 'Not Present' => 0,
-                'Submitted' => 0
             ],
             'priority' => [
-                'High' => 0,      // Priority 1
-                'Standard' => 0   // Priority 2
+                'Low' => 0,      // Priority 1
+                'Medium' => 0,   // Priority 2
+                'High' => 0      // Priority 3
             ],
             'location_details' => [],
             'location_summary' => [],

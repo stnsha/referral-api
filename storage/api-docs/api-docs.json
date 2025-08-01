@@ -2381,6 +2381,31 @@
                                             },
                                             "type": "object"
                                         },
+                                        "priority": {
+                                            "properties": {
+                                                "low": {
+                                                    "description": "Number of low priority referrals",
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "medium": {
+                                                    "description": "Number of medium priority referrals",
+                                                    "type": "integer",
+                                                    "example": 20
+                                                },
+                                                "high": {
+                                                    "description": "Number of high priority referrals",
+                                                    "type": "integer",
+                                                    "example": 10
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "total_priority": {
+                                            "description": "Total count of all priority referrals",
+                                            "type": "integer",
+                                            "example": 45
+                                        },
                                         "total_business_unit": {
                                             "description": "Total number of business units",
                                             "type": "integer",
