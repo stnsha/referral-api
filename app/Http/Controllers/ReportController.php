@@ -240,14 +240,14 @@ class ReportController extends Controller
 
     private function getFilterResults($request)
     {
-        $businessUnitId = $request[0]['business_unit_id'] ?? null;
-        $locationId = $request[0]['location'] ?? null;
-        $isExternal = $request[0]['is_external'] ?? false;
-        $priority = $request[0]['priority'] ?? null;
-        $isReferred = $request[0]['is_referred'] ?? false;
-        $status = $request[0]['status'] ?? null;
-        $month = $request[0]['month'] ?? null;
-        $year = $request[0]['year'] ?? null;
+        $businessUnitId = !empty($request[0]['business_unit_id']) ? $request[0]['business_unit_id'] : null;
+        $locationId = !empty($request[0]['location']) ? $request[0]['location'] : null;
+        $isExternal = filter_var($request[0]['is_external'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $priority = !empty($request[0]['priority']) ? $request[0]['priority'] : null;
+        $isReferred = filter_var($request[0]['is_referred'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $status = !empty($request[0]['status']) ? $request[0]['status'] : null;
+        $month = !empty($request[0]['month']) ? $request[0]['month'] : null;
+        $year = !empty($request[0]['year']) ? $request[0]['year'] : null;
 
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
@@ -305,13 +305,17 @@ class ReportController extends Controller
                 if ($month || $year) {
                     $rhQuery->whereHas('referral', function ($query) use ($month, $year) {
                         if ($month) {
-                            $query->whereMonth('created_at', $month);
+                            $query->whereMonth('created_at', (int) $month);
                         }
                         if ($year) {
-                            $query->whereYear('created_at', $year);
+                            $query->whereYear('created_at', (int) $year);
                         }
                     });
                 }
+
+                Log::info('Main query SQL: ' . $rhQuery->toSql());
+                Log::info('Main query Bindings: ' . json_encode($rhQuery->getBindings()));
+
 
                 // Get the referral_ids that match the criteria
                 $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
