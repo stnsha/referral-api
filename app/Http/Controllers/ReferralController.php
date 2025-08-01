@@ -537,13 +537,13 @@ class ReferralController extends Controller
                 'referringIndication' => $referringIndication,
             ];
 
-            if ($is_external) {
-                //get pdf url
-                $pdf_url = $this->exportPdf($data);
-                if ($pdf_url) {
-                    $data['pdf_url'] = $pdf_url;
-                }
-            }
+            // if ($is_external) {
+            //     //get pdf url
+            //     $pdf_url = $this->exportPdf($data);
+            //     if ($pdf_url) {
+            //         $data['pdf_url'] = $pdf_url;
+            //     }
+            // }
 
             return response()->json($data, 200);
         } catch (ModelNotFoundException $e) {
@@ -798,14 +798,14 @@ class ReferralController extends Controller
         try {
             $pdf = Pdf::loadView('pdf.report', $data);
             $pdf->setPaper('A4', 'portrait');
-            
+
             $referralId = $data['referringIndication']['id'] ?? 'unknown';
             $timestamp = now()->format('Y-m-d_H-i-s');
             $filename = "referral_{$referralId}_{$timestamp}.pdf";
-            
+
             $filePath = public_path("pdf/{$filename}");
             $pdf->save($filePath);
-            
+
             return url("pdf/{$filename}");
         } catch (\Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
