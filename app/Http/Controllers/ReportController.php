@@ -175,45 +175,52 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         try {
-            $groupedResults = $this->getFilterResults($request);
-            // Convert to indexed array
-            $results = array_values($groupedResults);
+            $groupedResults = $this->getFilterResults($request->all());
 
-            try {
-                // Generate unique filename
-                $fileName = 'referral_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-                $filePath = 'report/' . $fileName;
+            if ($groupedResults != null) {
+                // Convert to indexed array
+                $results = array_values($groupedResults);
 
-                // Ensure the directory exists
-                $fullPath = storage_path('app/public/report');
-                if (!file_exists($fullPath)) {
-                    mkdir($fullPath, 0755, true);
+                try {
+                    // Generate unique filename
+                    $fileName = 'referral_report_' . date('Y-m-d_H-i-s') . '.xlsx';
+                    $filePath = 'report/' . $fileName;
+
+                    // Ensure the directory exists
+                    $fullPath = storage_path('app/public/report');
+                    if (!file_exists($fullPath)) {
+                        mkdir($fullPath, 0755, true);
+                    }
+
+                    // Store the Excel file in storage/app/public/report directory
+                    Excel::store(new ReportExport($results), $filePath, 'public');
+
+                    // Verify file was created
+                    if (!file_exists(storage_path('app/public/' . $filePath))) {
+                        throw new Exception('Failed to create Excel file');
+                    }
+
+                    return response()->json([
+                        'download_url' => asset('storage/' . $filePath),
+                    ], 200);
+                } catch (LaravelExcelException $e) {
+                    Log::error('Excel generation error: ' . $e->getMessage());
+                    return response()->json([
+                        'error' => 'Failed to generate Excel file',
+                        'message' => 'There was an error creating the report file'
+                    ], 500);
+                } catch (Exception $e) {
+                    Log::error('File creation error: ' . $e->getMessage());
+                    return response()->json([
+                        'error' => 'Failed to create report file',
+                        'message' => 'Please check server permissions and try again'
+                    ], 500);
                 }
-
-                // Store the Excel file in storage/app/public/report directory
-                Excel::store(new ReportExport($results), $filePath, 'public');
-
-                // Verify file was created
-                if (!file_exists(storage_path('app/public/' . $filePath))) {
-                    throw new Exception('Failed to create Excel file');
-                }
-
-                return response()->json([
-                    'download_url' => asset('storage/' . $filePath),
-                ], 200);
-            } catch (LaravelExcelException $e) {
-                Log::error('Excel generation error: ' . $e->getMessage());
-                return response()->json([
-                    'error' => 'Failed to generate Excel file',
-                    'message' => 'There was an error creating the report file'
-                ], 500);
-            } catch (Exception $e) {
-                Log::error('File creation error: ' . $e->getMessage());
-                return response()->json([
-                    'error' => 'Failed to create report file',
-                    'message' => 'Please check server permissions and try again'
-                ], 500);
             }
+
+            return response()->json([
+                'download_url' => null
+            ], 404);
         } catch (ValidationException $e) {
             return response()->json([
                 'error' => 'Validation error',
@@ -229,16 +236,16 @@ class ReportController extends Controller
         }
     }
 
-    private function getFilterResults(Request $request)
+    private function getFilterResults($request)
     {
-        $businessUnitId = $request->input('business_unit_id') ?? null;
-        $locationId = $request->input('location') ?? null;
-        $isExternal = $request->input('is_external') ?? false;
-        $priority = $request->input('priority') ?? null;
-        $isReferred = $request->input('is_referred') ?? false;
-        $status = $request->input('status') ?? null;
-        $month = $request->input('month') ?? null;
-        $year = $request->input('year') ?? null;
+        $businessUnitId = $request[0]['business_unit_id'] ?? null;
+        $locationId = $request[0]['location'] ?? null;
+        $isExternal = $request[0]['is_external'] ?? false;
+        $priority = $request[0]['priority'] ?? null;
+        $isReferred = $request[0]['is_referred'] ?? false;
+        $status = $request[0]['status'] ?? null;
+        $month = $request[0]['month'] ?? null;
+        $year = $request[0]['year'] ?? null;
 
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
@@ -329,10 +336,7 @@ class ReportController extends Controller
 
         // Check if no data found
         if ($allReferralHistories->isEmpty()) {
-            return response()->json([
-                'message' => 'No referral histories found matching the specified criteria',
-                'download_url' => null
-            ], 200);
+            return null;
         }
 
         // Group by referral_id and process the data
