@@ -10,6 +10,7 @@ use App\Models\Referral;
 use App\Models\ReferralAttachment;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -382,7 +383,7 @@ class ReferralController extends Controller
             $business_unit_id = '';
             $referral_condition = '';
             $medical_history  = '';
-
+            $is_external = false;
             //get referral histories
             $referralHistories = $referral->referral_histories
                 ->sortBy('sequence')
@@ -392,6 +393,7 @@ class ReferralController extends Controller
                     &$business_unit_id,
                     &$referral_condition,
                     &$medical_history,
+                    &$is_external,
                 ) {
                     $forms = [];
 
@@ -480,6 +482,7 @@ class ReferralController extends Controller
                     $external_referral = [];
 
                     if ($rh->external_referee_id) {
+                        $is_external = true;
                         $external_referee = $rh->external_referee;
                         $external_referral[] = [
                             'external_referee_id' => $external_referee->id,
@@ -533,6 +536,14 @@ class ReferralController extends Controller
                 'referralDetails' => $referralHistories,
                 'referringIndication' => $referringIndication,
             ];
+
+            if ($is_external) {
+                //get pdf url
+                $pdf_url = $this->exportPdf($data);
+                if ($pdf_url) {
+                    $data['pdf_url'] = $pdf_url;
+                }
+            }
 
             return response()->json($data, 200);
         } catch (ModelNotFoundException $e) {
@@ -780,5 +791,25 @@ class ReferralController extends Controller
         ];
 
         return response()->json($data, 200);
+    }
+
+    public function exportPdf($data)
+    {
+        try {
+            $pdf = Pdf::loadView('pdf.report', $data);
+            $pdf->setPaper('A4', 'portrait');
+            
+            $referralId = $data['referringIndication']['id'] ?? 'unknown';
+            $timestamp = now()->format('Y-m-d_H-i-s');
+            $filename = "referral_{$referralId}_{$timestamp}.pdf";
+            
+            $filePath = public_path("pdf/{$filename}");
+            $pdf->save($filePath);
+            
+            return url("pdf/{$filename}");
+        } catch (\Exception $e) {
+            Log::error('PDF generation failed: ' . $e->getMessage());
+            return null;
+        }
     }
 }
