@@ -219,6 +219,8 @@ class ReportController extends Controller
             }
 
             return response()->json([
+                'error' => 'No referral histories found',
+                'message' => 'No referral histories found matching the specified criteria',
                 'download_url' => null
             ], 404);
         } catch (ValidationException $e) {
