@@ -194,7 +194,11 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         try {
-            $groupedResults = $this->getFilterResults($request->all());
+            // Get business unit from JWT payload
+            $jwtPayload = $request->get('jwt_payload');
+            $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
+            
+            $groupedResults = $this->getFilterResults($request->all(), $userBusinessUnitId);
 
             if ($groupedResults != null) {
                 // Convert to indexed array
@@ -251,7 +255,7 @@ class ReportController extends Controller
         }
     }
 
-    private function getFilterResults($request)
+    private function getFilterResults($request, $userBusinessUnitId = null)
     {
         $businessUnitId = !empty($request[0]['business_unit_id']) ? $request[0]['business_unit_id'] : null;
         $locationId = !empty($request[0]['location']) ? $request[0]['location'] : null;
@@ -261,6 +265,11 @@ class ReportController extends Controller
         $status = !empty($request[0]['status']) ? $request[0]['status'] : null;
         $month = !empty($request[0]['month']) ? $request[0]['month'] : null;
         $year = !empty($request[0]['year']) ? $request[0]['year'] : null;
+
+        // If userBusinessUnitId is provided, force filter by that business unit
+        if ($userBusinessUnitId) {
+            $businessUnitId = $userBusinessUnitId;
+        }
 
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
@@ -516,10 +525,18 @@ class ReportController extends Controller
      *     )
      * )
      */
-    public function chart()
+    public function chart(Request $request)
     {
-        $referrals = Referral::with(['referral_histories.business_unit'])->get();
-        $businessUnits = BusinessUnit::all();
+        // Get business unit from JWT payload
+        $jwtPayload = $request->get('jwt_payload');
+        $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
+        
+        $referrals = Referral::with(['referral_histories.business_unit'])
+            ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
+                $query->where('business_unit_id', $userBusinessUnitId);
+            })
+            ->get();
+        $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
 
         // Initialize all business units with zero counts
         $results = [];
@@ -538,7 +555,7 @@ class ReportController extends Controller
 
         foreach ($referrals as $referral) {
             foreach ($referral->referral_histories as $rh) {
-                if ($rh->business_unit != null) {
+                if ($rh->business_unit != null && $rh->business_unit_id == $userBusinessUnitId) {
                     $businessUnit = $rh->business_unit->name;
 
                     // Count sent (sequence == 1) or received (sequence != 1)
@@ -682,10 +699,18 @@ class ReportController extends Controller
      *     )
      * )
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $referrals = Referral::with(['referral_histories.business_unit'])->get();
-        $businessUnits = BusinessUnit::all();
+        // Get business unit from JWT payload
+        $jwtPayload = $request->get('jwt_payload');
+        $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
+        
+        $referrals = Referral::with(['referral_histories.business_unit'])
+            ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
+                $query->where('business_unit_id', $userBusinessUnitId);
+            })
+            ->get();
+        $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
 
         if ($referrals->isEmpty()) {
             return response()->json([
@@ -753,9 +778,9 @@ class ReportController extends Controller
                     break;
             }
 
-            // Count referrals per business unit
+            // Count referrals per business unit (only for user's business unit)
             foreach ($referral->referral_histories as $rh) {
-                if ($rh->business_unit_id && isset($businessUnitCounts[$rh->business_unit_id])) {
+                if ($rh->business_unit_id && $rh->business_unit_id == $userBusinessUnitId && isset($businessUnitCounts[$rh->business_unit_id])) {
                     $businessUnitCounts[$rh->business_unit_id]['count']++;
                 }
             }
@@ -904,6 +929,344 @@ class ReportController extends Controller
 
         return response()->json([
             'statistics' => $stats,
+        ], 200);
+    }
+
+    // Admin versions - no business unit filtering
+    private function getAdminFilterResults($request)
+    {
+        $businessUnitId = !empty($request[0]['business_unit_id']) ? $request[0]['business_unit_id'] : null;
+        $locationId = !empty($request[0]['location']) ? $request[0]['location'] : null;
+        $isExternal = filter_var($request[0]['is_external'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $priority = !empty($request[0]['priority']) ? $request[0]['priority'] : null;
+        $isReferred = filter_var($request[0]['is_referred'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $status = !empty($request[0]['status']) ? $request[0]['status'] : null;
+        $month = !empty($request[0]['month']) ? $request[0]['month'] : null;
+        $year = !empty($request[0]['year']) ? $request[0]['year'] : null;
+
+        // Check if all filter parameters are null/false
+        $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
+
+        try {
+            if (!$hasFilters) {
+                // Get ALL ReferralHistory records when no filters are applied
+                $allReferralHistories = ReferralHistory::with([
+                    'referral',
+                    'business_unit',
+                    'referral_details.form.form_details'
+                ])
+                    ->orderBy('referral_id')
+                    ->orderBy('sequence')
+                    ->get()
+                    ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
+            } else {
+                // Apply filters when parameters are provided
+                $rhQuery = ReferralHistory::with(['referral']);
+
+                if ($businessUnitId) {
+                    $rhQuery->where('business_unit_id', $businessUnitId);
+                }
+
+                if ($locationId) {
+                    $rhQuery->where('location', $locationId);
+                }
+
+                if ($isExternal) {
+                    $rhQuery->whereNotNull('external_referee_id');
+                }
+
+                if ($priority) {
+                    $rhQuery->whereHas('referral', function ($query) use ($priority) {
+                        $query->where('priority', $priority);
+                    });
+                }
+
+                if ($isReferred) {
+                    $rhQuery->whereIn('referral_id', function ($query) {
+                        $query->select('referral_id')
+                            ->from('referral_histories')
+                            ->groupBy('referral_id')
+                            ->havingRaw('COUNT(*) > 2');
+                    });
+                }
+
+                if ($status) {
+                    $rhQuery->whereHas('referral', function ($query) use ($status) {
+                        $query->where('status', $status);
+                    });
+                }
+
+                // Add month and year filtering on referral table
+                if ($month || $year) {
+                    $rhQuery->whereHas('referral', function ($query) use ($month, $year) {
+                        if ($month) {
+                            $query->whereMonth('created_at', (int) $month);
+                        }
+                        if ($year) {
+                            $query->whereYear('created_at', (int) $year);
+                        }
+                    });
+                }
+
+                Log::info('Admin query SQL: ' . $rhQuery->toSql());
+                Log::info('Admin query Bindings: ' . json_encode($rhQuery->getBindings()));
+
+
+                // Get the referral_ids that match the criteria
+                $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
+
+                // Now get ALL ReferralHistory records for those referral_ids
+                $allReferralHistories = ReferralHistory::with([
+                    'referral',
+                    'business_unit',
+                    'referral_details.form.form_details'
+                ])
+                    ->whereIn('referral_id', $matchingReferralIds)
+                    ->orderBy('referral_id')
+                    ->orderBy('sequence')
+                    ->get()
+                    ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
+            }
+        } catch (QueryException $e) {
+            Log::error('Database query error in ReportController: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Database error occurred while fetching referral data',
+                'message' => 'Please check your filter parameters and try again'
+            ], 500);
+        }
+
+        // Check if no data found
+        if ($allReferralHistories->isEmpty()) {
+            return null;
+        }
+
+        // Group by referral_id and process the data
+        $groupedResults = [];
+        try {
+            foreach ($allReferralHistories as $rh) {
+                // Process referral details to get actual values
+                $processedReferralDetails = [];
+                if ($rh->referral_details) {
+                    foreach ($rh->referral_details as $detail) {
+                        try {
+                            $form = $detail->form;
+                            $actualValue = $detail->value;
+
+                            // Check if form type is checkbox or radio
+                            if ($form && $form->form_details) {
+                                $formDetail = $form->form_details->first();
+                                if ($formDetail && in_array($formDetail->field_type, ['checkbox', 'radio'])) {
+                                    // Find the actual field_value from form_details using the ID stored in value
+                                    $selectedFormDetail = $form->form_details->where('id', $detail->value)->first();
+                                    if ($selectedFormDetail) {
+                                        $actualValue = $selectedFormDetail->field_value;
+                                    }
+                                }
+                            }
+
+                            $processedReferralDetails[] = [
+                                'form_name' => $form ? $form->label_name : null,
+                                'value' => $actualValue,
+                            ];
+                        } catch (Exception $e) {
+                            Log::warning('Error processing referral detail: ' . $e->getMessage());
+                            continue;
+                        }
+                    }
+                }
+
+                $historyData = [
+                    'staff_id' => $rh->staff_id,
+                    'business_unit' => $rh->business_unit ? $rh->business_unit->name : null,
+                    'location' => $rh->location,
+                    'sequence' => $rh->sequence,
+                    'referral_reason' => $rh->referral_reason,
+                    'referral_condition' => $rh->referral_condition,
+                    'medical_history' => $rh->medical_history,
+                    'additional_remarks' => $rh->additional_remarks,
+                    'is_filled' => $rh->is_filled,
+                    'external_referee_id' => $isExternal ? $rh->external_referee_id : null,
+                    'referral_details' => $processedReferralDetails
+                ];
+
+                // Remove null values when isExternal is false
+                if (!$isExternal) {
+                    $historyData = array_filter($historyData, function ($value, $key) {
+                        return !($key === 'external_referee_id' && $value === null);
+                    }, ARRAY_FILTER_USE_BOTH);
+                }
+
+                // Group by referral_id
+                if (!isset($groupedResults[$rh->referral_id])) {
+                    try {
+                        // Prepare referral data with status name
+                        $referralData = $rh->referral ? $rh->referral->makeHidden(['id', 'deleted_at'])->toArray() : null;
+                        if ($referralData && isset($referralData['status'])) {
+                            $referralData['status_name'] = getStatus($referralData['status']);
+                            unset($referralData['status']); // Remove the numeric status field
+                        }
+
+                        // Convert created_at and updated_at to formatted datetime strings
+                        if ($referralData && isset($referralData['created_at'])) {
+                            $referralData['created_at'] = Carbon::parse($referralData['created_at'])->format('l, d M Y');
+                        }
+                        if ($referralData && isset($referralData['updated_at'])) {
+                            $referralData['updated_at'] = Carbon::parse($referralData['updated_at'])->format('l, d M Y');
+                        }
+
+                        $groupedResults[$rh->referral_id] = [
+                            'referral_id' => createRefId($rh->referral_id),
+                            'referral' => $referralData,
+                            'referral_histories' => []
+                        ];
+                    } catch (Exception $e) {
+                        Log::warning('Error processing referral data for ID ' . $rh->referral_id . ': ' . $e->getMessage());
+                        // Continue with default structure
+                        $groupedResults[$rh->referral_id] = [
+                            'referral_id' => $rh->referral_id,
+                            'referral' => null,
+                            'referral_histories' => []
+                        ];
+                    }
+                }
+
+                $groupedResults[$rh->referral_id]['referral_histories'][] = $historyData;
+            }
+
+            return $groupedResults;
+        } catch (Exception $e) {
+            Log::error('Error processing referral histories: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error occurred while processing referral data',
+                'message' => 'Please try again later'
+            ], 500);
+        }
+    }
+
+    public function adminChart()
+    {
+        $referrals = Referral::with(['referral_histories.business_unit'])->get();
+        $businessUnits = BusinessUnit::all();
+
+        // Initialize all business units with zero counts
+        $results = [];
+        foreach ($businessUnits as $bu) {
+            $results[$bu->name] = [
+                [
+                    'sent' => 0,
+                    'received' => 0
+                ]
+            ];
+        }
+
+        if ($referrals->isEmpty()) {
+            return response()->json($results, 200);
+        }
+
+        foreach ($referrals as $referral) {
+            foreach ($referral->referral_histories as $rh) {
+                if ($rh->business_unit != null) {
+                    $businessUnit = $rh->business_unit->name;
+
+                    // Count sent (sequence == 1) or received (sequence != 1)
+                    if ($rh->sequence == 1) {
+                        $results[$businessUnit][0]['sent']++;
+                    } else {
+                        $results[$businessUnit][0]['received']++;
+                    }
+                }
+            }
+        }
+
+        return response()->json($results, 200);
+    }
+
+    public function adminDashboard()
+    {
+        $referrals = Referral::with(['referral_histories.business_unit'])->get();
+        $businessUnits = BusinessUnit::all();
+
+        if ($referrals->isEmpty()) {
+            return response()->json([
+                'message' => 'No results.',
+                'data' => [],
+            ], 204);
+        }
+
+        // Count referrals by status
+        $statusCounts = [
+            '1' => 0,
+            '2' => 0,
+            '3' => 0,
+            '4' => 0,
+            '5' => 0,
+        ];
+
+        // Count referrals by priority (1=Low, 2=Medium, 3=High)
+        $priorityCounts = [
+            '1' => 0,     // Priority 1
+            '2' => 0,  // Priority 2
+            '3' => 0,    // Priority 3
+        ];
+
+        // Initialize business unit counts
+        $businessUnitCounts = [];
+        foreach ($businessUnits as $bu) {
+            $businessUnitCounts[$bu->id] = [
+                'id' => $bu->id,
+                'name' => $bu->name,
+                'count' => 0
+            ];
+        }
+
+        foreach ($referrals as $referral) {
+            // Count by status (1=Open, 2=In Progress, 3=Referred, 4=Closed)
+            switch ($referral->status) {
+                case 1:
+                    $statusCounts['1']++;
+                    break;
+                case 2:
+                    $statusCounts['2']++;
+                    break;
+                case 3:
+                    $statusCounts['3']++;
+                    break;
+                case 4:
+                    $statusCounts['4']++;
+                    break;
+                case 5:
+                    $statusCounts['5']++;
+                    break;
+            }
+
+            // Count by priority (1=Low, 2=Medium, 3=High)
+            switch ($referral->priority) {
+                case 1:
+                    $priorityCounts['1']++;
+                    break;
+                case 2:
+                    $priorityCounts['2']++;
+                    break;
+                case 3:
+                    $priorityCounts['3']++;
+                    break;
+            }
+
+            // Count referrals per business unit
+            foreach ($referral->referral_histories as $rh) {
+                if ($rh->business_unit_id && isset($businessUnitCounts[$rh->business_unit_id])) {
+                    $businessUnitCounts[$rh->business_unit_id]['count']++;
+                }
+            }
+        }
+
+        return response()->json([
+            'total_referral' => $referrals->count(),
+            'status_count' => $statusCounts,
+            'priority_count' => $priorityCounts,
+            'total_priority' => array_sum($priorityCounts),
+            'total_business_unit' => $businessUnits->count(),
+            'business_units' => array_values($businessUnitCounts)
         ], 200);
     }
 }
