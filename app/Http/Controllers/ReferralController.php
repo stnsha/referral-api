@@ -604,6 +604,9 @@ class ReferralController extends Controller
 
             //grouped all data
             $data = [
+                'referral_id' => createRefId($referral->id),
+                'status' => $referral->status,
+                'status_note' => $referral->status_note,
                 'customer_id' => $referral->customer_id,
                 'priority' => $referral->priority,
                 'referralDetails' => $referralHistories,
