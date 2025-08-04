@@ -14,6 +14,7 @@ class FormDetailsController extends Controller
      *     path="/api/formDetails/create",
      *     tags={"Form Details"},
      *     summary="Create form details of a form in a business unit",
+     *     security={{"bearerAuth": {}}},
      *     description="Create details for a specific form, including fields like field name, field type, and required status.",
      *     @OA\RequestBody(
      *         required=true,
@@ -90,6 +91,7 @@ class FormDetailsController extends Controller
      *     path="/api/formDetails/{formDetail}",
      *     summary="Get specific form detail",
      *     tags={"Form Details"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="formDetail",
      *         in="path",
@@ -147,6 +149,7 @@ class FormDetailsController extends Controller
      *     path="/api/formDetails/{formDetail}",
      *     summary="Delete a specific form detail",
      *     tags={"Form Details"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="form",
      *         in="path",
@@ -196,6 +199,7 @@ class FormDetailsController extends Controller
      *     operationId="updateFormDetails",
      *     tags={"Form Details"},
      *     summary="Update form details",
+     *     security={{"bearerAuth": {}}},
      *     description="Updates a specific form detail entry with new values.",
      *     @OA\Parameter(
      *         name="id",

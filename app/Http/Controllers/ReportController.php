@@ -29,6 +29,7 @@ class ReportController extends Controller
      *     operationId="generateReport",
      *     tags={"Reports"},
      *     summary="Generate and export referral report",
+     *     security={{"bearerAuth": {}}},
      *     description="Generate a comprehensive Excel report of referral histories with optional filtering parameters",
      *     @OA\RequestBody(
      *         required=false,
@@ -102,33 +103,51 @@ class ReportController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Report operation completed",
+     *         description="Report generated successfully",
      *         @OA\JsonContent(
-     *             oneOf={
-     *                 @OA\Schema(
-     *                     type="object",
-     *                     @OA\Property(
-     *                         property="download_url",
-     *                         type="string",
-     *                         example="http://localhost:8000/storage/report/referral_report_2024-03-15_14-30-25.xlsx",
-     *                         description="URL to download the generated Excel report"
-     *                     )
-     *                 ),
-     *                 @OA\Schema(
-     *                     type="object",
-     *                     @OA\Property(
-     *                         property="message",
-     *                         type="string",
-     *                         example="No referral histories found matching the specified criteria"
-     *                     ),
-     *                     @OA\Property(
-     *                         property="download_url",
-     *                         type="string",
-     *                         nullable=true,
-     *                         example=null
-     *                     )
-     *                 )
-     *             }
+     *             type="object",
+     *             @OA\Property(
+     *                 property="filename",
+     *                 type="string",
+     *                 example="referral_report_2024-03-15_14-30-25.xlsx",
+     *                 description="Generated filename for the report"
+     *             ),
+     *             @OA\Property(
+     *                 property="type",
+     *                 type="string",
+     *                 example="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+     *                 description="MIME type of the generated file"
+     *             ),
+     *             @OA\Property(
+     *                 property="size",
+     *                 type="integer",
+     *                 example=51200,
+     *                 description="File size in bytes"
+     *             ),
+     *             @OA\Property(
+     *                 property="base64",
+     *                 type="string",
+     *                 format="byte",
+     *                 example="UEsDBBQACgAAAAAAeXdLTQAAAAAAAAAAAAAAABYAAABfcmVscz8uaW5za1orcmVscy8uanM=",
+     *                 description="Base64 encoded Excel file content"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No data found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="error",
+     *                 type="string",
+     *                 example="No referral histories found"
+     *             ),
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="No referral histories found matching the specified criteria"
+     *             )
      *         )
      *     ),
      *     @OA\Response(
@@ -184,24 +203,19 @@ class ReportController extends Controller
                 try {
                     // Generate unique filename
                     $fileName = 'referral_report_' . date('Y-m-d_H-i-s') . '.xlsx';
-                    $filePath = 'report/' . $fileName;
 
-                    // Ensure the directory exists
-                    $fullPath = storage_path('app/public/report');
-                    if (!file_exists($fullPath)) {
-                        mkdir($fullPath, 0755, true);
-                    }
+                    // Generate Excel file in memory and get base64 content
+                    $excelContent = Excel::raw(new ReportExport($results), \Maatwebsite\Excel\Excel::XLSX);
+                    $base64Content = base64_encode($excelContent);
 
-                    // Store the Excel file in storage/app/public/report directory
-                    Excel::store(new ReportExport($results), $filePath, 'public');
-
-                    // Verify file was created
-                    if (!file_exists(storage_path('app/public/' . $filePath))) {
-                        throw new Exception('Failed to create Excel file');
-                    }
+                    // Calculate file size
+                    $fileSize = strlen($excelContent);
 
                     return response()->json([
-                        'download_url' => asset('storage/' . $filePath),
+                        'filename' => $fileName,
+                        'type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'size' => $fileSize,
+                        'base64' => $base64Content
                     ], 200);
                 } catch (LaravelExcelException $e) {
                     Log::error('Excel generation error: ' . $e->getMessage());
@@ -220,8 +234,7 @@ class ReportController extends Controller
 
             return response()->json([
                 'error' => 'No referral histories found',
-                'message' => 'No referral histories found matching the specified criteria',
-                'download_url' => null
+                'message' => 'No referral histories found matching the specified criteria'
             ], 404);
         } catch (ValidationException $e) {
             return response()->json([
@@ -454,6 +467,7 @@ class ReportController extends Controller
      *     operationId="getReportChart",
      *     tags={"Reports"},
      *     summary="Get referral chart data by business unit",
+     *     security={{"bearerAuth": {}}},
      *     description="Retrieve sent and received referral counts grouped by business unit for chart visualization",
      *     @OA\Response(
      *         response=200,
@@ -546,6 +560,7 @@ class ReportController extends Controller
      *     operationId="getDashboardStats",
      *     tags={"Reports"},
      *     summary="Get dashboard statistics",
+     *     security={{"bearerAuth": {}}},
      *     description="Retrieve comprehensive statistics for dashboard including total referrals, status counts, and business unit statistics",
      *     @OA\Response(
      *         response=200,

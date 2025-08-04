@@ -8,13 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * @OA\Info(
- *     version="1.0",
- *     title="Referral API",
- *     description="Backend API for referral",
- *     @OA\Contact(name="Digital Innovation")
- * )
- *  * @OA\Server(
+ * @OA\Server(
  *      url="http://127.0.0.1:8000",
  *      description="Local Server"
  * )
@@ -23,7 +17,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *      url="http://mytotalhealth.com.my/referral-api",
  *      description="MyHealth Server (Staging)"
  * )
- *
  */
 
 class BusinessUnit extends Model

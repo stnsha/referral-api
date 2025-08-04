@@ -12,7 +12,7 @@ use App\Models\ReferralDetails;
 use App\Models\ReferralHistory;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use DateTime;
+use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +26,7 @@ class ReferralController extends Controller
      *     path="/api/referral",
      *     summary="Get list of referrals",
      *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="List of referrals",
@@ -49,21 +50,49 @@ class ReferralController extends Controller
      *             @OA\Property(property="message", type="string", example="No results."),
      *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
-        $referrals = Referral::with(['referral_histories.business_unit', 'referral_histories.external_referee'])->orderByDesc('created_at')->get();
+        $jwtPayload = $request->get('jwt_payload');
+        $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+        if (!$businessUnitId) {
+            return response()->json([
+                'message' => 'Business unit ID not found in session.',
+                'data' => [],
+            ], 401);
+        }
+
+        $referrals = Referral::with(['referral_histories.business_unit', 'referral_histories.external_referee'])
+            ->whereHas('referral_histories', function ($query) use ($businessUnitId) {
+                $query->where('business_unit_id', $businessUnitId);
+            })
+            ->orderByDesc('created_at')
+            ->get();
 
         if ($referrals->isEmpty()) {
             return response()->json([
                 'message' => 'No results.',
-                'data' => [],
+                'data' => [
+                    'all' => [],
+                    'sent' => [],
+                    'received' => []
+                ],
             ], 204);
         }
 
-        $refs = [];
+        $all = [];
+        $sent = [];
+        $received = [];
 
         foreach ($referrals as $ref) {
             // Find the latest sequence (maximum sequence number)
@@ -75,10 +104,18 @@ class ReferralController extends Controller
             // Get the first sequence for referral reason (from original logic)
             $firstReferralHistory = $ref->referral_histories->where('sequence', 1)->first();
 
+            // Check if current business unit is involved in this referral
+            $currentBusinessUnitHistory = $ref->referral_histories->where('business_unit_id', $businessUnitId)->first();
+
+            if (!$currentBusinessUnitHistory) {
+                continue;
+            }
+
             $is_external = $latestReferralHistory->external_referee_id != null ? true : false;
 
+            $referralData = [];
             if ($latestReferralHistory && $firstReferralHistory && !$is_external) {
-                $refs[] = [
+                $referralData = [
                     'id' => $ref->id,
                     'ref_id' => createRefId($ref->id),
                     'reason' => $firstReferralHistory->referral_reason,
@@ -92,7 +129,7 @@ class ReferralController extends Controller
                     'is_external' => $is_external
                 ];
             } else {
-                $refs[] = [
+                $referralData = [
                     'id' => $ref->id,
                     'ref_id' => createRefId($ref->id),
                     'reason' => $firstReferralHistory->referral_reason,
@@ -106,9 +143,25 @@ class ReferralController extends Controller
                     'is_external' => $is_external
                 ];
             }
+
+            // Add to all category
+            $all[] = $referralData;
+
+            // Group by sequence: sent (sequence=1), received (sequence=2), others go to all only
+            if ($currentBusinessUnitHistory->sequence == 1) {
+                $sent[] = $referralData;
+            } elseif ($currentBusinessUnitHistory->sequence == 2) {
+                $received[] = $referralData;
+            }
         }
 
-        return response()->json(['data' => $refs], 200);
+        return response()->json([
+            'data' => [
+                'all' => $all,
+                'sent' => $sent,
+                'received' => $received
+            ]
+        ], 200);
     }
 
     /**
@@ -116,6 +169,7 @@ class ReferralController extends Controller
      *     path="/api/referral",
      *     summary="Create a new referral",
      *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -163,6 +217,13 @@ class ReferralController extends Controller
      *         description="Referral created successfully.",
      *         @OA\JsonContent(
      *             @OA\Property(property="id", type="integer", example=1234)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
      *         )
      *     ),
      *     @OA\Response(
@@ -314,6 +375,7 @@ class ReferralController extends Controller
      *     path="/api/referral/{id}",
      *     summary="Get detailed referral information by ID",
      *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -361,6 +423,13 @@ class ReferralController extends Controller
      *                 @OA\Property(property="priority", type="integer", example=2),
      *                 @OA\Property(property="status", type="integer", example=1)
      *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
      *         )
      *     ),
      *     @OA\Response(
@@ -562,6 +631,7 @@ class ReferralController extends Controller
      *     path="/api/referral",
      *     summary="Update an existing referral and optionally refer to another business unit",
      *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -613,6 +683,13 @@ class ReferralController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Validation failed."),
      *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
      *         )
      *     ),
      *     @OA\Response(
@@ -780,19 +857,6 @@ class ReferralController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
-    }
-
-    public function displayStatus()
-    {
-        $data = [
-            '1' => 'Open',
-            '2' => 'In Progress',
-            '3' => 'Referred',
-            '4' => 'Closed',
-            '5' => 'Not Present',
-        ];
-
-        return response()->json($data, 200);
     }
 
     public function exportPdf($data)

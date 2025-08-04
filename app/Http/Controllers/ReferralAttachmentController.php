@@ -12,25 +12,28 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class ReferralAttachmentController extends Controller
 {
     /**
-     * Download an attachment file
+     * Get attachment file as base64
      *
      * @OA\Get(
      *     path="/api/attachment/{attachment}",
-     *     summary="Download an attachment file",
+     *     summary="Get attachment file as base64 encoded data",
      *     tags={"Attachments"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="attachment",
      *         in="path",
      *         required=true,
-     *         description="ID of the attachment to download",
+     *         description="ID of the attachment to retrieve",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="File downloaded successfully",
-     *         @OA\MediaType(
-     *             mediaType="application/octet-stream",
-     *             @OA\Schema(type="string", format="binary")
+     *         description="File data retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="document.pdf"),
+     *             @OA\Property(property="type", type="string", example="application/pdf"),
+     *             @OA\Property(property="size", type="integer", example=1024000),
+     *             @OA\Property(property="base64", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iag...")
      *         )
      *     ),
      *     @OA\Response(
@@ -52,39 +55,19 @@ class ReferralAttachmentController extends Controller
     public function download(ReferralAttachment $attachment)
     {
         try {
-            $publicPath = public_path('attachments');
-            $filePath = $publicPath . '/' . $attachment->file_name;
+            // Calculate file size from base64 data
+            $base64Data = $attachment->encoded_base;
+            $fileSize = (int) (strlen(rtrim($base64Data, '=')) * 3 / 4);
 
-            // Create attachments directory if it doesn't exist
-            if (!file_exists($publicPath)) {
-                mkdir($publicPath, 0755, true);
-            }
-
-            // Check if file exists in public directory
-            if (!file_exists($filePath)) {
-                // Decode and save base64 content
-                $fileContent = base64_decode($attachment->encoded_base);
-                file_put_contents($filePath, $fileContent);
-            }
-
-            // Get file info
-            $mimeType = $attachment->file_type;
-            $fileSize = filesize($filePath);
-
-            // Prepare headers
-            $headers = [
-                'Content-Type' => $mimeType,
-                'Content-Length' => $fileSize,
-                'Content-Disposition' => 'attachment; filename="' . $attachment->file_name . '"',
-                'Cache-Control' => 'private, no-transform, no-store, must-revalidate',
-                'Pragma' => 'no-cache',
-                'Expires' => '0'
-            ];
-
-            // Return file download
-            return response()->download($filePath, $attachment->file_name, $headers);
+            // Return file data as JSON with base64 content
+            return response()->json([
+                'name' => $attachment->file_name,
+                'type' => $attachment->file_type,
+                'size' => $fileSize,
+                'base64' => $base64Data
+            ], 200);
         } catch (\Exception $e) {
-            Log::error('Error downloading attachment: ' . $e->getMessage());
+            Log::error('Error retrieving attachment: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Internal server error'
             ], 500);

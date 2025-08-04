@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\BusinessUnit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class ODBController extends Controller
+{
+    private function generateJWT($payload)
+    {
+        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+        $payload = json_encode($payload);
+        $secret = config('app.key');
+
+        $base64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+        $base64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+
+        $signature = hash_hmac('sha256', $base64Header . '.' . $base64Payload, $secret, true);
+        $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+
+        return $base64Header . '.' . $base64Payload . '.' . $base64Signature;
+    }
+
+    public static function verifyJWT($token)
+    {
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            return false;
+        }
+
+        [$header, $payload, $signature] = $parts;
+        $secret = config('app.key');
+
+        $expectedSignature = hash_hmac('sha256', $header . '.' . $payload, $secret, true);
+        $expectedBase64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($expectedSignature));
+
+        if (!hash_equals($expectedBase64Signature, $signature)) {
+            return false;
+        }
+
+        $decodedPayload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $payload)), true);
+
+        if (!$decodedPayload || !isset($decodedPayload['exp']) || $decodedPayload['exp'] < time()) {
+            return false;
+        }
+
+        return $decodedPayload;
+    }
+
+    private function mapToBusinessUnitId($staffDepartmentId, $statusSemasa)
+    {
+        if ($staffDepartmentId == 1) {
+            $isAudiologist = in_array(strtolower($statusSemasa), [
+                'junior audiologist', 
+                'audiologist', 
+                'senior audiologist'
+            ]);
+
+            if ($isAudiologist) {
+                $businessUnit = BusinessUnit::where('name', 'Alpro Audiology')->first();
+            } else {
+                $businessUnit = BusinessUnit::where('name', 'Alpro Pharmacy')->first();
+            }
+        } else {
+            $businessUnit = BusinessUnit::where('staff_department_id', $staffDepartmentId)->first();
+        }
+
+        return $businessUnit ? $businessUnit->id : null;
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth",
+     *     summary="Authenticate user and generate JWT token",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"staff_id", "staff_department_id", "status_semasa"},
+     *             @OA\Property(property="staff_id", type="integer", example=2222),
+     *             @OA\Property(property="staff_department_id", type="integer", example=1),
+     *             @OA\Property(property="status_semasa", type="string", example="Junior Audiologist")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Authentication successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+     *             @OA\Property(property="expires_in", type="integer", example=86400)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error or invalid department/status combination",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid department or status combination.")
+     *         )
+     *     )
+     * )
+     */
+    public function auth(Request $request)
+    {
+        $validated = $request->validate([
+            'staff_id' => 'required|integer',
+            'staff_department_id' => 'required|integer',
+            'status_semasa' => 'required|string',
+        ], [
+            'staff_id.required' => 'Staff ID is required.',
+            'staff_department_id.required' => 'Staff Department ID is required.',
+            'status_semasa.required' => 'Status Semasa is required.',
+        ]);
+
+        if ($validated) {
+            $businessUnitId = $this->mapToBusinessUnitId($validated['staff_department_id'], $validated['status_semasa']);
+
+            if (!$businessUnitId) {
+                return response()->json(['message' => 'Invalid department or status combination.'], 422);
+            }
+
+            $payload = [
+                'iss' => config('app.url'),
+                'iat' => time(),
+                'exp' => time() + (60 * 60 * 24),
+                'staff_id' => $validated['staff_id'],
+                'business_unit_id' => $businessUnitId,
+                'status_semasa' => $validated['status_semasa']
+            ];
+
+            $token = $this->generateJWT($payload);
+
+            return response()->json([
+                'token' => $token,
+                'expires_in' => 86400
+            ], 200);
+        }
+    }
+}

@@ -50,6 +50,7 @@ class ExternalOrganizationController extends Controller
      *     path="/api/external-organizations",
      *     summary="Get list of external organizations",
      *     tags={"External Organizations"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="List of external organizations with their referees",
@@ -86,6 +87,7 @@ class ExternalOrganizationController extends Controller
      *     path="/api/external-organizations",
      *     summary="Create a new external organization",
      *     tags={"External Organizations"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -131,6 +133,7 @@ class ExternalOrganizationController extends Controller
      *     path="/api/external-organizations/{externalOrganization}",
      *     summary="Get external organization details",
      *     tags={"External Organizations"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="externalOrganization",
      *         in="path",
@@ -180,6 +183,7 @@ class ExternalOrganizationController extends Controller
      *     path="/api/external-organizations/{externalOrganization}",
      *     summary="Update an external organization",
      *     tags={"External Organizations"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="externalOrganization",
      *         in="path",
@@ -242,6 +246,7 @@ class ExternalOrganizationController extends Controller
      *     path="/api/external-organizations/{externalOrganization}",
      *     summary="Delete an external organization",
      *     tags={"External Organizations"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="externalOrganization",
      *         in="path",

@@ -8,6 +8,8 @@ use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferralAttachmentController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ExternalRefereeController;
+use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\ODBController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +29,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::prefix('auth')->controller(ODBController::class)->group(function () {
+    Route::post('', 'auth')->name('auth.login');
+});
+
 Route::middleware('token.auth')->group(function () {
     Route::resource('business-units', BusinessUnitController::class);
 
@@ -39,7 +45,6 @@ Route::middleware('token.auth')->group(function () {
     Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
-        Route::get('displayStatus', 'displayStatus')->name('referral.displayStatus');
         Route::put('', 'update')->name('referral.update');
     });
 
@@ -57,5 +62,10 @@ Route::middleware('token.auth')->group(function () {
         Route::get('chart', 'chart')->name('report.chart');
         Route::get('dashboard', 'dashboard')->name('report.dashboard');
         Route::get('summary/{businessUnitId}', 'summary')->name('report.summary');
+    });
+
+    Route::prefix('library')->controller(LibraryController::class)->group(function () {
+        Route::get('status', 'displayStatus')->name('library.status');
+        Route::get('priority', 'displayPriority')->name('library.priority');
     });
 });

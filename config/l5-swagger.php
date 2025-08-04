@@ -170,11 +170,11 @@ return [
         */
         'securityDefinitions' => [
             'securitySchemes' => [
-                'apiKeyAuth' => [
-                    'type' => 'apiKey',       // Define the security type as 'apiKey'
-                    'in' => 'header',         // The key will be passed in the header
-                    'name' => 'Authorization',  // This is the header name
-                    'description' => 'Pass your API key in the Authorization header. Example: `Authorization: {apiKey}`'
+                'bearerAuth' => [
+                    'type' => 'http',
+                    'scheme' => 'bearer',
+                    'bearerFormat' => 'JWT',
+                    'description' => 'Enter JWT Bearer token in the format: Bearer {token}'
                 ],
                 /*
                  * Examples of Security schemes
@@ -224,19 +224,14 @@ return [
             ],
             'security' => [
                 /*
-                 * Examples of Securities
+                 * Global security is not needed since individual endpoints
+                 * already have their own security definitions
                  */
+                /*
                 [
-                    'apiKeyAuth' => []
-                    /*
-                    'oauth2_security_example' => [
-                        'read',
-                        'write'
-                    ],
-
-                    'passport' => []
-                    */
+                    'bearerAuth' => []
                 ],
+                */
             ],
         ],
 

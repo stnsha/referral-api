@@ -46,7 +46,7 @@ class BusinessUnitController extends Controller
      *             @OA\Property(property="error", type="string")
      *         )
      *     ),
-     *     security={{"apiKeyAuth": {}}}
+     *     security={{"bearerAuth": {}}}
      * )
      */
     public function index()

@@ -2,11 +2,8 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Referral API",
-        "description": "Backend API for referral",
-        "contact": {
-            "name": "Digital Innovation"
-        },
-        "version": "1.0"
+        "description": "API for managing referrals between business units",
+        "version": "1.0.0"
     },
     "servers": [
         {
@@ -87,7 +84,7 @@
                 },
                 "security": [
                     {
-                        "apiKeyAuth": []
+                        "bearerAuth": []
                     }
                 ]
             }
@@ -128,7 +125,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -205,7 +207,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/external-organizations/{externalOrganization}": {
@@ -268,7 +275,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -372,7 +384,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -424,7 +441,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/external-referees": {
@@ -448,7 +470,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -538,7 +565,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/external-referees/{referee}": {
@@ -573,7 +605,12 @@
                     "404": {
                         "description": "External referee not found"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -677,7 +714,12 @@
                     "404": {
                         "description": "External referee not found"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -719,7 +761,12 @@
                     "500": {
                         "description": "Server error"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/form": {
@@ -803,6 +850,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Authorization header is required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Form creation failed",
                         "content": {
@@ -823,27 +886,21 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
-        "/api/form/show/{business_unit_id}": {
+        "/api/form/show": {
             "get": {
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Get forms by business unit id.",
-                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
-                "parameters": [
-                    {
-                        "name": "business_unit_id",
-                        "in": "path",
-                        "description": "Business unit ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
+                "summary": "Get forms by business unit id from JWT token",
+                "operationId": "1114638e3b0805ac69504dbeb41ba42e",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -929,6 +986,38 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in token"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "content": {
@@ -940,7 +1029,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/form/{id}": {
@@ -1024,6 +1118,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "content": {
@@ -1044,7 +1154,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/form/{form}": {
@@ -1083,6 +1198,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Failed to delete form",
                         "content": {
@@ -1103,7 +1234,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/formDetails/create": {
@@ -1197,7 +1333,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/formDetails/{formDetail}": {
@@ -1276,7 +1417,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "delete": {
                 "tags": [
@@ -1332,7 +1478,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/formDetails/{id}": {
@@ -1431,6 +1582,87 @@
                             }
                         }
                     }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/auth": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Authenticate user and generate JWT token",
+                "operationId": "16a98e3dad55e908ca8ba2b0f3dc12a9",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "staff_id",
+                                    "staff_department_id",
+                                    "status_semasa"
+                                ],
+                                "properties": {
+                                    "staff_id": {
+                                        "type": "integer",
+                                        "example": 2222
+                                    },
+                                    "staff_department_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "status_semasa": {
+                                        "type": "string",
+                                        "example": "Junior Audiologist"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentication successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 86400
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error or invalid department/status combination",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid department or status combination."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1439,14 +1671,14 @@
                 "tags": [
                     "Attachments"
                 ],
-                "summary": "Download an attachment file",
-                "description": "Download an attachment file",
+                "summary": "Get attachment file as base64 encoded data",
+                "description": "Get attachment file as base64",
                 "operationId": "e3da93f887faf547d458b75b9d6154fb",
                 "parameters": [
                     {
                         "name": "attachment",
                         "in": "path",
-                        "description": "ID of the attachment to download",
+                        "description": "ID of the attachment to retrieve",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1455,12 +1687,30 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "File downloaded successfully",
+                        "description": "File data retrieved successfully",
                         "content": {
-                            "application/octet-stream": {
+                            "application/json": {
                                 "schema": {
-                                    "type": "string",
-                                    "format": "binary"
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "example": "document.pdf"
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "example": "application/pdf"
+                                        },
+                                        "size": {
+                                            "type": "integer",
+                                            "example": 1024000
+                                        },
+                                        "base64": {
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iag..."
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -1497,7 +1747,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/referral": {
@@ -1573,8 +1828,29 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "put": {
                 "tags": [
@@ -1739,6 +2015,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Failed to update referral.",
                         "content": {
@@ -1759,7 +2051,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -1917,6 +2214,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Validation failed.",
                         "content": {
@@ -1936,7 +2249,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/referral/{id}": {
@@ -2094,6 +2412,22 @@
                             }
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Referral not found.",
                         "content": {
@@ -2110,7 +2444,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/report": {
@@ -2191,36 +2530,54 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Report operation completed",
+                        "description": "Report generated successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "oneOf": [
-                                        {
-                                            "properties": {
-                                                "download_url": {
-                                                    "description": "URL to download the generated Excel report",
-                                                    "type": "string",
-                                                    "example": "http://localhost:8000/storage/report/referral_report_2024-03-15_14-30-25.xlsx"
-                                                }
-                                            },
-                                            "type": "object"
+                                    "properties": {
+                                        "filename": {
+                                            "description": "Generated filename for the report",
+                                            "type": "string",
+                                            "example": "referral_report_2024-03-15_14-30-25.xlsx"
                                         },
-                                        {
-                                            "properties": {
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "No referral histories found matching the specified criteria"
-                                                },
-                                                "download_url": {
-                                                    "type": "string",
-                                                    "example": null,
-                                                    "nullable": true
-                                                }
-                                            },
-                                            "type": "object"
+                                        "type": {
+                                            "description": "MIME type of the generated file",
+                                            "type": "string",
+                                            "example": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                        },
+                                        "size": {
+                                            "description": "File size in bytes",
+                                            "type": "integer",
+                                            "example": 51200
+                                        },
+                                        "base64": {
+                                            "description": "Base64 encoded Excel file content",
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": "UEsDBBQACgAAAAAAeXdLTQAAAAAAAAAAAAAAABYAAABfcmVscz8uaW5za1orcmVscy8uanM="
                                         }
-                                    ]
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No data found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "No referral histories found"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No referral histories found matching the specified criteria"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -2273,7 +2630,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/report/chart": {
@@ -2333,7 +2695,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/report/dashboard": {
@@ -2463,7 +2830,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         }
     },
@@ -2571,47 +2943,115 @@
                 },
                 "type": "object"
             },
-            "ExternalRefereeDetails": {
+            "BusinessUnit": {
                 "required": [
-                    "external_organization_id",
+                    "id",
                     "name",
-                    "email"
+                    "staff_department_id"
                 ],
                 "properties": {
                     "id": {
                         "type": "integer",
                         "example": 1
                     },
-                    "external_organization_id": {
+                    "name": {
+                        "type": "string",
+                        "example": "Emergency Department"
+                    },
+                    "staff_department_id": {
                         "type": "integer",
                         "example": 1
                     },
-                    "name": {
+                    "created_at": {
                         "type": "string",
-                        "example": "Dr. John Smith"
+                        "format": "date-time"
                     },
-                    "email": {
+                    "updated_at": {
                         "type": "string",
-                        "example": "john.smith@example.com"
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Referral": {
+                "required": [
+                    "id",
+                    "ref_id",
+                    "customer_id",
+                    "business_unit_id",
+                    "priority",
+                    "status"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
                     },
-                    "phone": {
+                    "ref_id": {
                         "type": "string",
-                        "example": "+1234567890",
-                        "nullable": true
+                        "example": "#REF0001"
                     },
-                    "position": {
+                    "customer_id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "business_unit_id": {
+                        "type": "integer",
+                        "example": 6
+                    },
+                    "referral_reason": {
                         "type": "string",
-                        "example": "Senior Consultant",
-                        "nullable": true
+                        "example": "Vestibular-Related Balance Issue"
                     },
-                    "specialty": {
+                    "referral_condition": {
                         "type": "string",
-                        "example": "Cardiology",
-                        "nullable": true
+                        "example": "Patient reports persistent dizziness..."
                     },
-                    "is_active": {
+                    "medical_history": {
+                        "type": "string",
+                        "example": "Mild scoliosis diagnosed during teenage years."
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "status": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Form": {
+                "required": [
+                    "form_id",
+                    "label_name",
+                    "business_unit_id"
+                ],
+                "properties": {
+                    "form_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "label_name": {
+                        "type": "string",
+                        "example": "Assessment Form"
+                    },
+                    "is_hidden": {
                         "type": "boolean",
-                        "example": true
+                        "example": false
+                    },
+                    "business_unit_id": {
+                        "type": "integer",
+                        "example": 3
                     },
                     "created_at": {
                         "type": "string",
@@ -2621,13 +3061,139 @@
                         "type": "string",
                         "format": "date-time"
                     },
-                    "deleted_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
+                    "form_details": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FormDetail"
+                        }
                     }
                 },
                 "type": "object"
+            },
+            "FormDetail": {
+                "required": [
+                    "form_detail_id",
+                    "field_name",
+                    "field_type",
+                    "is_required"
+                ],
+                "properties": {
+                    "form_detail_id": {
+                        "type": "integer",
+                        "example": 101
+                    },
+                    "field_name": {
+                        "type": "string",
+                        "example": "Blood Pressure"
+                    },
+                    "field_type": {
+                        "type": "string",
+                        "example": "text"
+                    },
+                    "is_required": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "field_value": {
+                        "oneOf": [
+                            {
+                                "type": "string",
+                                "example": "120/80"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "properties": {
+                                        "form_detail_id": {
+                                            "type": "integer",
+                                            "example": 201
+                                        },
+                                        "field_value": {
+                                            "type": "string",
+                                            "example": "Option A"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "ExternalRefereeDetails": {
+                "required": [
+                    "external_organization_id",
+                    "name",
+                    "email"
+                ],
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FormDetail"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "external_organization_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Dr. John Smith"
+                            },
+                            "email": {
+                                "type": "string",
+                                "example": "john.smith@example.com"
+                            },
+                            "phone": {
+                                "type": "string",
+                                "example": "+1234567890",
+                                "nullable": true
+                            },
+                            "position": {
+                                "type": "string",
+                                "example": "Senior Consultant",
+                                "nullable": true
+                            },
+                            "specialty": {
+                                "type": "string",
+                                "example": "Cardiology",
+                                "nullable": true
+                            },
+                            "is_active": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "deleted_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             },
             "ExternalOrganization": {
                 "required": [
@@ -2637,54 +3203,62 @@
                     "state",
                     "country"
                 ],
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "example": 1
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/FormDetail"
                     },
-                    "name": {
-                        "type": "string",
-                        "example": "Sample Organization"
-                    },
-                    "address": {
-                        "type": "string",
-                        "example": "123 Main Street"
-                    },
-                    "postcode": {
-                        "type": "string",
-                        "example": "12345"
-                    },
-                    "state": {
-                        "type": "string",
-                        "example": "California"
-                    },
-                    "country": {
-                        "type": "string",
-                        "example": "United States"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "deleted_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Sample Organization"
+                            },
+                            "address": {
+                                "type": "string",
+                                "example": "123 Main Street"
+                            },
+                            "postcode": {
+                                "type": "string",
+                                "example": "12345"
+                            },
+                            "state": {
+                                "type": "string",
+                                "example": "California"
+                            },
+                            "country": {
+                                "type": "string",
+                                "example": "United States"
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "deleted_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
                     }
-                },
-                "type": "object"
+                ]
             }
         },
         "securitySchemes": {
-            "apiKeyAuth": {
-                "type": "apiKey",
-                "in": "header",
-                "name": "Authorization",
-                "description": "Pass your API key in the Authorization header. Example: `Authorization: {apiKey}`"
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter JWT Bearer token in the format: Bearer {token}"
             }
         }
     },
@@ -2714,17 +3288,16 @@
             "description": "Form Details"
         },
         {
+            "name": "Authentication",
+            "description": "Authentication"
+        },
+        {
             "name": "Attachments",
             "description": "Attachments"
         },
         {
             "name": "Referrals",
             "description": "Referrals"
-        }
-    ],
-    "security": [
-        {
-            "apiKeyAuth": []
         }
     ]
 }

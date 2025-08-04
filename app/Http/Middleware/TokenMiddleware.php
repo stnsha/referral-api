@@ -2,10 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\ODBController;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class TokenMiddleware
@@ -17,20 +16,22 @@ class TokenMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->header('Authorization');
+        $authHeader = $request->header('Authorization');
 
-        if (!$token) {
-            return response()->json(['message' => 'Token is required.'], Response::HTTP_UNAUTHORIZED);
+        if (!$authHeader) {
+            return response()->json(['message' => 'Authorization header is required.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $cacheKey = "token:$token";
-        $isValid = Cache::remember($cacheKey, 3600, function () use ($token) {
-            return DB::table('api_token')->where('value', $token)->exists();
-        });
+        $token = str_replace('Bearer ', '', $authHeader);
 
-        if (!$isValid) {
-            return response()->json(['message' => 'Invalid token.'], Response::HTTP_UNAUTHORIZED);
+        $payload = ODBController::verifyJWT($token);
+
+        if (!$payload) {
+            return response()->json(['message' => 'Invalid or expired token.'], Response::HTTP_UNAUTHORIZED);
         }
+
+        $request->merge(['jwt_payload' => $payload]);
+
         return $next($request);
     }
 }

@@ -18,6 +18,7 @@ class FormController extends Controller
      *     path="/api/form",
      *     summary="Create a new form and its details",
      *     tags={"Forms"},
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -42,6 +43,13 @@ class FormController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Form created successfully!"),
      *             @OA\Property(property="form_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Authorization header is required.")
      *         )
      *     ),
      *     @OA\Response(
@@ -101,16 +109,10 @@ class FormController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/form/show/{business_unit_id}",
-     *     summary="Get forms by business unit id.",
+     *     path="/api/form/show",
+     *     summary="Get forms by business unit id from JWT token",
      *     tags={"Forms"},
-     *     @OA\Parameter(
-     *         name="business_unit_id",
-     *         in="path",
-     *         required=true,
-     *         description="Business unit ID",
-     *         @OA\Schema(type="integer")
-     *     ),
+     *     security={{"bearerAuth":{}}},
      *     @OA\Response(
      *         response=200,
      *         description="Successful operation",
@@ -152,15 +154,36 @@ class FormController extends Controller
      *         )
      *     ),
      *     @OA\Response(
+     *         response=400,
+     *         description="Bad Request",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in token")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
+     *         )
+     *     ),
+     *     @OA\Response(
      *       response=500,
      *       description="Internal Server Error",
      *       @OA\JsonContent(type="string", example="SQLSTATE[42S22]: Column not found: 1054 Unknown column...")
      *       )
      *  )
      */
-    public function show($business_unit_id)
+    public function show(Request $request)
     {
         try {
+            $jwtPayload = $request->input('jwt_payload');
+            $business_unit_id = $jwtPayload['business_unit_id'] ?? null;
+            
+            if (!$business_unit_id) {
+                return response()->json(['message' => 'Business unit ID not found in token'], 400);
+            }
+            
             $forms = Form::with(['form_details'])->where('business_unit_id', $business_unit_id)->get();
             $data = [];
             $arr = [];
@@ -224,6 +247,7 @@ class FormController extends Controller
      *     tags={"Forms"},
      *     summary="Update an existing form of a business unit",
      *     description="Updates the form with the given ID and provided data (business unit ID, label name, and visibility).",
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
@@ -255,6 +279,13 @@ class FormController extends Controller
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="message", type="string", example="Update failed")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
      *         )
      *     ),
      *     @OA\Response(
@@ -301,6 +332,7 @@ class FormController extends Controller
      *     tags={"Forms"},
      *     summary="Delete a form of a business unit",
      *     description="Delete a specific form by its ID.",
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="form",
      *         in="path",
@@ -314,6 +346,13 @@ class FormController extends Controller
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="message", type="string", example="Form deleted successfully!")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
      *         )
      *     ),
      *     @OA\Response(

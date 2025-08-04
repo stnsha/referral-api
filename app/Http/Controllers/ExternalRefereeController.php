@@ -64,6 +64,7 @@ class ExternalRefereeController extends Controller
      *     path="/api/external-referees",
      *     summary="Get list of external referees",
      *     tags={"External Referees"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="List of external referees",
@@ -85,6 +86,7 @@ class ExternalRefereeController extends Controller
      *     path="/api/external-referees",
      *     summary="Create a new external referee",
      *     tags={"External Referees"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -156,6 +158,7 @@ class ExternalRefereeController extends Controller
      *     path="/api/external-referees/{referee}",
      *     summary="Get external referee details",
      *     tags={"External Referees"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="referee",
      *         in="path",
@@ -185,6 +188,7 @@ class ExternalRefereeController extends Controller
      *     path="/api/external-referees/{referee}",
      *     summary="Update an external referee",
      *     tags={"External Referees"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="referee",
      *         in="path",
@@ -272,6 +276,7 @@ class ExternalRefereeController extends Controller
      *     path="/api/external-referees/{referee}",
      *     summary="Delete an external referee",
      *     tags={"External Referees"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
      *         name="referee",
      *         in="path",
