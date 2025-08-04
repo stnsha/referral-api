@@ -604,8 +604,10 @@ class ReferralController extends Controller
 
             //grouped all data
             $data = [
+                'customer_id' => $referral->customer_id,
+                'priority' => $referral->priority,
                 'referralDetails' => $referralHistories,
-                'referringIndication' => $referringIndication,
+                // 'referringIndication' => $referringIndication,
             ];
 
             // if ($is_external) {
