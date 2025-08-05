@@ -281,6 +281,9 @@ class ReferralController extends Controller
                         'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null
                     ];
 
+                    $new_status = isset($value['referee']) ? 4 : 1;
+                    $referral->status = $new_status;
+
                     //check if exist
                     if (
                         isset($value['referral_reason']) ||
@@ -354,6 +357,8 @@ class ReferralController extends Controller
                         }
                     }
                 }
+
+                $referral->save();
 
                 //return referral id if successfulD
                 DB::commit();
