@@ -67,7 +67,7 @@ class UpdateReferralRequest extends FormRequest
 
         $dynamicRules = [];
 
-        $buId = $this->input('business_units.assignee.business_unit_id');
+        $buId = $this->input('referral.business_unit_id_reply');
 
         $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 
@@ -97,7 +97,7 @@ class UpdateReferralRequest extends FormRequest
                         ->pluck('id')
                         ->toArray();
 
-                    $rules[] = 'in:' . implode(',', $validIds);
+                    $dynamicRules["form_data.$buId.$field.*"] = 'integer|in:' . implode(',', $validIds);
                 } elseif (isset($fieldTypeRuleMap[$type])) {
                     $rules[] = $fieldTypeRuleMap[$type];
                 }
@@ -113,7 +113,7 @@ class UpdateReferralRequest extends FormRequest
     {
         $messages = [];
 
-        $buId = $this->input('business_units.assignee.business_unit_id');
+        $buId = $this->input('referral.business_unit_id_reply');
 
         $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 

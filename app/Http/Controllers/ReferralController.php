@@ -710,6 +710,9 @@ class ReferralController extends Controller
     public function update(UpdateReferralRequest $request)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $staffId = $jwtPayload['staff_id'] ?? null;
+
             $validated = $request->validated();
 
             if ($validated) {
@@ -734,8 +737,10 @@ class ReferralController extends Controller
                         $is_filled = true;
                         $referral_history_id = $rh->id;
 
-                        if (is_null($rh->staff_id) && !empty($validated['referral']['updated_recipient_to'])) {
-                            $rh->staff_id = $validated['referral']['updated_recipient_to'];
+                        if (is_null($rh->staff_id)) {
+                            $rh->staff_id = !empty($validated['referral']['updated_recipient_to'])
+                                ? $validated['referral']['updated_recipient_to']
+                                : $staffId;
                             $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
                         }
 
@@ -744,7 +749,8 @@ class ReferralController extends Controller
 
                         //insert referral details
                         if (isset($validated['form_data']) && filled($validated['form_data'])) {
-                            $formFields = $request->input("form_data.$business_unit_id", []);
+
+                            $formFields = $validated['form_data'][$business_unit_id] ?? [];
 
                             foreach ($formFields as $field => $value) {
                                 $form_detail = FormDetails::where('field_name', $field)
@@ -753,11 +759,14 @@ class ReferralController extends Controller
                                     })
                                     ->first();
 
-                                ReferralDetails::create([
-                                    'referral_history_id' => $referral_history_id,
-                                    'form_id' => $form_detail->form_id,
-                                    'value' => is_array($value) ? json_encode($value) : $value,
-                                ]);
+
+                                if ($form_detail) {
+                                    ReferralDetails::create([
+                                        'referral_history_id' => $referral_history_id,
+                                        'form_id' => $form_detail->form_id,
+                                        'value' => is_array($value) ? json_encode($value) : $value,
+                                    ]);
+                                }
                             }
                         }
 

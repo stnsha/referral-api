@@ -20,7 +20,7 @@ class BusinessUnitSeeder extends Seeder
             ['name' => 'Alpro Optisaver',     'staff_department_id' => 35],
             ['name' => 'Alpro Pharmacy',  'staff_department_id' => 1],
             ['name' => 'Alpro Physio',       'staff_department_id' => 20],
-            ['name' => 'Alpro Sugi',       'staff_department_id' => 1],
+            // ['name' => 'Alpro Sugi',       'staff_department_id' => 1],
         ];
 
         foreach ($units as $unit) {
