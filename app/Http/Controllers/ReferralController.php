@@ -122,8 +122,7 @@ class ReferralController extends Controller
                     'from_business_unit' => $firstReferralHistory->business_unit->name,
                     'to_business_unit' => $latestReferralHistory->business_unit->name,
                     'priority' => $ref->priority,
-                    'ori_status' => $ref->status,
-                    'status' => getStatus($ref->status),
+                    'status' => $ref->status,
                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                     'ori_created_at' => $ref->created_at,
                     'is_external' => $is_external
@@ -136,21 +135,26 @@ class ReferralController extends Controller
                     'from_business_unit' => $firstReferralHistory->business_unit->name,
                     'to_business_unit' => $latestReferralHistory->external_referee->name,
                     'priority' => $ref->priority,
-                    'ori_status' => $ref->status,
-                    'status' => getStatus($ref->status),
+                    'status' => $ref->status,
                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                     'ori_created_at' => $ref->created_at,
                     'is_external' => $is_external
                 ];
             }
 
-            // Add to all category
+            // Add to all category (any referral that has business unit included)
             $all[] = $referralData;
 
-            // Group by sequence: sent (sequence=1), received (sequence=2), others go to all only
-            if ($currentBusinessUnitHistory->sequence == 1) {
+            // Sent: sequence = 1 OR when business unit refers to another (not the last one)
+            if (
+                $currentBusinessUnitHistory->sequence == 1 ||
+                ($currentBusinessUnitHistory->sequence < $latestSequence)
+            ) {
                 $sent[] = $referralData;
-            } elseif ($currentBusinessUnitHistory->sequence == 2) {
+            }
+
+            // Received: sequence not equal to 1
+            if ($currentBusinessUnitHistory->sequence != 1) {
                 $received[] = $referralData;
             }
         }
