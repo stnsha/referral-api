@@ -738,9 +738,9 @@ class ReferralController extends Controller
                     $is_external = is_null($rh->external_referee_id) ? true : false;
 
                     if ($rh->business_unit_id == $business_unit_id && $is_external) {
-                        $referral_reason = isset($validated['refer_another']['referral_reason']) ? $validated['refer_another']['referral_reason'] : null;
-                        $referral_condition = isset($validated['refer_another']['referral_condition']) ? $validated['refer_another']['referral_condition'] : null;
-                        $medical_history = isset($validated['refer_another']['medical_history']) ? $validated['refer_another']['medical_history'] : null;
+                        $referral_reason = isset($validated['referral']['referral_reason']) ? $validated['referral']['referral_reason'] : null;
+                        $referral_condition = isset($validated['referral']['referral_condition']) ? $validated['referral']['referral_condition'] : null;
+                        $medical_history = isset($validated['referral']['medical_history']) ? $validated['referral']['medical_history'] : null;
                         $is_filled = true;
                         $referral_history_id = $rh->id;
 
@@ -748,13 +748,13 @@ class ReferralController extends Controller
                             $rh->staff_id = !empty($validated['referral']['updated_recipient_to'])
                                 ? $validated['referral']['updated_recipient_to']
                                 : $staffId;
-                            $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
-
-                            $rh->referral_reason = $referral_reason ?? $rh->referral_reason;
-                            $rh->referral_condition = $referral_condition ?? $rh->referral_condition;
-                            $rh->medical_history = $medical_history ?? $rh->medical_history;
                         }
 
+                        $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
+
+                        $rh->referral_reason = $referral_reason ?? $rh->referral_reason;
+                        $rh->referral_condition = $referral_condition ?? $rh->referral_condition;
+                        $rh->medical_history = $medical_history ?? $rh->medical_history;
                         $rh->is_filled = $is_filled;
                         $rh->save();
 
