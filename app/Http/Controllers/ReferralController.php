@@ -360,9 +360,38 @@ class ReferralController extends Controller
 
                 $referral->save();
 
+                // Check if any referral history has external referee (is_external)
+                $hasExternalReferee = false;
+                foreach ($validated['business_units'] as $value) {
+                    if (isset($value['referee'])) {
+                        $hasExternalReferee = true;
+                        break;
+                    }
+                }
+
+                $response = ['id' => $referral->id];
+
+                // Generate PDF base64 if external referral
+                if ($hasExternalReferee) {
+                    $referralData = $referral->load(['referral_histories']);
+                    $data = [
+                        'referral_id' => createRefId($referral->id),
+                        'status' => $referral->status,
+                        'status_note' => $referral->status_note,
+                        'customer_id' => $referral->customer_id,
+                        'priority' => $referral->priority,
+                        'referralDetails' => $referralData->referral_histories,
+                    ];
+
+                    $pdfBase64 = $this->exportPdf($data);
+                    if ($pdfBase64) {
+                        $response['pdf_base64'] = $pdfBase64;
+                    }
+                }
+
                 //return referral id if successfulD
                 DB::commit();
-                return response()->json(['id' => $referral->id], 201);
+                return response()->json($response, 201);
             }
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -597,20 +626,6 @@ class ReferralController extends Controller
                     ];
                 });
 
-            //create referring indication data
-            $referringIndication = [
-                'id' => $referral->id,
-                'referral_id' => createRefId($referral->id),
-                'customer_id' => $referral->customer_id,
-                'business_unit_id' => $business_unit_id,
-                'referral_reason' => $referral_reason,
-                'referral_condition' => $referral_condition,
-                'medical_history' => $medical_history,
-                'priority' => $referral->priority,
-                'status' => $referral->status,
-                'status_note' => $referral->status_note,
-            ];
-
             //grouped all data
             $data = [
                 'referral_id' => createRefId($referral->id),
@@ -622,13 +637,13 @@ class ReferralController extends Controller
                 // 'referringIndication' => $referringIndication,
             ];
 
-            // if ($is_external) {
-            //     //get pdf url
-            //     $pdf_url = $this->exportPdf($data);
-            //     if ($pdf_url) {
-            //         $data['pdf_url'] = $pdf_url;
-            //     }
-            // }
+            if ($is_external) {
+                //get pdf base64
+                $pdfBase64 = $this->exportPdf($data);
+                if ($pdfBase64) {
+                    $data['pdf_base64'] = $pdfBase64;
+                }
+            }
 
             return response()->json($data, 200);
         } catch (ModelNotFoundException $e) {
@@ -889,14 +904,11 @@ class ReferralController extends Controller
             $pdf = Pdf::loadView('pdf.report', $data);
             $pdf->setPaper('A4', 'portrait');
 
-            $referralId = $data['referringIndication']['id'] ?? 'unknown';
-            $timestamp = now()->format('Y-m-d_H-i-s');
-            $filename = "referral_{$referralId}_{$timestamp}.pdf";
+            // Convert PDF to base64
+            $pdfContent = $pdf->output();
+            $base64Pdf = base64_encode($pdfContent);
 
-            $filePath = public_path("pdf/{$filename}");
-            $pdf->save($filePath);
-
-            return url("pdf/{$filename}");
+            return $base64Pdf;
         } catch (\Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;
