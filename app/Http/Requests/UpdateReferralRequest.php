@@ -29,13 +29,13 @@ class UpdateReferralRequest extends FormRequest
             'referral.status' => 'required|integer',
             'referral.status_note' => 'nullable|string',
             'referral.additional_remarks' => 'nullable|string',
+            'referral.referral_reason' => 'nullable|string',
+            'referral.referral_condition' => 'nullable|string',
+            'referral.medical_history' => 'nullable|string',
 
             'refer_another.refer_business_unit' => 'nullable|integer',
             'refer_another.refer_location' => 'nullable|integer',
             'refer_another.refer_to' => 'nullable|integer',
-            'refer_another.referral_reason' => 'nullable|string',
-            'refer_another.referral_condition' => 'nullable|string',
-            'refer_another.medical_history' => 'nullable|string',
             'refer_another.additional_remarks_refer' => 'nullable|string',
 
             'attachments' => 'nullable|array'

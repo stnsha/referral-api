@@ -738,6 +738,9 @@ class ReferralController extends Controller
                     $is_external = is_null($rh->external_referee_id) ? true : false;
 
                     if ($rh->business_unit_id == $business_unit_id && $is_external) {
+                        $referral_reason = isset($validated['refer_another']['referral_reason']) ? $validated['refer_another']['referral_reason'] : null;
+                        $referral_condition = isset($validated['refer_another']['referral_condition']) ? $validated['refer_another']['referral_condition'] : null;
+                        $medical_history = isset($validated['refer_another']['medical_history']) ? $validated['refer_another']['medical_history'] : null;
                         $is_filled = true;
                         $referral_history_id = $rh->id;
 
@@ -746,6 +749,10 @@ class ReferralController extends Controller
                                 ? $validated['referral']['updated_recipient_to']
                                 : $staffId;
                             $rh->additional_remarks = $validated['referral']['additional_remarks'] ?? $rh->additional_remarks;
+
+                            $rh->referral_reason = $referral_reason ?? $rh->referral_reason;
+                            $rh->referral_condition = $referral_condition ?? $rh->referral_condition;
+                            $rh->medical_history = $medical_history ?? $rh->medical_history;
                         }
 
                         $rh->is_filled = $is_filled;
@@ -839,9 +846,6 @@ class ReferralController extends Controller
                     $refer_business_unit = isset($validated['refer_another']['refer_business_unit']) ? $validated['refer_another']['refer_business_unit'] : null;
                     $refer_location = isset($validated['refer_another']['refer_location']) ? $validated['refer_another']['refer_location'] : null;
                     $refer_to = isset($validated['refer_another']['refer_to']) ? $validated['refer_another']['refer_to'] : null;
-                    $referral_reason = isset($validated['refer_another']['referral_reason']) ? $validated['refer_another']['referral_reason'] : null;
-                    $referral_condition = isset($validated['refer_another']['referral_condition']) ? $validated['refer_another']['referral_condition'] : null;
-                    $medical_history = isset($validated['refer_another']['medical_history']) ? $validated['refer_another']['medical_history'] : null;
 
                     $total_rh = count($referral->referral_histories);
 
@@ -851,9 +855,6 @@ class ReferralController extends Controller
                         'business_unit_id' => $refer_business_unit,
                         'location' => $refer_location,
                         'sequence' => $total_rh + 1,
-                        'referral_reason' => $referral_reason,
-                        'referral_condition' => $referral_condition,
-                        'medical_history' => $medical_history,
                         'is_filled' => false
                     ]);
 
