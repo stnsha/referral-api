@@ -197,7 +197,6 @@ class ReportController extends Controller
             // Get business unit from JWT payload
             $jwtPayload = $request->get('jwt_payload');
             $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
-            
             $groupedResults = $this->getFilterResults($request->all(), $userBusinessUnitId);
 
             if ($groupedResults != null) {
@@ -270,6 +269,17 @@ class ReportController extends Controller
         if ($userBusinessUnitId) {
             $businessUnitId = $userBusinessUnitId;
         }
+
+        $arr = [
+            'businessUnitId' => $businessUnitId,
+            'locationId' => $locationId,
+            'isExternal' => $isExternal,
+            'priority' => $priority,
+            'isReferred' => $isReferred,
+            'status' => $status,
+            'month' => $month,
+            'year' => $year,
+        ];
 
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
@@ -530,7 +540,7 @@ class ReportController extends Controller
         // Get business unit from JWT payload
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
-        
+
         $referrals = Referral::with(['referral_histories.business_unit'])
             ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
                 $query->where('business_unit_id', $userBusinessUnitId);
@@ -704,7 +714,7 @@ class ReportController extends Controller
         // Get business unit from JWT payload
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
-        
+
         $referrals = Referral::with(['referral_histories.business_unit'])
             ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
                 $query->where('business_unit_id', $userBusinessUnitId);
@@ -911,12 +921,14 @@ class ReportController extends Controller
                 $statusName = getStatus($history->referral->status);
                 $stats['status'][$statusName]++;
 
-                // Priority distribution (1 = High, 2 = Standard)
+                // Priority distribution (1 = Low, 2 = Medium, 3 = High)
                 $priority = $history->referral->priority;
                 if ($priority == 1) {
-                    $stats['priority']['High']++;
+                    $stats['priority']['Low']++;
                 } elseif ($priority == 2) {
-                    $stats['priority']['Standard']++;
+                    $stats['priority']['Medium']++;
+                } elseif ($priority == 3) {
+                    $stats['priority']['High']++;
                 }
             }
         }
