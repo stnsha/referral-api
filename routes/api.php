@@ -37,7 +37,7 @@ Route::prefix('auth')->controller(ODBController::class)->group(function () {
 Route::middleware('token.auth')->group(function () {
     Route::resource('business-units', BusinessUnitController::class);
 
-    Route::resource('form', FormController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('form', FormController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::get('show/{business_unit_id}', 'show');

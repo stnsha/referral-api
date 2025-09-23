@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('referral_history_id');
             $table->unsignedBigInteger('form_id');
-            $table->longText('value');
+            $table->longText('value')->nullable();
             $table->softDeletes();
             $table->timestamps();
 

@@ -13,6 +13,37 @@ use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
 {
+    public function index(Request $request)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json(['message' => 'Business unit ID not found in session.'], 401);
+            }
+
+            $recipientBuId = $request->input('recipientBuId');
+
+            $forms = Form::where('business_unit_id', $recipientBuId)->where('is_hidden', false)->get();
+
+            if ($forms->isEmpty()) {
+                return response()->json(['message' => 'No forms found for the specified business unit.'], 404);
+            }
+            $data = [];
+
+            foreach ($forms as $form) {
+                $data[] = [
+                    'form_id' => $form->id,
+                    'label_name' => $form->label_name
+                ];
+            }
+
+            return response()->json($data, 200);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage(), 500);
+        }
+    }
     /**
      * @OA\Post(
      *     path="/api/form",
