@@ -1,0 +1,793 @@
+===============================================================================
+                    REFERRAL API DOCUMENTATION
+                     Laravel Backend - PHP 5.3+ Compatible
+===============================================================================
+
+BASE URL: http://your-domain.com/api
+Authentication: Bearer JWT Token (except auth endpoints)
+
+===============================================================================
+                            AUTHENTICATION ENDPOINTS
+===============================================================================
+
+1. LOGIN / AUTHENTICATE
+   Method: POST
+   URL: /auth
+   Headers:
+     - Content-Type: application/json
+
+   Request Body:
+   {
+     "staff_id": 2222,
+     "staff_department_id": 1,
+     "status_semasa": "Junior Audiologist"
+   }
+
+   Success Response (200):
+   {
+     "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+     "expires_in": 86400
+   }
+
+   Error Responses:
+   - 422 Validation Error:
+     {
+       "message": "The staff id field is required.",
+       "errors": {
+         "staff_id": ["The staff id field is required."]
+       }
+     }
+   - 422 Invalid Department/Status:
+     {
+       "message": "Invalid department or status combination."
+     }
+
+2. VERIFY TOKEN
+   Method: POST
+   URL: /auth/verify
+   Headers:
+     - Content-Type: application/json
+
+   Request Body:
+   {
+     "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+   }
+
+   Success Response (200):
+   {
+     "valid": true,
+     "message": "Token is valid",
+     "payload": {
+       "iss": "app_url",
+       "iat": 1234567890,
+       "exp": 1234654290,
+       "staff_id": 2222,
+       "business_unit_id": 1,
+       "status_semasa": "Junior Audiologist"
+     }
+   }
+
+   Error Responses:
+   - 401 Invalid Token:
+     {
+       "valid": false,
+       "message": "Token is invalid or expired"
+     }
+   - 422 Validation Error:
+     {
+       "message": "The token field is required."
+     }
+
+===============================================================================
+                        PROTECTED ENDPOINTS (Require JWT Token)
+===============================================================================
+
+HEADERS FOR ALL PROTECTED ENDPOINTS:
+- Authorization: Bearer {your_jwt_token}
+- Content-Type: application/json
+
+COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
+- 401 Unauthorized (Missing/Invalid Token):
+  {
+    "message": "Invalid or expired token."
+  }
+- 401 Missing Business Unit:
+  {
+    "message": "Business unit ID not found in session.",
+    "data": []
+  }
+- 403 Forbidden (Cross-Business Unit Access):
+  {
+    "message": "Unauthorized: Cannot access resources from different business unit."
+  }
+
+===============================================================================
+                            BUSINESS UNITS
+===============================================================================
+
+3. GET ALL BUSINESS UNITS
+   Method: GET
+   URL: /business-units
+
+   Success Response (200):
+   [
+     {
+       "id": 1,
+       "name": "Emergency Department",
+       "staff_department_id": 1,
+       "is_active": 1
+     }
+   ]
+
+4. GET SINGLE BUSINESS UNIT
+   Method: GET
+   URL: /business-units/{id}
+
+   Success Response (200): Same as above (single object)
+   Error Response (404):
+   {
+     "message": "Business unit not found."
+   }
+
+5. CREATE BUSINESS UNIT
+   Method: POST
+   URL: /business-units
+
+   Request Body:
+   {
+     "name": "New Department",
+     "staff_department_id": 2,
+     "is_active": true
+   }
+
+   Success Response (201): Returns created business unit
+   Error Response (422): Validation errors
+
+6. UPDATE BUSINESS UNIT
+   Method: PUT/PATCH
+   URL: /business-units/{id}
+
+   Request Body: Same as create
+   Success Response (200): Returns updated business unit
+
+7. DELETE BUSINESS UNIT
+   Method: DELETE
+   URL: /business-units/{id}
+
+   Success Response (204): No content
+   Error Response (404): Business unit not found
+
+===============================================================================
+                                FORMS
+===============================================================================
+
+8. CREATE FORM
+   Method: POST
+   URL: /form
+
+   Request Body:
+   {
+     "business_unit_id": 1,
+     "label_name": "Physio Interventions",
+     "is_hidden": false,
+     "is_required": true,
+     "field_name": "physio_interventions",
+     "field_type": "checkbox",
+     "value_fields": ["Chest Physiotherapy", "Pain Management"]
+   }
+
+   Success Response (201):
+   {
+     "message": "Form created successfully!",
+     "form_id": 1
+   }
+
+   Error Responses:
+   - 403 Forbidden:
+     {
+       "message": "Unauthorized: Cannot create form for different business unit."
+     }
+   - 500 Server Error:
+     {
+       "message": "Form creation failed",
+       "error": "Database error message"
+     }
+
+9. GET FORMS BY BUSINESS UNIT
+   Method: GET
+   URL: /form/show/{business_unit_id}
+
+   Success Response (200):
+   {
+     "business_unit_id": 1,
+     "forms": [
+       {
+         "form_id": 12,
+         "label_name": "Assessment Form",
+         "is_hidden": false,
+         "form_details": [...]
+       }
+     ]
+   }
+
+10. UPDATE FORM
+    Method: PUT
+    URL: /form/{id}
+
+    Request Body:
+    {
+      "business_unit_id": 1,
+      "label_name": "Updated Form Name",
+      "is_hidden": true
+    }
+
+    Success Response (200):
+    {
+      "message": "Form updated successfully!"
+    }
+
+    Error Response (403):
+    {
+      "message": "Unauthorized: Cannot update form from different business unit."
+    }
+
+11. DELETE FORM
+    Method: DELETE
+    URL: /form/{id}
+
+    Success Response (200):
+    {
+      "message": "Form deleted successfully!"
+    }
+
+    Error Response (403):
+    {
+      "message": "Unauthorized: Cannot delete form from different business unit."
+    }
+
+===============================================================================
+                            FORM DETAILS
+===============================================================================
+
+12. CREATE FORM DETAILS
+    Method: POST
+    URL: /formDetails/create
+
+    Request Body:
+    {
+      "form_id": 1,
+      "form_details": [
+        {
+          "field_name": "patient_notes",
+          "field_type": "textarea",
+          "is_required": true
+        }
+      ]
+    }
+
+    Success Response (201):
+    {
+      "message": "Form details created successfully!"
+    }
+
+    Error Response (403):
+    {
+      "message": "Unauthorized: Cannot create form details for different business unit."
+    }
+
+13. GET FORM DETAIL
+    Method: GET
+    URL: /formDetails/{id}
+
+    Success Response (200):
+    {
+      "data": {
+        "form_id": 1,
+        "field_name": "patient_notes",
+        "field_type": "textarea",
+        "is_required": true,
+        "field_value": "Some default text"
+      }
+    }
+
+    Error Response (403):
+    {
+      "message": "Unauthorized: Cannot access form details from different business unit."
+    }
+
+14. UPDATE FORM DETAIL
+    Method: PUT
+    URL: /formDetails/{id}
+
+    Request Body:
+    {
+      "form_id": 1,
+      "field_name": "updated_field",
+      "field_type": "text",
+      "is_required": false,
+      "field_value": "Updated value"
+    }
+
+    Success Response (200):
+    {
+      "message": "Form updated successfully!"
+    }
+
+15. DELETE FORM DETAIL
+    Method: DELETE
+    URL: /formDetails/{id}
+
+    Success Response (200):
+    {
+      "message": "Form deleted successfully!"
+    }
+
+===============================================================================
+                              REFERRALS
+===============================================================================
+
+16. GET ALL REFERRALS
+    Method: GET
+    URL: /referral
+
+    Success Response (200):
+    {
+      "data": {
+        "all": [...],
+        "sent": [...],
+        "received": [...]
+      }
+    }
+
+    No Data Response (204):
+    {
+      "message": "No results.",
+      "data": {
+        "all": [],
+        "sent": [],
+        "received": []
+      }
+    }
+
+17. CREATE REFERRAL
+    Method: POST
+    URL: /referral
+
+    Request Body:
+    {
+      "business_units": {
+        "assignee": {
+          "staff_id": 2222,
+          "business_unit_id": "6",
+          "location": "101",
+          "referral_reason": "Balance Issue",
+          "referral_condition": "Patient reports dizziness...",
+          "medical_history": "",
+          "additional_remarks": null
+        },
+        "recipient": {
+          "staff_id": 0,
+          "business_unit_id": "1",
+          "location": "350"
+        }
+      },
+      "referral": {
+        "customer_id": 10,
+        "priority": 2
+      },
+      "form_data": {
+        "6": {
+          "targeted_area": "Lower limbs",
+          "pain_level": "4"
+        }
+      },
+      "attachments": [
+        {
+          "name": "Labs.png",
+          "type": "image/png",
+          "size": 14040,
+          "base64": "iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"
+        }
+      ]
+    }
+
+    Success Response (201):
+    {
+      "id": 1234
+    }
+
+    Success Response with PDF (201):
+    {
+      "id": 1234,
+      "pdf_base64": "JVBERi0xLjQKJaq..."
+    }
+
+    Error Responses:
+    - 403 Forbidden:
+      {
+        "message": "Unauthorized: Cannot create referral for different business unit."
+      }
+    - 422 Validation Error:
+      {
+        "message": "Validation failed.",
+        "errors": {...}
+      }
+    - 500 Server Error:
+      {
+        "message": "Failed to create referral.",
+        "error": "Database error message"
+      }
+
+18. GET SINGLE REFERRAL
+    Method: GET
+    URL: /referral/{id}
+
+    Success Response (200):
+    {
+      "referral_id": "#REF0001",
+      "status": 1,
+      "status_note": null,
+      "customer_id": 10,
+      "priority": 2,
+      "referralDetails": [...],
+      "pdf_base64": "JVBERi0xLjQKJaq..." (if external)
+    }
+
+    Error Responses:
+    - 403 Forbidden:
+      {
+        "message": "Referral not accessible."
+      }
+    - 404 Not Found:
+      {
+        "message": "Referral not found."
+      }
+
+19. UPDATE REFERRAL
+    Method: PUT
+    URL: /referral
+
+    Request Body:
+    {
+      "referral": {
+        "referral_id": "1",
+        "updated_recipient_to": "3333",
+        "business_unit_id_reply": "5",
+        "status": 3,
+        "additional_remarks": "No current medications."
+      },
+      "refer_another": {
+        "refer_business_unit": "2",
+        "refer_location": "303",
+        "refer_to": "",
+        "referral_reason": "Medical assessment",
+        "referral_condition": "Lower back pain...",
+        "medical_history": "Mild scoliosis...",
+        "additional_remarks_refer": "Patient cooperative..."
+      },
+      "attachments": [...],
+      "form_data": {
+        "5": {
+          "drug_allergies": "No",
+          "prescription_status": "25"
+        }
+      }
+    }
+
+    Success Response (200):
+    {
+      "message": "Referral updated successfully."
+    }
+
+===============================================================================
+                            ATTACHMENTS
+===============================================================================
+
+20. DOWNLOAD ATTACHMENT
+    Method: GET
+    URL: /attachment/{attachment_id}
+
+    Success Response (200):
+    {
+      "name": "document.pdf",
+      "type": "application/pdf",
+      "size": 1024000,
+      "base64": "JVBERi0xLjQKJaqrrK0KMSAwIG9iag..."
+    }
+
+    Error Responses:
+    - 403 Forbidden:
+      {
+        "message": "Unauthorized: Cannot access attachment from different business unit."
+      }
+    - 404 Not Found:
+      {
+        "message": "Attachment not found"
+      }
+    - 500 Server Error:
+      {
+        "message": "Internal server error"
+      }
+
+===============================================================================
+                        EXTERNAL REFEREES & ORGANIZATIONS
+===============================================================================
+
+21-27. EXTERNAL REFEREES (Full CRUD)
+    Base URL: /external-referees
+    Methods: GET, POST, PUT, PATCH, DELETE
+
+    Standard REST API responses:
+    - GET /external-referees (index)
+    - GET /external-referees/{id} (show)
+    - POST /external-referees (store)
+    - PUT/PATCH /external-referees/{id} (update)
+    - DELETE /external-referees/{id} (destroy)
+
+28-34. EXTERNAL ORGANIZATIONS (Full CRUD)
+    Base URL: /external-organizations
+    Methods: GET, POST, PUT, PATCH, DELETE
+
+    Standard REST API responses (same pattern as external referees)
+
+===============================================================================
+                              REPORTS
+===============================================================================
+
+35. GENERATE REPORT
+    Method: POST
+    URL: /report
+
+    Request Body:
+    {
+      "business_unit_id": null,
+      "location": 103,
+      "is_external": false,
+      "priority": null,
+      "is_referred": false,
+      "status": null,
+      "month": null,
+      "year": null
+    }
+
+    Success Response (200):
+    {
+      "filename": "referral_report_2024-03-15_14-30-25.xlsx",
+      "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "size": 51200,
+      "base64": "UEsDBBQACgAAAAAAeXdLTQAAAAAAAAAAAAAAABYAAABfcmVscz8uaW5za1orcmVscy8uanM="
+    }
+
+    Error Responses:
+    - 404 No Data:
+      {
+        "error": "No referral histories found",
+        "message": "No referral histories found matching the specified criteria"
+      }
+    - 422 Validation Error:
+      {
+        "error": "Validation error",
+        "message": "Invalid input parameters",
+        "details": {...}
+      }
+    - 500 Server Error:
+      {
+        "error": "Failed to generate Excel file",
+        "message": "There was an error creating the report file"
+      }
+
+36. GET CHART DATA
+    Method: GET
+    URL: /report/chart
+
+    Success Response (200):
+    {
+      "Emergency Department": [
+        {
+          "sent": 15,
+          "received": 8
+        }
+      ],
+      "Cardiology": [
+        {
+          "sent": 5,
+          "received": 12
+        }
+      ]
+    }
+
+37. GET DASHBOARD STATISTICS
+    Method: GET
+    URL: /report/dashboard
+
+    Success Response (200):
+    {
+      "total_referral": 45,
+      "status_count": {
+        "1": 12,
+        "2": 18,
+        "3": 8,
+        "4": 7,
+        "5": 0
+      },
+      "priority_count": {
+        "1": 15,
+        "2": 20,
+        "3": 10
+      },
+      "total_priority": 45,
+      "total_business_unit": 5,
+      "business_units": [
+        {
+          "id": 1,
+          "name": "Emergency Department",
+          "count": 23
+        }
+      ]
+    }
+
+    No Data Response (204):
+    {
+      "message": "No results.",
+      "data": []
+    }
+
+38. GET BUSINESS UNIT SUMMARY
+    Method: GET
+    URL: /report/summary
+
+    Success Response (200):
+    {
+      "statistics": {
+        "total_referrals": 25,
+        "sent_received": {
+          "sent": 15,
+          "received": 10
+        },
+        "staff_involvement": {...},
+        "status": {
+          "Open": 5,
+          "In Progress": 10,
+          "Referred": 5,
+          "Closed": 5,
+          "Not Present": 0
+        },
+        "priority": {
+          "Low": 8,
+          "Medium": 12,
+          "High": 5
+        },
+        "location_details": {...},
+        "location_summary": {...},
+        "external_referrals": 3,
+        "referred_referrals": 7
+      }
+    }
+
+===============================================================================
+                              LIBRARY
+===============================================================================
+
+39. GET STATUS LIBRARY
+    Method: GET
+    URL: /library/status
+
+    Success Response (200):
+    [
+      {
+        "id": 1,
+        "name": "Open"
+      },
+      {
+        "id": 2,
+        "name": "In Progress"
+      }
+    ]
+
+40. GET PRIORITY LIBRARY
+    Method: GET
+    URL: /library/priority
+
+    Success Response (200):
+    [
+      {
+        "id": 1,
+        "name": "Low"
+      },
+      {
+        "id": 2,
+        "name": "Medium"
+      },
+      {
+        "id": 3,
+        "name": "High"
+      }
+    ]
+
+===============================================================================
+                          PHP 5.3+ INTEGRATION EXAMPLE
+===============================================================================
+
+// Sample PHP 5.3+ cURL implementation
+function callAPI($method, $url, $data = array(), $token = null) {
+    $curl = curl_init();
+
+    $headers = array('Content-Type: application/json');
+    if ($token) {
+        $headers[] = 'Authorization: Bearer ' . $token;
+    }
+
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => 'http://your-domain.com/api' . $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_CUSTOMREQUEST => $method
+    ));
+
+    if ($data) {
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+
+    $response = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+
+    return array(
+        'status_code' => $httpCode,
+        'data' => json_decode($response, true)
+    );
+}
+
+// Usage Examples:
+// 1. Login
+$loginData = array(
+    'staff_id' => 2222,
+    'staff_department_id' => 1,
+    'status_semasa' => 'Junior Audiologist'
+);
+$result = callAPI('POST', '/auth', $loginData);
+
+// 2. Get referrals (with token)
+$token = $result['data']['token'];
+$referrals = callAPI('GET', '/referral', array(), $token);
+
+// 3. Create referral
+$referralData = array(
+    'business_units' => array(/* ... */),
+    'referral' => array(/* ... */)
+);
+$newReferral = callAPI('POST', '/referral', $referralData, $token);
+
+===============================================================================
+                              STATUS CODES SUMMARY
+===============================================================================
+
+Success Codes:
+- 200 OK: Successful GET, PUT requests
+- 201 Created: Successful POST requests
+- 204 No Content: Successful DELETE requests
+
+Error Codes:
+- 400 Bad Request: Invalid request format
+- 401 Unauthorized: Missing/invalid authentication
+- 403 Forbidden: Valid auth but insufficient permissions
+- 404 Not Found: Resource doesn't exist
+- 422 Unprocessable Entity: Validation errors
+- 500 Internal Server Error: Server-side errors
+
+===============================================================================
+                                  NOTES
+===============================================================================
+
+1. All JWT tokens expire after 24 hours (86400 seconds)
+2. Business unit filtering is enforced on all protected endpoints
+3. File uploads use base64 encoding in JSON requests
+4. All protected endpoints require valid JWT token in Authorization header
+5. Cross-business unit access is forbidden (403 error)
+6. Validation errors return detailed field-specific messages
+7. Referrals support external referees and multi-sequence workflows
+8. Reports can be filtered by various criteria and exported as Excel
+9. Form structures support dynamic field types (text, checkbox, radio, etc.)
+10. Attachments are stored as base64 encoded strings in database
+
+===============================================================================

@@ -243,6 +243,16 @@ class ReferralController extends Controller
     public function store(StoreReferralRequest $request)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
             $validated = $request->validated();
 
             if ($validated) {
@@ -252,6 +262,13 @@ class ReferralController extends Controller
 
                 //get business unit id
                 $business_unit_id = $businessUnits['assignee']['business_unit_id'];
+
+                // Validate that the assignee business unit matches JWT business unit
+                if ($business_unit_id != $businessUnitId) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot create referral for different business unit.',
+                    ], 403);
+                }
 
                 //create referral
                 $referral = Referral::create([
@@ -479,12 +496,29 @@ class ReferralController extends Controller
      *     )
      * )
      */
-    public function show(Referral $referral)
+    public function show(Request $request, Referral $referral)
     {
         try {
-            //check if exist
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            //check if referral exist
             if (!$referral) {
                 return response()->json(['message' => 'Referral not found.'], 404);
+            }
+
+            //check if referral accessible by this business unit
+            $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
+
+            if (!$exists) {
+                return response()->json(['message' => 'Referral not accessible.'], 403);
             }
 
             //initialize for default value

@@ -806,8 +806,17 @@ class ReportController extends Controller
         ], 200);
     }
 
-    public function summary($businessUnitId)
+    public function summary(Request $request)
     {
+        $jwtPayload = $request->get('jwt_payload');
+        $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+        if (!$businessUnitId) {
+            return response()->json([
+                'message' => 'Business unit ID not found in session.',
+            ], 401);
+        }
+
         // Get referral histories with all necessary relationships
         $referralHistories = ReferralHistory::with([
             'referral',

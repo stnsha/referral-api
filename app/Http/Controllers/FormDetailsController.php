@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FormDetailsRequest;
+use App\Models\Form;
 use App\Models\FormDetails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,9 +60,26 @@ class FormDetailsController extends Controller
     public function create(FormDetailsRequest $request)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
             DB::beginTransaction();
             $validated = $request->validated();
             $form_id = $validated['form_id'];
+
+            // Check if form belongs to user's business unit
+            $form = Form::find($form_id);
+            if (!$form || $form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot create form details for different business unit.',
+                ], 403);
+            }
             $formDetails = $validated['form_details'];
 
             foreach ($formDetails as $detail) {
@@ -123,9 +141,26 @@ class FormDetailsController extends Controller
      * )
      */
 
-    public function show(FormDetails $formDetail)
+    public function show(Request $request, FormDetails $formDetail)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if form detail belongs to user's business unit
+            $form = $formDetail->form;
+            if (!$form || $form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot access form details from different business unit.',
+                ], 403);
+            }
+
             $data = [
                 'form_id' => $formDetail->form_id,
                 'field_name' => $formDetail->field_name,
@@ -175,9 +210,26 @@ class FormDetailsController extends Controller
      * )
      */
 
-    public function destroy(FormDetails $formDetail)
+    public function destroy(Request $request, FormDetails $formDetail)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if form detail belongs to user's business unit
+            $form = $formDetail->form;
+            if (!$form || $form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot delete form details from different business unit.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $formDetail->delete();
             DB::commit();
@@ -241,6 +293,23 @@ class FormDetailsController extends Controller
     public function update(FormDetailsRequest $request, FormDetails $formDetail)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if form detail belongs to user's business unit
+            $form = $formDetail->form;
+            if (!$form || $form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot update form details from different business unit.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $validated = $request->validated();
 

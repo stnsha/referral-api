@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::prefix('auth')->controller(ODBController::class)->group(function () {
     Route::post('', 'auth')->name('auth.login');
+    Route::post('verify', 'verifyToken')->name('auth.verify');
 });
 
 Route::middleware('token.auth')->group(function () {
@@ -61,7 +62,7 @@ Route::middleware('token.auth')->group(function () {
         Route::post('/', 'index')->name('report.index');
         Route::get('chart', 'chart')->name('report.chart');
         Route::get('dashboard', 'dashboard')->name('report.dashboard');
-        Route::get('summary/{businessUnitId}', 'summary')->name('report.summary');
+        Route::get('summary', 'summary')->name('report.summary');
     });
 
     Route::prefix('library')->controller(LibraryController::class)->group(function () {

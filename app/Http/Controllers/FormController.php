@@ -67,9 +67,25 @@ class FormController extends Controller
     public function store(FormsRequest $request)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
             DB::beginTransaction();
             $validated = $request->validated();
             $bu = BusinessUnit::where('staff_department_id', $validated['business_unit_id'])->first();
+
+            // Validate that the requested business unit matches JWT business unit
+            if (!$bu || $bu->id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot create form for different business unit.',
+                ], 403);
+            }
 
             $form = Form::create([
                 'business_unit_id' => $bu->id,
@@ -177,14 +193,14 @@ class FormController extends Controller
     public function show(Request $request)
     {
         try {
-            $jwtPayload = $request->input('jwt_payload');
-            $business_unit_id = $jwtPayload['business_unit_id'] ?? null;
-            
-            if (!$business_unit_id) {
-                return response()->json(['message' => 'Business unit ID not found in token'], 400);
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
             
-            $forms = Form::with(['form_details'])->where('business_unit_id', $business_unit_id)->get();
+            $forms = Form::with(['form_details'])->where('business_unit_id', $businessUnitId)->get();
             $data = [];
             $arr = [];
 
@@ -231,7 +247,7 @@ class FormController extends Controller
             }
 
             $data = [
-                'business_unit_id' => $business_unit_id,
+                'business_unit_id' => $businessUnitId,
                 'forms' => $arr
             ];
 
@@ -302,6 +318,22 @@ class FormController extends Controller
     public function update(FormsRequest $request, Form $form)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if user can access this form
+            if ($form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot update form from different business unit.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $validated = $request->validated();
 
@@ -367,9 +399,25 @@ class FormController extends Controller
      * )
      */
 
-    public function destroy(Form $form)
+    public function destroy(Request $request, Form $form)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if user can access this form
+            if ($form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot delete form from different business unit.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $form->delete();
             DB::commit();

@@ -52,9 +52,37 @@ class ReferralAttachmentController extends Controller
      *     )
      * )
      */
-    public function download(ReferralAttachment $attachment)
+    public function download(Request $request, ReferralAttachment $attachment)
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if user's business unit is involved in this referral
+            $referralHistory = $attachment->referralHistory;
+            $referral = $referralHistory ? $referralHistory->referral : null;
+
+            if (!$referral) {
+                return response()->json([
+                    'message' => 'Referral not found.',
+                ], 404);
+            }
+
+            // Check if current business unit is involved in this referral
+            $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
+
+            if (!$exists) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot access attachment from different business unit.',
+                ], 403);
+            }
+
             // Calculate file size from base64 data
             $base64Data = $attachment->encoded_base;
             $fileSize = (int) (strlen(rtrim($base64Data, '=')) * 3 / 4);

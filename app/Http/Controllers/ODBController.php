@@ -49,6 +49,67 @@ class ODBController extends Controller
         return $decodedPayload;
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/auth/verify",
+     *     summary="Verify JWT token validity",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"token"},
+     *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token is valid",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="valid", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Token is valid"),
+     *             @OA\Property(property="payload", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Token is invalid or expired",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="valid", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Token is invalid or expired")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The token field is required.")
+     *         )
+     *     )
+     * )
+     */
+    public function verifyToken(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string'
+        ]);
+
+        $token = $request->input('token');
+        $payload = self::verifyJWT($token);
+
+        if ($payload) {
+            return response()->json([
+                'valid' => true,
+                'message' => 'Token is valid',
+                'payload' => $payload
+            ], 200);
+        }
+
+        return response()->json([
+            'valid' => false,
+            'message' => 'Token is invalid or expired'
+        ], 401);
+    }
+
     private function mapToBusinessUnitId($staffDepartmentId, $statusSemasa)
     {
         if ($staffDepartmentId == 1) {
