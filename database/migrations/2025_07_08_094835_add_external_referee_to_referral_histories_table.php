@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('referral_histories', function (Blueprint $table) {
-            $table->unsignedBigInteger('external_referee_id')->nullable()->after('is_filled');
+            $table->unsignedBigInteger('external_referee_id')->nullable()->after('additional_remarks');
             $table->foreign('external_referee_id')->references('id')->on('external_referees')->onDelete('cascade');
         });
     }

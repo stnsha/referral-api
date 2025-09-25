@@ -1590,6 +1590,95 @@
                 ]
             }
         },
+        "/api/auth/verify": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify JWT token validity",
+                "operationId": "cc40370e259ea02ec5b849fb6ed230a4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "token"
+                                ],
+                                "properties": {
+                                    "token": {
+                                        "type": "string",
+                                        "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token is valid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "valid": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token is valid"
+                                        },
+                                        "payload": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token is invalid or expired",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "valid": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token is invalid or expired"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The token field is required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth": {
             "post": {
                 "tags": [
@@ -2071,7 +2160,8 @@
                             "schema": {
                                 "required": [
                                     "business_units",
-                                    "referral"
+                                    "referral",
+                                    "required_treatment"
                                 ],
                                 "properties": {
                                     "business_units": {
@@ -2143,32 +2233,23 @@
                                         },
                                         "type": "object"
                                     },
-                                    "form_data": {
-                                        "properties": {
-                                            "6": {
-                                                "properties": {
-                                                    "targeted_area": {
-                                                        "type": "string",
-                                                        "example": "Lower limbs and core"
-                                                    },
-                                                    "pain_level": {
-                                                        "type": "string",
-                                                        "example": "4"
-                                                    },
-                                                    "previous_physiotherapy": {
-                                                        "type": "string",
-                                                        "example": "30"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
+                                    "required_treatment": {
+                                        "description": "Array of treatment IDs (PK). Must have at least 1 item. Associated with the referral history that has the highest sequence (recipient).",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
                                         },
-                                        "type": "object"
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
                                     },
                                     "attachments": {
                                         "type": "array",
                                         "items": {
-                                            "description": "Attachments will be associated with the referral history that has is_filled=true",
+                                            "description": "Attachments will be associated with the referral history that has sequence 1 (assignee).",
                                             "properties": {
                                                 "name": {
                                                     "type": "string",
@@ -2283,128 +2364,228 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "referral_id": {
+                                            "type": "string",
+                                            "example": "#REF0001"
+                                        },
+                                        "status": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "status_note": {
+                                            "type": "string",
+                                            "example": null,
+                                            "nullable": true
+                                        },
+                                        "customer_id": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "priority": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
                                         "referralDetails": {
-                                            "properties": {
-                                                "6": {
-                                                    "properties": {
-                                                        "sequence": {
-                                                            "type": "integer",
-                                                            "example": 1
-                                                        },
-                                                        "staff_id": {
-                                                            "type": "integer",
-                                                            "example": 2222
-                                                        },
-                                                        "location": {
-                                                            "type": "integer",
-                                                            "example": 101
-                                                        },
-                                                        "business_unit_id": {
-                                                            "type": "integer",
-                                                            "example": 6
-                                                        },
-                                                        "is_filled": {
-                                                            "type": "integer",
-                                                            "example": 1
-                                                        },
-                                                        "created_at": {
-                                                            "type": "string",
-                                                            "example": "19 June 2025"
-                                                        },
-                                                        "referral_reason": {
-                                                            "type": "string",
-                                                            "example": "Vestibular-Related Balance Issue"
-                                                        },
-                                                        "referral_condition": {
-                                                            "type": "string",
-                                                            "example": "Patient reports persistent dizziness..."
-                                                        },
-                                                        "medical_history": {
-                                                            "type": "string",
-                                                            "example": "Mild scoliosis diagnosed during teenage years."
-                                                        },
-                                                        "additional_remarks": {
-                                                            "type": "string",
-                                                            "example": null,
-                                                            "nullable": true
-                                                        },
-                                                        "referral_details": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "type": "object"
-                                                            }
-                                                        },
-                                                        "attachments": {
-                                                            "type": "array",
-                                                            "items": {
-                                                                "properties": {
-                                                                    "name": {
-                                                                        "type": "string",
-                                                                        "example": "BloodReport.pdf"
-                                                                    },
-                                                                    "size": {
-                                                                        "type": "string",
-                                                                        "example": "1.2 MB"
-                                                                    },
-                                                                    "type": {
-                                                                        "type": "string",
-                                                                        "example": "application/pdf"
-                                                                    },
-                                                                    "encoded": {
-                                                                        "type": "string",
-                                                                        "format": "byte",
-                                                                        "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago8PC9U... (truncated)"
-                                                                    }
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sequence": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 2222,
+                                                        "nullable": true
+                                                    },
+                                                    "location": {
+                                                        "type": "string",
+                                                        "example": "101"
+                                                    },
+                                                    "business_unit_id": {
+                                                        "type": "integer",
+                                                        "example": 6
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "19 June 2025"
+                                                    },
+                                                    "referral_reason": {
+                                                        "type": "string",
+                                                        "example": "Vestibular-Related Balance Issue",
+                                                        "nullable": true
+                                                    },
+                                                    "referral_condition": {
+                                                        "type": "string",
+                                                        "example": "Patient reports persistent dizziness...",
+                                                        "nullable": true
+                                                    },
+                                                    "medical_history": {
+                                                        "type": "string",
+                                                        "example": "Mild scoliosis diagnosed during teenage years.",
+                                                        "nullable": true
+                                                    },
+                                                    "additional_remarks": {
+                                                        "type": "string",
+                                                        "example": null,
+                                                        "nullable": true
+                                                    },
+                                                    "referral_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_id": {
+                                                                    "type": "integer",
+                                                                    "example": 5
                                                                 },
-                                                                "type": "object"
-                                                            }
+                                                                "label_name": {
+                                                                    "type": "string",
+                                                                    "example": "Pharmacy Form"
+                                                                },
+                                                                "is_hidden": {
+                                                                    "type": "boolean",
+                                                                    "example": false
+                                                                },
+                                                                "form_details": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "field_name": {
+                                                                                "type": "string",
+                                                                                "example": "drug_allergies"
+                                                                            },
+                                                                            "field_type": {
+                                                                                "type": "string",
+                                                                                "example": "radio"
+                                                                            },
+                                                                            "is_required": {
+                                                                                "type": "boolean",
+                                                                                "example": true
+                                                                            },
+                                                                            "field_data": {
+                                                                                "type": "array",
+                                                                                "items": {
+                                                                                    "properties": {
+                                                                                        "form_detail_id": {
+                                                                                            "type": "integer",
+                                                                                            "example": 25
+                                                                                        },
+                                                                                        "field_value": {
+                                                                                            "type": "string",
+                                                                                            "example": "No"
+                                                                                        },
+                                                                                        "is_answer": {
+                                                                                            "description": "false when ReferralDetails value is null, true when answered",
+                                                                                            "type": "boolean",
+                                                                                            "example": false
+                                                                                        }
+                                                                                    },
+                                                                                    "type": "object"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "type": "object"
                                                         }
                                                     },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
+                                                    "attachments": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "attachment_id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "BloodReport.pdf"
+                                                                },
+                                                                "size": {
+                                                                    "type": "string",
+                                                                    "example": "application/pdf"
+                                                                },
+                                                                "type": {
+                                                                    "type": "integer",
+                                                                    "example": 14040
+                                                                },
+                                                                "encoded": {
+                                                                    "type": "string",
+                                                                    "format": "byte",
+                                                                    "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iao8PC9U... (truncated)"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "external_referral": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "external_referee_id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "Dr. John Smith"
+                                                                },
+                                                                "email": {
+                                                                    "type": "string",
+                                                                    "example": "john.smith@hospital.com"
+                                                                },
+                                                                "phone": {
+                                                                    "type": "string",
+                                                                    "example": "+1234567890"
+                                                                },
+                                                                "position": {
+                                                                    "type": "string",
+                                                                    "example": "Cardiologist"
+                                                                },
+                                                                "specialty": {
+                                                                    "type": "string",
+                                                                    "example": "Cardiology"
+                                                                },
+                                                                "external_organization_id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "organization": {
+                                                                    "type": "string",
+                                                                    "example": "City General Hospital"
+                                                                },
+                                                                "address": {
+                                                                    "type": "string",
+                                                                    "example": "123 Medical Center Dr"
+                                                                },
+                                                                "postcode": {
+                                                                    "type": "string",
+                                                                    "example": "12345"
+                                                                },
+                                                                "state": {
+                                                                    "type": "string",
+                                                                    "example": "State"
+                                                                },
+                                                                "country": {
+                                                                    "type": "string",
+                                                                    "example": "Country"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
                                         },
-                                        "referringIndication": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "referral_id": {
-                                                    "type": "string",
-                                                    "example": "#REF0001"
-                                                },
-                                                "customer_id": {
-                                                    "type": "integer",
-                                                    "example": 10
-                                                },
-                                                "business_unit_id": {
-                                                    "type": "integer",
-                                                    "example": 6
-                                                },
-                                                "referral_reason": {
-                                                    "type": "string",
-                                                    "example": "Vestibular-Related Balance Issue"
-                                                },
-                                                "referral_condition": {
-                                                    "type": "string",
-                                                    "example": "Patient reports persistent dizziness and unsteadiness..."
-                                                },
-                                                "medical_history": {
-                                                    "type": "string",
-                                                    "example": "Mild scoliosis diagnosed during teenage years."
-                                                },
-                                                "priority": {
-                                                    "type": "integer",
-                                                    "example": 2
-                                                },
-                                                "status": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                }
-                                            },
-                                            "type": "object"
+                                        "pdf_base64": {
+                                            "description": "Present only for external referrals",
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": null,
+                                            "nullable": true
                                         }
                                     },
                                     "type": "object"
@@ -2428,6 +2609,22 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "Forbidden - Referral not accessible.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Referral not accessible."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Referral not found.",
                         "content": {
@@ -2437,6 +2634,22 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Referral not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error."
                                         }
                                     },
                                     "type": "object"
