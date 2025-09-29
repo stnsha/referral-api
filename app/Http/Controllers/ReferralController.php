@@ -680,10 +680,14 @@ class ReferralController extends Controller
                     // Determine is_filled based on sequence and ReferralDetails values
                     $is_filled = true; // Default for sequence 1
                     if ($rh->sequence != 1) {
-                        // For non-first sequences, check if ALL referral details have non-null values
-                        $is_filled = $rh->referral_details->every(function ($rd) {
-                            return $rd->value !== null;
-                        });
+                        // For non-first sequences, check if referral details exist and ALL have non-null values
+                        if ($rh->referral_details->isEmpty()) {
+                            $is_filled = false;
+                        } else {
+                            $is_filled = $rh->referral_details->every(function ($rd) {
+                                return $rd->value !== null;
+                            });
+                        }
                     }
 
                     //return histories data with attachments
