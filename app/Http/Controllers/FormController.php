@@ -25,7 +25,7 @@ class FormController extends Controller
 
             $recipientBuId = $request->input('recipientBuId');
 
-            $forms = Form::where('business_unit_id', $recipientBuId)->where('is_hidden', false)->get();
+            $forms = Form::with('form_details')->where('business_unit_id', $recipientBuId)->where('is_hidden', false)->get();
 
             if ($forms->isEmpty()) {
                 return response()->json(['message' => 'No forms found for the specified business unit.'], 404);
@@ -35,7 +35,8 @@ class FormController extends Controller
             foreach ($forms as $form) {
                 $data[] = [
                     'form_id' => $form->id,
-                    'label_name' => $form->label_name
+                    'label_name' => $form->label_name,
+                    'is_required' => $form->form_details->isNotEmpty() ? $form->form_details->first()->is_required == 1 : false
                 ];
             }
 
