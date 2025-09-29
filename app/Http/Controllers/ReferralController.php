@@ -579,10 +579,10 @@ class ReferralController extends Controller
                     foreach ($rh->referral_details as $rd) {
                         $formDetails = [];
                         $form_details = $rd->form->form_details;
-                        $value = $rd->value ? json_decode($rd->value, true) : null;
+                        $value = $rd->value ? (json_decode($rd->value, true) ?: $rd->value) : null;
 
                         //run through form details
-                        foreach ($form_details as $fd) {
+                    foreach ($form_details as $fd) {
                             $key = $fd->field_name;
 
                             if (!isset($formDetails[$key])) {
@@ -676,6 +676,16 @@ class ReferralController extends Controller
                             'country' => $external_referee->organization->country,
                         ];
                     }
+
+                    // Determine is_filled based on sequence and ReferralDetails values
+                    $is_filled = true; // Default for sequence 1
+                    if ($rh->sequence != 1) {
+                        // For non-first sequences, check if ALL referral details have non-null values
+                        $is_filled = $rh->referral_details->every(function ($rd) {
+                            return $rd->value !== null;
+                        });
+                    }
+
                     //return histories data with attachments
                     return [
                         'sequence' => $rh->sequence,
@@ -687,6 +697,7 @@ class ReferralController extends Controller
                         'referral_condition' => $rh->referral_condition,
                         'medical_history' => $rh->medical_history,
                         'additional_remarks' => $rh->additional_remarks,
+                        'is_filled' => $is_filled,
                         'referral_details' => $forms,
                         'attachments' => $attachments,
                         'external_referral' => $external_referral,
