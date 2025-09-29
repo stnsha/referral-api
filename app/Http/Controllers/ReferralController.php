@@ -579,10 +579,10 @@ class ReferralController extends Controller
                     foreach ($rh->referral_details as $rd) {
                         $formDetails = [];
                         $form_details = $rd->form->form_details;
-                        $value = $rd->value ? json_decode($rd->value, true) : null;
+                        $value = $rd->value ? (json_decode($rd->value, true) ?: $rd->value) : null;
 
                         //run through form details
-                        foreach ($form_details as $fd) {
+                    foreach ($form_details as $fd) {
                             $key = $fd->field_name;
 
                             if (!isset($formDetails[$key])) {
