@@ -828,7 +828,6 @@ class ReferralController extends Controller
                         $referral_reason = isset($validated['referral']['referral_reason']) ? $validated['referral']['referral_reason'] : null;
                         $referral_condition = isset($validated['referral']['referral_condition']) ? $validated['referral']['referral_condition'] : null;
                         $medical_history = isset($validated['referral']['medical_history']) ? $validated['referral']['medical_history'] : null;
-                        $is_filled = true;
                         $referral_history_id = $rh->id;
 
                         if (is_null($rh->staff_id)) {
@@ -842,7 +841,6 @@ class ReferralController extends Controller
                         $rh->referral_reason = $referral_reason ?? $rh->referral_reason;
                         $rh->referral_condition = $referral_condition ?? $rh->referral_condition;
                         $rh->medical_history = $medical_history ?? $rh->medical_history;
-                        $rh->is_filled = $is_filled;
                         $rh->save();
 
                         //insert referral details
@@ -869,7 +867,7 @@ class ReferralController extends Controller
                         }
 
                         //run through attachments if exist
-                        if (filled($request['attachments']) && $is_filled) {
+                        if (filled($request['attachments'])) {
                             $mimeMap = [
                                 'image/jpeg' => 'jpg',
                                 'image/png' => 'png',
@@ -941,8 +939,7 @@ class ReferralController extends Controller
                         'staff_id' => $refer_to,
                         'business_unit_id' => $refer_business_unit,
                         'location' => $refer_location,
-                        'sequence' => $total_rh + 1,
-                        'is_filled' => false
+                        'sequence' => $total_rh + 1
                     ]);
 
                     $referral_history_id = $referral_history->id;
