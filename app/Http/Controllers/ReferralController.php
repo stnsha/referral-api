@@ -843,7 +843,7 @@ class ReferralController extends Controller
                         $rh->medical_history = $medical_history ?? $rh->medical_history;
                         $rh->save();
 
-                        //insert referral details
+                        //update referral details
                         if (isset($validated['form_data']) && filled($validated['form_data'])) {
 
                             $formFields = $validated['form_data'][$business_unit_id] ?? [];
@@ -855,13 +855,16 @@ class ReferralController extends Controller
                                     })
                                     ->first();
 
-
                                 if ($form_detail) {
-                                    ReferralDetails::create([
-                                        'referral_history_id' => $referral_history_id,
-                                        'form_id' => $form_detail->form_id,
-                                        'value' => is_array($value) ? json_encode($value) : $value,
-                                    ]);
+                                    $referralDetail = ReferralDetails::where('referral_history_id', $referral_history_id)
+                                        ->where('form_id', $form_detail->form_id)
+                                        ->first();
+
+                                    if ($referralDetail) {
+                                        $referralDetail->update([
+                                            'value' => is_array($value) ? json_encode($value) : $value,
+                                        ]);
+                                    }
                                 }
                             }
                         }
