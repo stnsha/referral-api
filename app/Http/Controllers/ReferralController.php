@@ -308,17 +308,28 @@ class ReferralController extends Controller
                     ReferralHistory::create($data);
                 }
 
-                // Get referral history with max sequence for required_treatment
-                $maxSequenceHistory = ReferralHistory::where('referral_id', $referral->id)
-                    ->orderBy('sequence', 'desc')
-                    ->first();
+                // Check if this is an external referral
+                $isExternalReferral = false;
+                foreach ($validated['business_units'] as $value) {
+                    if (isset($value['referee']) || (isset($value['recipient']) && isset($value['recipient']['referee']))) {
+                        $isExternalReferral = true;
+                        break;
+                    }
+                }
 
-                if (filled($request['required_treatment']) && $maxSequenceHistory) {
-                    foreach ($request['required_treatment'] as $form_id) {
-                        ReferralDetails::create([
-                            'referral_history_id' => $maxSequenceHistory->id,
-                            'form_id' => $form_id,
-                        ]);
+                // Get referral history with max sequence for required_treatment (only for non-external referrals)
+                if (!$isExternalReferral) {
+                    $maxSequenceHistory = ReferralHistory::where('referral_id', $referral->id)
+                        ->orderBy('sequence', 'desc')
+                        ->first();
+
+                    if (filled($request['required_treatment']) && $maxSequenceHistory) {
+                        foreach ($request['required_treatment'] as $form_id) {
+                            ReferralDetails::create([
+                                'referral_history_id' => $maxSequenceHistory->id,
+                                'form_id' => $form_id,
+                            ]);
+                        }
                     }
                 }
 
@@ -361,19 +372,10 @@ class ReferralController extends Controller
 
                 $referral->save();
 
-                // Check if any referral history has external referee (is_external)
-                $hasExternalReferee = false;
-                foreach ($validated['business_units'] as $value) {
-                    if (isset($value['referee'])) {
-                        $hasExternalReferee = true;
-                        break;
-                    }
-                }
-
                 $response = ['id' => $referral->id];
 
                 // Generate PDF base64 if external referral
-                if ($hasExternalReferee) {
+                if ($isExternalReferral) {
                     $referralData = $referral->load(['referral_histories']);
                     $data = [
                         'referral_id' => createRefId($referral->id),
