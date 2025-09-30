@@ -21,7 +21,7 @@ class StoreReferralRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'business_units.assignee.staff_id' => 'required|integer',
             'business_units.assignee.business_unit_id' => 'required|string',
             'business_units.assignee.location' => 'required|string',
@@ -30,15 +30,8 @@ class StoreReferralRequest extends FormRequest
             'business_units.assignee.medical_history' => 'nullable|string',
             'business_units.assignee.additional_remarks' => 'nullable|string',
 
-            'business_units.recipient.staff_id' => 'nullable|integer',
-            'business_units.recipient.business_unit_id' => 'required|string',
-            'business_units.recipient.location' => 'required|string',
-
             'referral.customer_id' => 'required|integer',
             'referral.priority' => 'required|integer',
-
-            'required_treatment' => 'required|array|min:1',
-            'required_treatment.*' => 'integer',
 
             'attachments' => 'nullable|array',
             'attachments.*.name' => 'required|string',
@@ -46,6 +39,28 @@ class StoreReferralRequest extends FormRequest
             'attachments.*.size' => 'required|integer',
             'attachments.*.base64' => 'required|string'
         ];
+
+        // Check if this is an external referral
+        $isExternalReferral = $this->has('business_units.recipient.referee') ||
+                             $this->has('business_units.recipient.organization');
+
+        if ($isExternalReferral) {
+            // External referral validation
+            $rules['business_units.recipient.organization'] = 'required|integer';
+            $rules['business_units.recipient.location_organization'] = 'required|string';
+            $rules['business_units.recipient.referee'] = 'required|string';
+            $rules['required_treatment'] = 'nullable|array';
+        } else {
+            // Internal referral validation
+            $rules['business_units.recipient.staff_id'] = 'nullable|integer';
+            $rules['business_units.recipient.business_unit_id'] = 'required|string';
+            $rules['business_units.recipient.location'] = 'required|string';
+            $rules['required_treatment'] = 'required|array|min:1';
+        }
+
+        $rules['required_treatment.*'] = 'integer';
+
+        return $rules;
     }
 
 
