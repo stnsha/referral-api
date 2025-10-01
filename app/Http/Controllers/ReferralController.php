@@ -386,9 +386,9 @@ class ReferralController extends Controller
                         'referralDetails' => $referralData->referral_histories,
                     ];
 
-                    $pdfBase64 = $this->exportPdf($data);
-                    if ($pdfBase64) {
-                        $response['pdf_base64'] = $pdfBase64;
+                    $pdf = $this->exportPdf($data);
+                    if ($pdf) {
+                        $response['pdf_base64'] = base64_encode($pdf->output());
                     }
                 }
 
@@ -651,8 +651,8 @@ class ReferralController extends Controller
                         return [
                             'attachment_id' => $atc->id,
                             'name' => $atc->file_name,
-                            'size' => $atc->file_type,
-                            'type' => $atc->file_size,
+                            'size' => $atc->file_size,
+                            'type' => $atc->file_type,
                             'encoded' => $atc->encoded_base
                         ];
                     });
@@ -723,9 +723,9 @@ class ReferralController extends Controller
 
             if ($is_external) {
                 //get pdf base64
-                $pdfBase64 = $this->exportPdf($data);
-                if ($pdfBase64) {
-                    $data['pdf_base64'] = $pdfBase64;
+                $pdf = $this->exportPdf($data);
+                if ($pdf) {
+                    $data['pdf_base64'] = base64_encode($pdf->output());
                 }
             }
 
@@ -982,17 +982,230 @@ class ReferralController extends Controller
         }
     }
 
-    public function exportPdf($data)
+    public function download(Request $request, $id)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            $referral = Referral::find($id);
+
+            //check if referral exist
+            if (!$referral) {
+                return response()->json(['message' => 'Referral not found.'], 404);
+            }
+
+            // Load necessary relationships
+            $referral->load([
+                'referral_histories.business_unit',
+                'referral_histories.external_referee.organization',
+                'referral_histories.referral_details.form.form_details',
+                'referral_histories.referral_attachments'
+            ]);
+
+            //check if referral accessible by this business unit
+            $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
+
+            if (!$exists) {
+                return response()->json(['message' => 'Referral not accessible.'], 403);
+            }
+
+            //initialize for default value
+            $is_external = false;
+            //get referral histories
+            $referralHistories = $referral->referral_histories
+                ->sortBy('sequence')
+                ->values()
+                ->map(function ($rh) use (
+                    &$is_external,
+                ) {
+                    $forms = [];
+
+                    //get details
+                    foreach ($rh->referral_details as $rd) {
+                        $formDetails = [];
+                        $form_details = $rd->form->form_details;
+                        $value = $rd->value ? (json_decode($rd->value, true) ?: $rd->value) : null;
+
+                        //run through form details
+                        foreach ($form_details as $fd) {
+                            $key = $fd->field_name;
+
+                            if (!isset($formDetails[$key])) {
+                                $formDetails[$key] = [
+                                    'field_name' => $fd->field_name,
+                                    'field_type' => $fd->field_type,
+                                    'is_required' => $fd->is_required != 0 ? true : false,
+                                    'field_data' => [],
+                                ];
+                            }
+
+                            //map answer to form details based on type
+                            $is_answer = false;
+
+                            if ($value === null) {
+                                // Handle null values - show field but not answered
+                                $formDetails[$key]['field_data'][] = [
+                                    'form_detail_id' => $fd->id,
+                                    'field_value' => $fd->field_value,
+                                    'is_answer' => false
+                                ];
+                            } elseif ($fd->field_type == 'checkbox' && is_array($value)) {
+                                $is_answer = in_array($fd->id, $value);
+                                $formDetails[$key]['field_data'][] = [
+                                    'form_detail_id' => $fd->id,
+                                    'field_value' => $fd->field_value,
+                                    'is_answer' => $is_answer
+                                ];
+                            } elseif ($fd->field_type == 'radio') {
+                                $is_answer = ($fd->id == $value);
+                                $formDetails[$key]['field_data'][] = [
+                                    'form_detail_id' => $fd->id,
+                                    'field_value' => $fd->field_value,
+                                    'is_answer' => $is_answer
+                                ];
+                            } else {
+                                $formDetails[$key]['field_data'] = [
+                                    [
+                                        'form_detail_id' => $fd->id,
+                                        'field_value' => $rd->value,
+                                        'is_answer' => $rd->value !== null
+                                    ]
+                                ];
+                            }
+                        }
+
+                        //group by index
+                        $formDetails = array_values($formDetails);
+
+                        //grouped form details with form
+                        $form = [
+                            'form_id' => $rd->form->id,
+                            'label_name' => $rd->form->label_name,
+                            'is_hidden' => $rd->form->is_hidden != 0,
+                            'form_details' => $formDetails,
+                        ];
+
+                        //add to array
+                        $forms[] = $form;
+                    }
+
+                    //get attachments for this history
+                    $attachments = $rh->referral_attachments->map(function ($atc) {
+                        return [
+                            'attachment_id' => $atc->id,
+                            'name' => $atc->file_name,
+                            'size' => $atc->file_size,
+                            'type' => $atc->file_type,
+                            'encoded' => $atc->encoded_base
+                        ];
+                    });
+
+                    //get external referee
+                    $external_referral = [];
+
+                    if ($rh->external_referee_id) {
+                        $is_external = true;
+                        $external_referee = $rh->external_referee;
+                        $external_referral[] = [
+                            'external_referee_id' => $external_referee->id,
+                            'name' => $external_referee->name,
+                            'email' => $external_referee->email,
+                            'phone' => $external_referee->phone,
+                            'position' => $external_referee->position,
+                            'specialty' => $external_referee->specialty,
+                            'external_organization_id' => $external_referee->organization->id,
+                            'organization' => $external_referee->organization->name,
+                            'address' => $external_referee->organization->address,
+                            'postcode' => $external_referee->organization->postcode,
+                            'state' => $external_referee->organization->state,
+                            'country' => $external_referee->organization->country,
+                        ];
+                    }
+
+                    // Determine is_filled based on sequence and ReferralDetails values
+                    $is_filled = true; // Default for sequence 1
+                    if ($rh->sequence != 1) {
+                        // For non-first sequences, check if referral details exist and ALL have non-null values
+                        if ($rh->referral_details->isEmpty()) {
+                            $is_filled = false;
+                        } else {
+                            $is_filled = $rh->referral_details->every(function ($rd) {
+                                return $rd->value !== null;
+                            });
+                        }
+                    }
+
+                    //return histories data with attachments
+                    return [
+                        'sequence' => $rh->sequence,
+                        'staff_id' => $rh->staff_id,
+                        'location' => $rh->location,
+                        'business_unit_id' => $rh->business_unit_id,
+                        'created_at' => Carbon::parse($rh->created_at)->format('d F Y'),
+                        'referral_reason' => $rh->referral_reason,
+                        'referral_condition' => $rh->referral_condition,
+                        'medical_history' => $rh->medical_history,
+                        'additional_remarks' => $rh->additional_remarks,
+                        'is_filled' => $is_filled,
+                        'referral_details' => $forms,
+                        'attachments' => $attachments,
+                        'external_referral' => $external_referral,
+                    ];
+                });
+
+            //grouped all data
+            $data = [
+                'referral_id' => createRefId($referral->id),
+                'status' => $referral->status,
+                'status_note' => $referral->status_note,
+                'customer_id' => $referral->customer_id,
+                'priority' => $referral->priority,
+                'referralDetails' => $referralHistories,
+                // 'referringIndication' => $referringIndication,
+            ];
+
+            // Generate and return PDF for download
+            $pdf = $this->exportPdf($data, true);
+            if ($pdf) {
+                return $pdf->download('referral_' . createRefId($referral->id) . '.pdf');
+            } else {
+                return response()->json(['message' => 'Failed to generate PDF'], 500);
+            }
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function exportPdf($data, $returnPdf = false)
     {
         try {
             $pdf = Pdf::loadView('pdf.report', $data);
             $pdf->setPaper('A4', 'portrait');
 
-            // Convert PDF to base64
-            $pdfContent = $pdf->output();
-            $base64Pdf = base64_encode($pdfContent);
+            // Return PDF object for download
+            if ($returnPdf) {
+                return $pdf;
+            }
 
-            return $base64Pdf;
+            // Generate PDF using barryvdh/laravel-dompdf and return the PDF object
+            return $pdf;
+
+            // Convert PDF to base64 for JSON response (commented out)
+            // $pdfContent = $pdf->output();
+            // $base64Pdf = base64_encode($pdfContent);
+            // return $base64Pdf;
         } catch (\Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;

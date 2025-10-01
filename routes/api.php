@@ -51,6 +51,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');
+        Route::get('download/{id}', 'download')->name('referral.download');
     });
 
     Route::resource('referral', ReferralController::class)->only(['index', 'store', 'show']);
