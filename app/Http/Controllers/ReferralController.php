@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreReferralRequest;
 use App\Http\Requests\UpdateReferralRequest;
+use App\Mail\ExternalReferralNotification;
 use App\Models\BusinessUnit;
+use App\Models\ExternalReferee;
 use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralAttachment;
@@ -16,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -376,7 +379,7 @@ class ReferralController extends Controller
 
                 // Generate PDF base64 if external referral
                 if ($isExternalReferral) {
-                    $referralData = $referral->load(['referral_histories']);
+                    $referralData = $referral->load(['referral_histories.external_referee']);
                     $data = [
                         'referral_id' => createRefId($referral->id),
                         'status' => $referral->status,
@@ -388,7 +391,40 @@ class ReferralController extends Controller
 
                     $pdf = $this->exportPdf($data);
                     if ($pdf) {
-                        $response['pdf_base64'] = base64_encode($pdf->output());
+                        $pdfBase64 = base64_encode($pdf->output());
+                        $response['pdf_base64'] = $pdfBase64;
+
+                        // Send email to external referee if email exists
+                        $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
+                        if ($externalRefereeHistory && $externalRefereeHistory->external_referee) {
+                            $externalReferee = $externalRefereeHistory->external_referee;
+
+                            if ($externalReferee->email) {
+                                try {
+                                    $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
+                                    $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
+
+                                    Mail::to($externalReferee->email)->send(
+                                        new ExternalReferralNotification(
+                                            createRefId($referral->id),
+                                            $externalReferee->name,
+                                            $referralReason,
+                                            $pdfBase64
+                                        )
+                                    );
+                                    Log::info('External referral email sent', [
+                                        'referral_id' => $referral->id,
+                                        'email' => $externalReferee->email
+                                    ]);
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to send external referral email', [
+                                        'referral_id' => $referral->id,
+                                        'email' => $externalReferee->email,
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                            }
+                        }
                     }
                 }
 
