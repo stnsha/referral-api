@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreReferralRequest;
 use App\Http\Requests\UpdateReferralRequest;
-use App\Mail\ExternalReferralNotification;
-use App\Models\BusinessUnit;
-use App\Models\ExternalReferee;
 use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralAttachment;
@@ -18,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -180,7 +176,7 @@ class ReferralController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"business_units", "referral", "required_treatment"},
+     *             required={"business_units", "referral"},
      *             @OA\Property(property="business_units", type="object",
      *                 @OA\Property(property="assignee", type="object",
      *                     @OA\Property(property="staff_id", type="integer", example=2222),
@@ -201,10 +197,12 @@ class ReferralController extends Controller
      *                 @OA\Property(property="customer_id", type="integer", example=10),
      *                 @OA\Property(property="priority", type="integer", example=2)
      *             ),
-     *             @OA\Property(property="required_treatment", type="array",
-     *                 @OA\Items(type="integer", example=1),
-     *                 example={1, 2, 3},
-     *                 description="Array of treatment IDs (PK). Must have at least 1 item. Associated with the referral history that has the highest sequence (recipient)."
+     *             @OA\Property(property="form_data", type="object",
+     *                 @OA\Property(property="6", type="object",
+     *                     @OA\Property(property="targeted_area", type="string", example="Lower limbs and core"),
+     *                     @OA\Property(property="pain_level", type="string", example="4"),
+     *                     @OA\Property(property="previous_physiotherapy", type="string", example="30")
+     *                 )
      *             ),
      *             @OA\Property(property="attachments", type="array",
      *                 @OA\Items(
@@ -212,7 +210,7 @@ class ReferralController extends Controller
      *                     @OA\Property(property="type", type="string", example="image/png"),
      *                     @OA\Property(property="size", type="integer", example=14040),
      *                     @OA\Property(property="base64", type="string", format="byte", example="iVBORw0KGgoAAAANSUhEUgAAALUAAAC2CAYAA"),
-     *                     description="Attachments will be associated with the referral history that has sequence 1 (assignee)."
+     *                     description="Attachments will be associated with the referral history that has is_filled=true"
      *                 )
      *             )
      *         )
@@ -281,6 +279,14 @@ class ReferralController extends Controller
 
                 //run through businessunits
                 foreach (array_values($businessUnits) as $key => $value) {
+
+                    //for second level of business unit
+                    $is_filled = false;
+
+                    if (isset($value['business_unit_id']) && $business_unit_id == $value['business_unit_id']) {
+                        $is_filled = true;
+                    }
+
                     //compile data
                     $data = [
                         'referral_id' => $referral->id,
@@ -288,8 +294,8 @@ class ReferralController extends Controller
                         'business_unit_id' => isset($value['business_unit_id']) ? $value['business_unit_id'] : null,
                         'location' =>  isset($value['location']) ? $value['location'] : null,
                         'sequence' => $key + 1,
-                        'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null,
-                        'is_read' => false
+                        'is_filled' => $is_filled,
+                        'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null
                     ];
 
                     $new_status = isset($value['referee']) ? 4 : 1;
@@ -309,78 +315,82 @@ class ReferralController extends Controller
                     }
 
                     //create referral history
-                    ReferralHistory::create($data);
-                }
+                    $referralHistory = ReferralHistory::create($data);
+                    $referral_history_id = $referralHistory->id;
+                    $business_unit = $is_filled ? $referralHistory->business_unit->name : null;
 
-                // Check if this is an external referral
-                $isExternalReferral = false;
-                foreach ($validated['business_units'] as $value) {
-                    if (isset($value['referee']) || (isset($value['recipient']) && isset($value['recipient']['referee']))) {
-                        $isExternalReferral = true;
-                        break;
-                    }
-                }
+                    //run through first level of business unit
+                    if ($is_filled) {
+                        $formFields = $request->input("form_data.$business_unit_id", []);
 
-                // Get referral history with max sequence for required_treatment (only for non-external referrals)
-                if (!$isExternalReferral) {
-                    $maxSequenceHistory = ReferralHistory::where('referral_id', $referral->id)
-                        ->orderBy('sequence', 'desc')
-                        ->first();
+                        foreach ($formFields as $field => $value) {
+                            //get data from form details
+                            $form_detail = FormDetails::where('field_name', $field)
+                                ->whereHas('form', function ($query) use ($business_unit_id) {
+                                    $query->where('business_unit_id', $business_unit_id);
+                                })
+                                ->first();
 
-                    if (filled($request['required_treatment']) && $maxSequenceHistory) {
-                        foreach ($request['required_treatment'] as $form_id) {
-                            ReferralDetails::create([
-                                'referral_history_id' => $maxSequenceHistory->id,
-                                'form_id' => $form_id,
-                            ]);
+                            //create referral details
+                            if ($form_detail) {
+                                ReferralDetails::create([
+                                    'referral_history_id' => $referral_history_id,
+                                    'form_id' => $form_detail->form_id,
+                                    'value' => is_array($value) ? json_encode($value) : $value,
+                                ]);
+                            }
                         }
                     }
-                }
 
-                // Get referral history with sequence 1 for attachments
-                $firstSequenceHistory = ReferralHistory::where('referral_id', $referral->id)
-                    ->where('sequence', 1)
-                    ->first();
+                    //run through attachments if exist
+                    if (filled($request['attachments']) && $is_filled) {
+                        $mimeMap = [
+                            'image/jpeg' => 'jpg',
+                            'image/png' => 'png',
+                            'application/pdf' => 'pdf',
+                            'application/msword' => 'doc',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+                            'application/vnd.ms-excel' => 'xls',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx'
+                        ];
 
-                //run through attachments if exist
-                if (filled($request['attachments']) && $firstSequenceHistory) {
-                    $mimeMap = [
-                        'image/jpeg' => 'jpg',
-                        'image/png' => 'png',
-                        'application/pdf' => 'pdf',
-                        'application/msword' => 'doc',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
-                        'application/vnd.ms-excel' => 'xls',
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx'
-                    ];
+                        foreach ($validated['attachments'] as $key => $atc) {
+                            $referralAttachment = ReferralAttachment::create([
+                                'referral_history_id' => $referral_history_id,
+                                'file_name' => $atc['name'],
+                                'file_type' => $atc['type'],
+                                'file_size' => $atc['size'],
+                                'encoded_base' => $atc['base64']
+                            ]);
 
-                    foreach ($validated['attachments'] as $key => $atc) {
-                        $referralAttachment = ReferralAttachment::create([
-                            'referral_history_id' => $firstSequenceHistory->id,
-                            'file_name' => $atc['name'],
-                            'file_type' => $atc['type'],
-                            'file_size' => $atc['size'],
-                            'encoded_base' => $atc['base64']
-                        ]);
+                            $extension = $mimeMap[$atc['type']] ?? pathinfo($atc['name'], PATHINFO_EXTENSION);
+                            $newFileName = $business_unit != null
+                                ? str_replace(' ', '_', $business_unit)
+                                : pathinfo($atc['name'], PATHINFO_FILENAME);
 
-                        $extension = $mimeMap[$atc['type']] ?? pathinfo($atc['name'], PATHINFO_EXTENSION);
-                        $newFileName = $firstSequenceHistory->business_unit->name != null
-                            ? str_replace(' ', '_', $firstSequenceHistory->business_unit->name)
-                            : pathinfo($atc['name'], PATHINFO_FILENAME);
-
-                        $suffix = $referral->id . $firstSequenceHistory->id . $referralAttachment->id;
-                        $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
-                        $referralAttachment->save();
+                            $suffix = $referral->id . $referral_history_id . $referralAttachment->id;
+                            $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
+                            $referralAttachment->save();
+                        }
                     }
                 }
 
                 $referral->save();
 
+                // Check if any referral history has external referee (is_external)
+                $hasExternalReferee = false;
+                foreach ($validated['business_units'] as $value) {
+                    if (isset($value['referee'])) {
+                        $hasExternalReferee = true;
+                        break;
+                    }
+                }
+
                 $response = ['id' => $referral->id];
 
                 // Generate PDF base64 if external referral
-                if ($isExternalReferral) {
-                    $referralData = $referral->load(['referral_histories.external_referee.organization']);
+                if ($hasExternalReferee) {
+                    $referralData = $referral->load(['referral_histories']);
                     $data = [
                         'referral_id' => createRefId($referral->id),
                         'status' => $referral->status,
@@ -390,42 +400,9 @@ class ReferralController extends Controller
                         'referralDetails' => $referralData->referral_histories,
                     ];
 
-                    $pdf = $this->exportPdf($data);
-                    if ($pdf) {
-                        $pdfBase64 = base64_encode($pdf->output());
+                    $pdfBase64 = $this->exportPdf($data);
+                    if ($pdfBase64) {
                         $response['pdf_base64'] = $pdfBase64;
-
-                        // Send email to external referee if email exists
-                        $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
-                        if ($externalRefereeHistory && $externalRefereeHistory->external_referee) {
-                            $externalReferee = $externalRefereeHistory->external_referee;
-
-                            if ($externalReferee->email) {
-                                try {
-                                    $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
-                                    $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
-
-                                    Mail::to($externalReferee->email)->send(
-                                        new ExternalReferralNotification(
-                                            createRefId($referral->id),
-                                            $externalReferee->name,
-                                            $referralReason,
-                                            $pdfBase64
-                                        )
-                                    );
-                                    Log::info('External referral email sent', [
-                                        'referral_id' => $referral->id,
-                                        'email' => $externalReferee->email
-                                    ]);
-                                } catch (\Exception $e) {
-                                    Log::error('Failed to send external referral email', [
-                                        'referral_id' => $referral->id,
-                                        'email' => $externalReferee->email,
-                                        'error' => $e->getMessage()
-                                    ]);
-                                }
-                            }
-                        }
                     }
                 }
 

@@ -23,6 +23,7 @@ class ReferralHistory extends Model
         'medical_history',
         'additional_remarks',
         'is_read',
+        'is_filled',
         'external_referee_id'
     ];
 
