@@ -140,41 +140,43 @@
         <div class="section-title">Referral Information</div>
         <table>
             <tr>
-                <td class="field-label" style="width: 40%">
+                <td class="field-label" style="width: 50%" colspan="2">
                     Referring to (First & Last Name):<br>
                     <span class="data-value">{{ $externalReferee->name ?? 'External Provider' }}</span>
                 </td>
-                <td class="field-label" style="width: 30%">
+                <td class="field-label" style="width: 50%" colspan="2">
                     Specialty:<br>
                     <span class="data-value">{{ $externalReferee->specialty ?? 'General Practice' }}</span>
                 </td>
             </tr>
             <tr>
-                <td class="field-label" style="width: 40%">
-                    Street Address:<br>
-                    <span class="data-value">{{ $externalOrganization->address ?? 'Provider Address' }}</span>
-                </td>
-                <td class="field-label" style="width: 30%">
+                <td class="field-label" style="width: 50%" colspan="2">
                     Clinic Name:<br>
                     <span class="data-value">{{ $externalOrganization->name ?? 'External Clinic' }}</span>
                 </td>
+                <td class="field-label" style="width: 50%" colspan="2">
+                    Phone Number:<br>
+                    <span class="data-value">{{ $externalReferee->phone ?? 'N/A' }}</span>
+                </td>
             </tr>
             <tr>
-                <td class="field-label" style="width: 25%">
+                <td class="field-label" colspan="4">
+                    Street Address:<br>
+                    <span class="data-value">{{ $externalOrganization->address ?? 'Provider Address' }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="field-label" style="width: 33%">
                     City:<br>
                     <span class="data-value">{{ $externalOrganization->state ?? 'Kuala Lumpur' }}</span>
                 </td>
-                <td class="field-label" style="width: 25%">
+                <td class="field-label" style="width: 33%">
                     State:<br>
                     <span class="data-value">{{ $externalOrganization->state ?? 'Malaysia' }}</span>
                 </td>
-                <td class="field-label" style="width: 25%">
+                <td class="field-label" style="width: 34%" colspan="2">
                     Zip Code:<br>
                     <span class="data-value">{{ $externalOrganization->postcode ?? 'N/A' }}</span>
-                </td>
-                <td class="field-label" style="width: 25%">
-                    Phone Number:<br>
-                    <span class="data-value">{{ $externalReferee->phone ?? 'N/A' }}</span>
                 </td>
             </tr>
             <tr>
@@ -197,14 +199,14 @@
                 </td>
             </tr>
             <tr>
-                <td class="field-label" style="width: 50%">
+                <td class="field-label" style="width: 50%" colspan="2">
                     Start Date:<br>
                     @php
                         $createdAt = is_object($firstHistory) ? ($firstHistory->created_at ?? date('m/d/Y')) : ($firstHistory['created_at'] ?? date('m/d/Y'));
                     @endphp
                     <span class="data-value">{{ $createdAt }}</span>
                 </td>
-                <td class="field-label" style="width: 50%">
+                <td class="field-label" style="width: 50%" colspan="2">
                     End Date:<br>
                     <span class="data-value">{{ 'Open-ended' }}</span>
                 </td>
