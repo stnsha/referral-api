@@ -37,7 +37,12 @@ Route::prefix('auth')->controller(ODBController::class)->group(function () {
 Route::middleware('token.auth')->group(function () {
     Route::resource('business-units', BusinessUnitController::class);
 
-    Route::resource('form', FormController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('form', FormController::class)->only(['store', 'update']);
+
+    Route::prefix('form')->controller(FormController::class)->group(function () {
+        Route::put('hide/{form}', 'hide')->name('form.hide');
+        Route::put('unhide/{form}', 'unhide')->name('form.unhide');
+    });
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::post('list', 'index')->name('form.index');

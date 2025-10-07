@@ -518,25 +518,25 @@ class FormController extends Controller
     }
 
     /**
-     * @OA\Delete(
-     *     path="/api/form/{form}",
+     * @OA\Put(
+     *     path="/api/form/hide/{form}",
      *     tags={"Forms"},
-     *     summary="Delete a form of a business unit",
-     *     description="Delete a specific form by its ID.",
+     *     summary="Hide a form of a business unit",
+     *     description="Hide a specific form by its ID by setting is_hidden to true.",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="form",
      *         in="path",
      *         required=true,
-     *         description="The ID of the form to be deleted.",
+     *         description="The ID of the form to be hidden.",
      *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Form deleted successfully",
+     *         description="Form hidden successfully",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="message", type="string", example="Form deleted successfully!")
+     *             @OA\Property(property="message", type="string", example="Form hidden successfully!")
      *         )
      *     ),
      *     @OA\Response(
@@ -548,17 +548,17 @@ class FormController extends Controller
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Failed to delete form",
+     *         description="Failed to hide form",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="message", type="string", example="Failed to delete form."),
+     *             @OA\Property(property="message", type="string", example="Failed to hide form."),
      *             @OA\Property(property="error", type="string", example="Error message from exception")
      *         )
      *     )
      * )
      */
 
-    public function destroy(Request $request, Form $form)
+    public function hide(Request $request, Form $form)
     {
         try {
             $jwtPayload = $request->get('jwt_payload');
@@ -573,7 +573,7 @@ class FormController extends Controller
             // Check if user can access this form
             if ($form->business_unit_id != $businessUnitId) {
                 return response()->json([
-                    'message' => 'Unauthorized: Cannot delete form from different business unit.',
+                    'message' => 'Unauthorized: Cannot hide form from different business unit.',
                 ], 403);
             }
 
@@ -586,7 +586,82 @@ class FormController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to delete form.',
+                'message' => 'Failed to hide form.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/form/{form}/unhide",
+     *     tags={"Forms"},
+     *     summary="Unhide a form of a business unit",
+     *     description="Unhide a specific form by its ID by setting is_hidden to false.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="form",
+     *         in="path",
+     *         required=true,
+     *         description="The ID of the form to be unhidden.",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Form unhidden successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Form unhidden successfully!")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to unhide form",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Failed to unhide form."),
+     *             @OA\Property(property="error", type="string", example="Error message from exception")
+     *         )
+     *     )
+     * )
+     */
+
+    public function unhide(Request $request, Form $form)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+
+            // Check if user can access this form
+            if ($form->business_unit_id != $businessUnitId) {
+                return response()->json([
+                    'message' => 'Unauthorized: Cannot unhide form from different business unit.',
+                ], 403);
+            }
+
+            DB::beginTransaction();
+            $form->update(['is_hidden' => false]);
+            DB::commit();
+            return response()->json([
+                'message' => 'Form unhidden successfully!'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to unhide form.',
                 'error' => $e->getMessage()
             ], 500);
         }
