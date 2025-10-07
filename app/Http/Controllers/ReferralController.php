@@ -1209,18 +1209,18 @@ class ReferralController extends Controller
             $pdf = Pdf::loadView('pdf.report', $data);
             $pdf->setPaper('A4', 'portrait');
 
-            // Return PDF object for download
-            if ($returnPdf) {
-                return $pdf;
-            }
+            // // Return PDF object for download
+            // if ($returnPdf) {
+            //     return $pdf;
+            // }
 
-            // Generate PDF using barryvdh/laravel-dompdf and return the PDF object
-            return $pdf;
+            // // Generate PDF using barryvdh/laravel-dompdf and return the PDF object
+            // return $pdf;
 
             // Convert PDF to base64 for JSON response (commented out)
-            // $pdfContent = $pdf->output();
-            // $base64Pdf = base64_encode($pdfContent);
-            // return $base64Pdf;
+            $pdfContent = $pdf->output();
+            $base64Pdf = base64_encode($pdfContent);
+            return $base64Pdf;
         } catch (\Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;
