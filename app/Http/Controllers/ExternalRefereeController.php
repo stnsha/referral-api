@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ExternalRefereeRequest;
+use App\Models\ExternalOrganization;
 use App\Models\ExternalReferee;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -124,10 +125,12 @@ class ExternalRefereeController extends Controller
     {
         try {
             DB::beginTransaction();
+            \Log::info('ExternalReferee Store Request:', $request->all());
             $validated = $request->validated();
+            \Log::info('ExternalReferee Store Validated:', $validated);
 
             if (!isset($validated['external_organization_id']) && isset($validated['organization'])) {
-                $organization = ExternalReferee::create($validated['organization']);
+                $organization = ExternalOrganization::create($validated['organization']);
                 $validated['external_organization_id'] = $organization->id;
             }
 
@@ -240,7 +243,7 @@ class ExternalRefereeController extends Controller
             $validated = $request->validated();
 
             if (!isset($validated['external_organization_id']) && isset($validated['organization'])) {
-                $organization = ExternalReferee::create($validated['organization']);
+                $organization = ExternalOrganization::create($validated['organization']);
                 $validated['external_organization_id'] = $organization->id;
             }
 
