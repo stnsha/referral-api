@@ -23,7 +23,7 @@ class ExternalRefereeRequest extends FormRequest
     {
         $rules = [
             'name' => 'string|max:255',
-            'email' => 'email',
+            'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
             'position' => 'nullable|string|max:255',
             'specialty' => 'nullable|string|max:255',
@@ -37,7 +37,7 @@ class ExternalRefereeRequest extends FormRequest
 
         if ($this->isMethod('POST')) {
             $rules['name'] = 'required|' . $rules['name'];
-            $rules['email'] = 'required|' . $rules['email'] . '|unique:external_referees,email';
+            $rules['email'] = 'nullable|email|unique:external_referees,email';
 
             // Require either external_organization_id or all organization fields
             if (!$this->has('external_organization_id')) {
@@ -51,7 +51,7 @@ class ExternalRefereeRequest extends FormRequest
 
         // Add unique validation for update requests, excluding the current record
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules['email'] .= '|unique:external_referees,email,' . $this->route('externalReferee')->id;
+            $rules['email'] = 'nullable|email|unique:external_referees,email,' . $this->route('externalReferee')->id;
 
             // If external_organization_id is provided, validate it exists
             if ($this->has('external_organization_id')) {
