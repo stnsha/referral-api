@@ -1263,9 +1263,11 @@ class ReferralController extends Controller
                 ], 401);
             }
 
-            // Fetch unread notifications for the staff
-            $notifications = ReferralHistory::with(['referral'])->where('business_unit_id', $businessUnitId)
+            // Fetch unread notifications for the staff (only if business unit is the last sequence)
+            $notifications = ReferralHistory::with(['referral'])
+                ->where('business_unit_id', $businessUnitId)
                 ->where('is_read', false)
+                ->whereRaw('sequence = (SELECT MAX(sequence) FROM referral_histories WHERE referral_id = referral_histories.referral_id)')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
