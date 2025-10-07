@@ -1272,7 +1272,11 @@ class ReferralController extends Controller
             $noti_list = '';
             foreach ($notifications as $noti) {
                 $referralId = $noti->referral_id;
-                $title = $noti->referral_reason;
+                // Get referral_reason from the first sequence (original referral)
+                $firstReferralHistory = ReferralHistory::where('referral_id', $noti->referral_id)
+                    ->where('sequence', 1)
+                    ->first();
+                $title = $firstReferralHistory ? $firstReferralHistory->referral_reason : 'New Referral';
                 $noti_list .= "<a href='../../odb/referral/view.php?id=$referralId'><span style='font-size:12px; font-weight:bold;'>$title</span></a>";
             }
 
