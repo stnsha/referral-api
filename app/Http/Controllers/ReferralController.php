@@ -379,7 +379,7 @@ class ReferralController extends Controller
 
                 // Generate PDF base64 if external referral
                 if ($isExternalReferral) {
-                    $referralData = $referral->load(['referral_histories.external_referee']);
+                    $referralData = $referral->load(['referral_histories.external_referee.organization']);
                     $data = [
                         'referral_id' => createRefId($referral->id),
                         'status' => $referral->status,

@@ -99,138 +99,82 @@
     </style>
 </head>
 <body>
-    <div class="print-button">Print Form</div>
-
     <div class="header">
-        <div class="logo">UCare</div>
-        <div class="title">
+        <div class="logo">Alpro Pharmacy</div>
+        {{-- <div class="title">
             Minnesota Health Care Programs<br>
             Minnesota Restricted Recipient Program (MRRP)<br>
             Medical Referral for UCare Restricted Recipient Enrollee
-        </div>
-    </div>
-
-    <div class="notice">
-        To ensure proper payment to the referral provider, the primary care physician must mail or fax this medical referral form immediately to the Clinical Services Restricted Recipient Program.
+        </div> --}}
     </div>
 
     @php
         $firstHistory = isset($referralDetails[0]) ? $referralDetails[0] : null;
         $lastHistory = isset($referralDetails) ? end($referralDetails) : null;
-        $externalReferral = null;
+        $externalReferee = null;
+        $externalOrganization = null;
 
-        // Find external referral data
+        // Find external referral data from referral histories
         if (isset($referralDetails)) {
             foreach ($referralDetails as $detail) {
-                if (isset($detail['external_referral']) && !empty($detail['external_referral'])) {
-                    $externalReferral = $detail['external_referral'][0];
-                    break;
+                // Check if this is an Eloquent model or array
+                if (is_object($detail)) {
+                    if (!empty($detail->external_referee_id) && $detail->external_referee) {
+                        $externalReferee = $detail->external_referee;
+                        $externalOrganization = $externalReferee->organization ?? null;
+                        break;
+                    }
+                } else {
+                    // Array format (from show/download methods)
+                    if (isset($detail['external_referral']) && !empty($detail['external_referral'])) {
+                        $externalReferee = (object) $detail['external_referral'][0];
+                        $externalOrganization = $externalReferee;
+                        break;
+                    }
                 }
             }
         }
     @endphp
 
     <div class="section">
-        <div class="section-title">Section I: Primary Physician</div>
-        <table>
-            <tr>
-                <td class="field-label" style="width: 33%">
-                    Date:<br>
-                    <span class="data-value">{{ date('m/d/Y') }}</span>
-                </td>
-                <td class="field-label" style="width: 33%">
-                    Recipient Name:<br>
-                    <span class="data-value">{{ $customer_id ?? 'Patient ID: ' . ($customer_id ?? 'N/A') }}</span>
-                </td>
-                <td class="field-label" style="width: 34%">
-                    PMI Number:<br>
-                    <span class="data-value">{{ $referral_id ?? 'N/A' }}</span>
-                </td>
-            </tr>
-            <tr>
-                <td class="field-label" style="width: 60%">
-                    Primary Physician:<br>
-                    <span class="data-value">{{ $firstHistory['business_unit_name'] ?? 'Primary Care Provider' }}</span>
-                </td>
-                <td class="field-label" style="width: 40%">
-                    Provider I.D. Number:<br>
-                    <span class="data-value">{{ $firstHistory['staff_id'] ?? 'N/A' }}</span>
-                </td>
-            </tr>
-            <tr>
-                <td class="field-label" style="width: 60%">
-                    Street Address:<br>
-                    <span class="data-value">{{ $firstHistory['location'] ?? 'Clinic Address' }}</span>
-                </td>
-                <td class="field-label" style="width: 40%">
-                    Phone Number:<br>
-                    <span class="data-value">{{ $externalReferral['phone'] ?? 'N/A' }}</span>
-                </td>
-            </tr>
-            <tr>
-                <td class="field-label" style="width: 33%">
-                    City:<br>
-                    <span class="data-value">{{ 'Kuala Lumpur' }}</span>
-                </td>
-                <td class="field-label" style="width: 33%">
-                    State:<br>
-                    <span class="data-value">{{ $externalReferral['state'] ?? 'Malaysia' }}</span>
-                </td>
-                <td class="field-label" style="width: 34%">
-                    Zip Code:<br>
-                    <span class="data-value">{{ $externalReferral['postcode'] ?? 'N/A' }}</span>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Section II: Referral Information</div>
+        <div class="section-title">Referral Information</div>
         <table>
             <tr>
                 <td class="field-label" style="width: 40%">
                     Referring to (First & Last Name):<br>
-                    <span class="data-value">{{ $externalReferral['name'] ?? 'External Provider' }}</span>
+                    <span class="data-value">{{ $externalReferee->name ?? 'External Provider' }}</span>
                 </td>
                 <td class="field-label" style="width: 30%">
                     Specialty:<br>
-                    <span class="data-value">{{ $externalReferral['specialty'] ?? 'General Practice' }}</span>
-                </td>
-                <td class="field-label" style="width: 30%">
-                    I.D. #<br>
-                    <span class="data-value">{{ $externalReferral['external_referee_id'] ?? 'N/A' }}</span>
+                    <span class="data-value">{{ $externalReferee->specialty ?? 'General Practice' }}</span>
                 </td>
             </tr>
             <tr>
                 <td class="field-label" style="width: 40%">
                     Street Address:<br>
-                    <span class="data-value">{{ $externalReferral['address'] ?? 'Provider Address' }}</span>
+                    <span class="data-value">{{ $externalOrganization->address ?? 'Provider Address' }}</span>
                 </td>
                 <td class="field-label" style="width: 30%">
                     Clinic Name:<br>
-                    <span class="data-value">{{ $externalReferral['organization'] ?? 'External Clinic' }}</span>
-                </td>
-                <td class="field-label" style="width: 30%">
-                    I.D. #<br>
-                    <span class="data-value">{{ $externalReferral['external_organization_id'] ?? 'N/A' }}</span>
+                    <span class="data-value">{{ $externalOrganization->name ?? 'External Clinic' }}</span>
                 </td>
             </tr>
             <tr>
                 <td class="field-label" style="width: 25%">
                     City:<br>
-                    <span class="data-value">{{ 'Kuala Lumpur' }}</span>
+                    <span class="data-value">{{ $externalOrganization->state ?? 'Kuala Lumpur' }}</span>
                 </td>
                 <td class="field-label" style="width: 25%">
                     State:<br>
-                    <span class="data-value">{{ $externalReferral['state'] ?? 'Malaysia' }}</span>
+                    <span class="data-value">{{ $externalOrganization->state ?? 'Malaysia' }}</span>
                 </td>
                 <td class="field-label" style="width: 25%">
                     Zip Code:<br>
-                    <span class="data-value">{{ $externalReferral['postcode'] ?? 'N/A' }}</span>
+                    <span class="data-value">{{ $externalOrganization->postcode ?? 'N/A' }}</span>
                 </td>
                 <td class="field-label" style="width: 25%">
                     Phone Number:<br>
-                    <span class="data-value">{{ $externalReferral['phone'] ?? 'N/A' }}</span>
+                    <span class="data-value">{{ $externalReferee->phone ?? 'N/A' }}</span>
                 </td>
             </tr>
             <tr>
@@ -238,10 +182,16 @@
                     Reason for Referral:<br><br>
                     <span class="data-value">
                         @if($firstHistory)
-                            <strong>Reason:</strong> {{ $firstHistory['referral_reason'] ?? 'N/A' }}<br><br>
-                            <strong>Condition:</strong> {{ $firstHistory['referral_condition'] ?? 'N/A' }}<br><br>
-                            <strong>Medical History:</strong> {{ $firstHistory['medical_history'] ?? 'N/A' }}<br><br>
-                            <strong>Additional Remarks:</strong> {{ $firstHistory['additional_remarks'] ?? 'N/A' }}
+                            @php
+                                $reason = is_object($firstHistory) ? ($firstHistory->referral_reason ?? 'N/A') : ($firstHistory['referral_reason'] ?? 'N/A');
+                                $condition = is_object($firstHistory) ? ($firstHistory->referral_condition ?? 'N/A') : ($firstHistory['referral_condition'] ?? 'N/A');
+                                $history = is_object($firstHistory) ? ($firstHistory->medical_history ?? 'N/A') : ($firstHistory['medical_history'] ?? 'N/A');
+                                $remarks = is_object($firstHistory) ? ($firstHistory->additional_remarks ?? 'N/A') : ($firstHistory['additional_remarks'] ?? 'N/A');
+                            @endphp
+                            <strong>Reason:</strong> {{ $reason }}<br><br>
+                            <strong>Condition:</strong> {{ $condition }}<br><br>
+                            <strong>Medical History:</strong> {{ $history }}<br><br>
+                            <strong>Additional Remarks:</strong> {{ $remarks }}
                         @endif
                     </span>
                 </td>
@@ -249,14 +199,17 @@
             <tr>
                 <td class="field-label" style="width: 50%">
                     Start Date:<br>
-                    <span class="data-value">{{ $firstHistory['created_at'] ?? date('m/d/Y') }}</span>
+                    @php
+                        $createdAt = is_object($firstHistory) ? ($firstHistory->created_at ?? date('m/d/Y')) : ($firstHistory['created_at'] ?? date('m/d/Y'));
+                    @endphp
+                    <span class="data-value">{{ $createdAt }}</span>
                 </td>
                 <td class="field-label" style="width: 50%">
                     End Date:<br>
                     <span class="data-value">{{ 'Open-ended' }}</span>
                 </td>
             </tr>
-            <tr>
+            {{-- <tr>
                 <td class="field-label" style="width: 50%">
                     Signature:<br>
                     <span class="data-value">{{ 'Digital Signature' }}</span>
@@ -265,12 +218,12 @@
                     Date:<br>
                     <span class="data-value">{{ date('m/d/Y') }}</span>
                 </td>
-            </tr>
+            </tr> --}}
         </table>
     </div>
 
     <div class="footer">
-        <div class="footer-info">
+        {{-- <div class="footer-info">
             <strong>UCare Clinical Services</strong><br>
             Restricted Recipient Program<br>
             P.O. Box 52<br>
@@ -283,7 +236,7 @@
 
         <div class="footer-info">
             If you have any questions, call (612) 676-3397 or (877) 447-4384
-        </div>
+        </div> --}}
 
         <div style="text-align: right; margin-top: 20px; font-size: 10px;">
             {{ date('n/j/Y') }}
