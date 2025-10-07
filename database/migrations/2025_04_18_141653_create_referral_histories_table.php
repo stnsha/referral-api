@@ -22,7 +22,7 @@ return new class extends Migration
             $table->longText('referral_condition')->nullable();
             $table->longText('medical_history')->nullable();
             $table->longText('additional_remarks')->nullable();
-            // $table->boolean('is_filled')->default(false);
+            $table->boolean('is_read')->default(false);
             $table->softDeletes();
             $table->timestamps();
 

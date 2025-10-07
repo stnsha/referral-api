@@ -288,7 +288,8 @@ class ReferralController extends Controller
                         'business_unit_id' => isset($value['business_unit_id']) ? $value['business_unit_id'] : null,
                         'location' =>  isset($value['location']) ? $value['location'] : null,
                         'sequence' => $key + 1,
-                        'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null
+                        'external_referee_id' =>  isset($value['referee']) ? $value['referee'] : null,
+                        'is_read' => false
                     ];
 
                     $new_status = isset($value['referee']) ? 4 : 1;
@@ -894,6 +895,7 @@ class ReferralController extends Controller
                         $rh->referral_reason = $referral_reason ?? $rh->referral_reason;
                         $rh->referral_condition = $referral_condition ?? $rh->referral_condition;
                         $rh->medical_history = $medical_history ?? $rh->medical_history;
+                        $rh->is_read = true;
                         $rh->save();
 
                         //update referral details
@@ -1245,6 +1247,43 @@ class ReferralController extends Controller
         } catch (\Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    public function notification(Request $request)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            // Fetch unread notifications for the staff
+            $notifications = ReferralHistory::with(['referral'])->where('business_unit_id', $businessUnitId)
+                ->where('is_read', false)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $noti_list = '';
+            foreach ($notifications as $noti) {
+                $referralId = $noti->referral_id;
+                $title = $noti->referral_reason;
+                $noti_list .= "<a href='../../odb/referral/view.php?id=$referralId'><span style='font-size:12px; font-weight:bold;'>$title</span></a>";
+            }
+
+            $num = $notifications->count();
+
+            return response()->json([
+                'count' => $num,
+                'notifications' => $noti_list
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Internal server error.'], 500);
         }
     }
 }
