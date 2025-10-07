@@ -40,7 +40,7 @@ Route::middleware('token.auth')->group(function () {
     Route::resource('form', FormController::class)->only(['store', 'update', 'destroy']);
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
-        Route::post('', 'index')->name('form.index');
+        Route::post('list', 'index')->name('form.index');
     });
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
