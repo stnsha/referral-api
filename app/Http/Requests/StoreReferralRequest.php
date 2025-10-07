@@ -47,7 +47,7 @@ class StoreReferralRequest extends FormRequest
         if ($isExternalReferral) {
             // External referral validation
             $rules['business_units.recipient.organization'] = 'required|integer';
-            $rules['business_units.recipient.location_organization'] = 'required|string';
+            $rules['business_units.recipient.location_organization'] = 'nullable|string';
             $rules['business_units.recipient.referee'] = 'required|string';
             $rules['required_treatment'] = 'nullable|array';
         } else {
