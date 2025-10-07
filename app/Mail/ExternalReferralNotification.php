@@ -17,16 +17,18 @@ class ExternalReferralNotification extends Mailable
     public $refereeName;
     public $referralReason;
     public $pdfBase64;
+    public $referralAttachments;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($referralId, $refereeName, $referralReason, $pdfBase64 = null)
+    public function __construct($referralId, $refereeName, $referralReason, $pdfBase64 = null, $referralAttachments = [])
     {
         $this->referralId = $referralId;
         $this->refereeName = $refereeName;
         $this->referralReason = $referralReason;
         $this->pdfBase64 = $pdfBase64;
+        $this->referralAttachments = $referralAttachments;
     }
 
     /**
@@ -61,6 +63,16 @@ class ExternalReferralNotification extends Mailable
         if ($this->pdfBase64) {
             $attachments[] = Attachment::fromData(fn () => base64_decode($this->pdfBase64), 'referral_' . $this->referralId . '.pdf')
                 ->withMime('application/pdf');
+        }
+
+        // Add referral attachments
+        if (!empty($this->referralAttachments)) {
+            foreach ($this->referralAttachments as $attachment) {
+                $attachments[] = Attachment::fromData(
+                    fn () => base64_decode($attachment['encoded_base']),
+                    $attachment['file_name']
+                )->withMime($attachment['file_type']);
+            }
         }
 
         return $attachments;
