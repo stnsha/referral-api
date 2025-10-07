@@ -125,9 +125,7 @@ class ExternalRefereeController extends Controller
     {
         try {
             DB::beginTransaction();
-            \Log::info('ExternalReferee Store Request:', $request->all());
             $validated = $request->validated();
-            \Log::info('ExternalReferee Store Validated:', $validated);
 
             if (!isset($validated['external_organization_id']) && isset($validated['organization'])) {
                 $organization = ExternalOrganization::create($validated['organization']);

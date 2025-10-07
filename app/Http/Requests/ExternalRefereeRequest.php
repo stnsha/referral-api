@@ -51,7 +51,8 @@ class ExternalRefereeRequest extends FormRequest
 
         // Add unique validation for update requests, excluding the current record
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules['email'] = 'nullable|email|unique:external_referees,email,' . $this->route('externalReferee')->id;
+            $externalReferee = $this->route('external_referee');
+            $rules['email'] = 'nullable|email|unique:external_referees,email,' . ($externalReferee ? $externalReferee->id : '');
 
             // If external_organization_id is provided, validate it exists
             if ($this->has('external_organization_id')) {
