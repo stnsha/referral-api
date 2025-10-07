@@ -157,6 +157,133 @@ class FormController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/api/form/all",
+     *     summary="Get all forms (including hidden) by business unit id from JWT token",
+     *     tags={"Forms"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="business_unit_id", type="integer", example=3),
+     *             @OA\Property(
+     *                 property="forms",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="form_id", type="integer", example=12),
+     *                     @OA\Property(property="label_name", type="string", example="Assessment Form"),
+     *                     @OA\Property(property="is_hidden", type="boolean", example=false),
+     *                     @OA\Property(
+     *                         property="form_details",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             @OA\Property(property="form_detail_id", type="integer", example=101),
+     *                             @OA\Property(property="field_name", type="string", example="Blood Pressure"),
+     *                             @OA\Property(property="field_type", type="string", example="text"),
+     *                             @OA\Property(property="is_required", type="boolean", example=true),
+     *                             @OA\Property(
+     *                                 property="field_value",
+     *                                 oneOf={
+     *                                     @OA\Schema(type="string", example="120/80"),
+     *                                     @OA\Schema(
+     *                                         type="array",
+     *                                         @OA\Items(
+     *                                             @OA\Property(property="form_detail_id", type="integer", example=201),
+     *                                             @OA\Property(property="field_value", type="string", example="Option A")
+     *                                         )
+     *                                     )
+     *                                 }
+     *                             )
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal Server Error",
+     *         @OA\JsonContent(type="string", example="Error message")
+     *     )
+     * )
+     */
+    public function allForms(Request $request)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json(['message' => 'Business unit ID not found in session.'], 401);
+            }
+
+            $forms = Form::with(['form_details'])->where('business_unit_id', $businessUnitId)->get();
+            $data = [];
+            $arr = [];
+
+            foreach ($forms as $form) {
+                $form_details = [];
+                $form_detail_count = count($form->form_details);
+
+                if ($form_detail_count > 1) {
+                    foreach ($form->form_details as $fd) {
+                        $key = $fd->field_name;
+
+                        if (!isset($form_details[$key])) {
+                            $form_details[$key] = [
+                                'field_name' => $fd->field_name,
+                                'field_type' => $fd->field_type,
+                                'is_required' => $fd->is_required != 0,
+                                'field_value' => [],
+                            ];
+                        }
+
+                        $form_details[$key]['field_value'][] = [
+                            'form_detail_id' => $fd->id,
+                            'field_value' => $fd->field_value,
+                        ];
+                    }
+                } else {
+                    foreach ($form->form_details as $fd) {
+                        $form_details[] = [
+                            'form_detail_id' => $fd->id,
+                            'field_name' => $fd->field_name,
+                            'field_type' => $fd->field_type,
+                            'is_required' => $fd->is_required != 0,
+                            'field_value' => $fd->field_value,
+                        ];
+                    }
+                }
+
+                $arr[] = [
+                    'form_id' => $form->id,
+                    'label_name' => $form->label_name,
+                    'is_hidden' => $form->is_hidden != 0 ? True : False,
+                    'form_details' => $form_details
+                ];
+            }
+
+            $data = [
+                'business_unit_id' => $businessUnitId,
+                'forms' => $arr
+            ];
+
+            return response()->json($data, 200);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
      *     path="/api/form/show",
      *     summary="Get forms by business unit id from JWT token",
      *     tags={"Forms"},
@@ -451,10 +578,10 @@ class FormController extends Controller
             }
 
             DB::beginTransaction();
-            $form->delete();
+            $form->update(['is_hidden' => true]);
             DB::commit();
             return response()->json([
-                'message' => 'Form deleted successfully!'
+                'message' => 'Form hidden successfully!'
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();

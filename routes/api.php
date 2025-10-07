@@ -45,6 +45,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::get('show/{business_unit_id}', 'show');
+        Route::get('all', 'allForms');
     });
 
     Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
