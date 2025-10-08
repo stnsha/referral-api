@@ -16,7 +16,8 @@ class Referral extends Model
         'customer_id',
         'priority',
         'status',
-        'status_note'
+        'status_note',
+        'encoded_base'
     ];
 
     /**

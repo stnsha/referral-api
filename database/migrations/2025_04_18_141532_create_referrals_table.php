@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('priority');
             $table->integer('status')->default(1); //open
             $table->string('status_note')->nullable();
+            $table->longText('encoded_base')->nullable();
             $table->softDeletes();
             $table->timestamps();
 

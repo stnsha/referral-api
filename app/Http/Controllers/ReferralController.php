@@ -272,9 +272,15 @@ class ReferralController extends Controller
                     ], 403);
                 }
 
+                // Determine customer_id based on external referral
+                $isExternalReferral = isset($businessUnits['recipient']['referee']);
+                $customerId = $isExternalReferral && isset($validated['referral']['patient']['id'])
+                    ? $validated['referral']['patient']['id']
+                    : $validated['referral']['customer_id'];
+
                 //create referral
                 $referral = Referral::create([
-                    'customer_id' => $validated['referral']['customer_id'],
+                    'customer_id' => $customerId,
                     'priority' => $validated['referral']['priority'],
                     'status' => 1, //Open
                 ]);
@@ -461,19 +467,21 @@ class ReferralController extends Controller
                         }
                     }
 
-                    // Hardcoded patient data (temporary)
-                    $patientName = 'John Doe';
-                    $patientIcNo = '990101-01-1234';
-                    $patientPhone = '012-3456789';
-                    $patientAddress = '123 Main Street, Kuala Lumpur, 50000, Malaysia';
-                    $patientEmail = 'john.doe@example.com';
+                    // Get patient data from request
+                    $patient = $validated['referral']['patient'] ?? null;
+                    $patientName = $patient['name'] ?? 'N/A';
+                    $patientIcNo = $patient['ic'] ?? 'N/A';
+                    $patientPhone = $patient['phone'] ?? 'N/A';
+                    $patientAddress = $patient['address'] ?? 'N/A';
+                    $patientEmail = $patient['email'] ?? '';
 
-                    // Hardcoded referee data (temporary)
-                    $referrerName = 'Dr. Sarah Johnson';
-                    $referrerDesignation = 'Senior Consultant';
-                    $referrerBusinessUnit = 'Cardiology Department';
-                    $referrerPhone = '03-12345678';
-                    $referrerEmail = 'sarah.johnson@hospital.com';
+                    // Get referee (staff) data from assignee
+                    $assignee = $validated['business_units']['assignee'] ?? null;
+                    $referrerName = $assignee['nama_staff'] ?? 'N/A';
+                    $referrerDesignation = $assignee['designation'] ?? 'N/A';
+                    $referrerBusinessUnit = $assignee['outlet'] ?? 'N/A';
+                    $referrerPhone = $assignee['contact'] ?? 'N/A';
+                    $referrerEmail = $assignee['email'] ?? 'N/A';
 
                     $data = [
                         'referralId' => $referralId,
@@ -504,6 +512,10 @@ class ReferralController extends Controller
                     $pdfBase64 = $this->exportPdf($data);
                     if ($pdfBase64) {
                         $response['pdf_base64'] = $pdfBase64;
+
+                        // Store the PDF base64 in referral record
+                        $referral->encoded_base = $pdfBase64;
+                        $referral->save();
                     }
 
                     // Send email to external referee if email exists
@@ -1185,122 +1197,15 @@ class ReferralController extends Controller
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
 
-            $referralData = $referral->load(['referral_histories.external_referee.organization']);
-
-            // Prepare data for PDF (reuse data collection from email)
-            $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
-            $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
-
-            // Collect PDF data
-            $referralId = createRefId($referral->id);
-            $dateCreated = $referral->created_at->format('d F Y');
-
-            // Get referral history data
-            $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
-            $referralCondition = $firstHistory ? $firstHistory->referral_condition : '';
-            $medicalHistory = $firstHistory ? $firstHistory->medical_history : '';
-            $additionalRemarks = $firstHistory ? $firstHistory->additional_remarks : '';
-
-            // Get referral details (form data)
-            $referralDetailsList = [];
-            if ($firstHistory) {
-                $details = ReferralDetails::where('referral_history_id', $firstHistory->id)
-                    ->with(['form'])
-                    ->get();
-
-                foreach ($details as $detail) {
-                    $formName = $detail->form ? $detail->form->label_name : 'Detail';
-                    $formValue = $detail->value;
-
-                    // If value is a form_detail_id (FK), get the field_value
-                    if (is_numeric($formValue)) {
-                        $formDetail = FormDetails::find($formValue);
-                        if ($formDetail && $formDetail->field_value) {
-                            $formValue = $formDetail->field_value;
-                        }
-                    }
-
-                    $referralDetailsList[] = [
-                        'form_name' => $formName,
-                        'form_value' => $formValue
-                    ];
-                }
+            // Check if PDF exists in the database
+            if (!$referral->encoded_base || empty($referral->encoded_base)) {
+                return response()->json([
+                    'message' => 'PDF not found for this referral. PDF is only available for external referrals.'
+                ], 404);
             }
 
-            // Get external referee and organization data
-            $recipientName = '';
-            $recipientPosition = '';
-            $recipientSpecialty = '';
-            $recipientPhone = '';
-            $organizationName = '';
-            $organizationAddress = '';
-
-            if ($externalRefereeHistory && $externalRefereeHistory->external_referee) {
-                $externalReferee = $externalRefereeHistory->external_referee;
-                $recipientName = $externalReferee->name;
-                $recipientPosition = $externalReferee->position;
-                $recipientSpecialty = $externalReferee->specialty;
-                $recipientPhone = $externalReferee->phone;
-
-                if ($externalReferee->organization) {
-                    $organizationName = $externalReferee->organization->name;
-                    $addressParts = array_filter([
-                        $externalReferee->organization->address,
-                        $externalReferee->organization->postcode,
-                        $externalReferee->organization->state,
-                        $externalReferee->organization->country
-                    ]);
-                    $organizationAddress = implode(', ', $addressParts);
-                }
-            }
-
-            // Hardcoded patient data (temporary)
-            $patientName = 'John Doe';
-            $patientIcNo = '990101-01-1234';
-            $patientPhone = '012-3456789';
-            $patientAddress = '123 Main Street, Kuala Lumpur, 50000, Malaysia';
-            $patientEmail = 'john.doe@example.com';
-
-            // Hardcoded referee data (temporary)
-            $referrerName = 'Dr. Sarah Johnson';
-            $referrerDesignation = 'Senior Consultant';
-            $referrerBusinessUnit = 'Cardiology Department';
-            $referrerPhone = '03-12345678';
-            $referrerEmail = 'sarah.johnson@hospital.com';
-
-            $data = [
-                'referralId' => $referralId,
-                'dateCreated' => $dateCreated,
-                'referralReason' => $referralReason,
-                'referralCondition' => $referralCondition,
-                'medicalHistory' => $medicalHistory,
-                'additionalRemarks' => $additionalRemarks,
-                'referralDetails' => $referralDetailsList,
-                'recipientName' => $recipientName,
-                'recipientPosition' => $recipientPosition,
-                'recipientSpecialty' => $recipientSpecialty,
-                'recipientPhone' => $recipientPhone,
-                'organizationName' => $organizationName,
-                'organizationAddress' => $organizationAddress,
-                'patientName' => $patientName,
-                'patientIcNo' => $patientIcNo,
-                'patientPhone' => $patientPhone,
-                'patientAddress' => $patientAddress,
-                'patientEmail' => $patientEmail,
-                'referrerName' => $referrerName,
-                'referrerDesignation' => $referrerDesignation,
-                'referrerBusinessUnit' => $referrerBusinessUnit,
-                'referrerPhone' => $referrerPhone,
-                'referrerEmail' => $referrerEmail,
-            ];
-
-            // Generate and return PDF for download
-            $pdf = $this->exportPdf($data, true);
-            if ($pdf) {
-                return response()->json(['pdfBase64' => $pdf], 200);
-            } else {
-                return response()->json(['message' => 'Failed to generate PDF'], 500);
-            }
+            // Return the stored PDF base64
+            return response()->json(['pdfBase64' => $referral->encoded_base], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => $e->getMessage()

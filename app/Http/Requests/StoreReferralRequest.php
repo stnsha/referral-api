@@ -23,6 +23,9 @@ class StoreReferralRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Check if this is an external referral
+        $isExternalReferral = $this->input('business_units.recipient.referee') !== null;
+
         $staticRules = [
             'business_units.assignee.staff_id' => 'required|integer',
             'business_units.assignee.business_unit_id' => 'required|integer',
@@ -32,6 +35,13 @@ class StoreReferralRequest extends FormRequest
             'business_units.assignee.medical_history' => 'nullable|string',
             'business_units.assignee.additional_remarks' => 'nullable|string',
 
+            // Additional assignee fields for external referral
+            'business_units.assignee.nama_staff' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'business_units.assignee.contact' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'business_units.assignee.outlet' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'business_units.assignee.email' => $isExternalReferral ? 'required|email' : 'nullable|email',
+            'business_units.assignee.designation' => $isExternalReferral ? 'required|string' : 'nullable|string',
+
             'business_units.recipient.staff_id' => 'nullable|integer',
             'business_units.recipient.business_unit_id' => 'nullable|integer',
             'business_units.recipient.location' => 'nullable|integer',
@@ -40,7 +50,18 @@ class StoreReferralRequest extends FormRequest
             'business_units.recipient.location_organization' => 'nullable|string',
             'business_units.recipient.referee' => 'nullable|integer',
 
-            'referral.customer_id' => 'required|integer',
+            // Patient data for external referral (replaces customer_id)
+            'referral.patient.id' => $isExternalReferral ? 'required|integer' : 'nullable|integer',
+            'referral.patient.name' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'referral.patient.ic' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'referral.patient.gender' => $isExternalReferral ? 'nullable|string' : 'nullable|string',
+            'referral.patient.birth_date' => $isExternalReferral ? 'nullable|date' : 'nullable|date',
+            'referral.patient.phone' => $isExternalReferral ? 'required|string' : 'nullable|string',
+            'referral.patient.email' => 'nullable|email',
+            'referral.patient.address' => $isExternalReferral ? 'required|string' : 'nullable|string',
+
+            // customer_id required only for internal referrals
+            'referral.customer_id' => $isExternalReferral ? 'nullable|integer' : 'required|integer',
             'referral.priority' => 'required|integer',
 
             'attachments' => 'nullable|array'
