@@ -67,42 +67,47 @@ class UpdateReferralRequest extends FormRequest
 
         $dynamicRules = [];
 
-        $buId = $this->input('referral.business_unit_id_reply');
+        // Skip form_data validation if status is 5 (patient not present)
+        $status = $this->input('referral.status');
 
-        $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+        if ($status != 5) {
+            $buId = $this->input('referral.business_unit_id_reply');
 
-        foreach ($forms as $form) {
-            foreach ($form->form_details as $detail) {
-                $field = $detail->field_name;
-                $type = $detail->field_type;
-                $isRequired = $detail->is_required;
+            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 
-                $rules = [];
-                $rules[] = $isRequired ? 'required' : 'nullable';
+            foreach ($forms as $form) {
+                foreach ($form->form_details as $detail) {
+                    $field = $detail->field_name;
+                    $type = $detail->field_type;
+                    $isRequired = $detail->is_required;
 
-                if (in_array($type, ['select', 'radio'])) {
-                    $rules[] = 'integer';
+                    $rules = [];
+                    $rules[] = $isRequired ? 'required' : 'nullable';
 
-                    $validIds = $form->form_details
-                        ->where('field_name', $field)
-                        ->pluck('id')
-                        ->toArray();
+                    if (in_array($type, ['select', 'radio'])) {
+                        $rules[] = 'integer';
 
-                    $rules[] = 'in:' . implode(',', $validIds);
-                } elseif ($type === 'checkbox') {
-                    $rules[] = 'array';
+                        $validIds = $form->form_details
+                            ->where('field_name', $field)
+                            ->pluck('id')
+                            ->toArray();
 
-                    $validIds = $form->form_details
-                        ->where('field_name', $field)
-                        ->pluck('id')
-                        ->toArray();
+                        $rules[] = 'in:' . implode(',', $validIds);
+                    } elseif ($type === 'checkbox') {
+                        $rules[] = 'array';
 
-                    $dynamicRules["form_data.$buId.$field.*"] = 'integer|in:' . implode(',', $validIds);
-                } elseif (isset($fieldTypeRuleMap[$type])) {
-                    $rules[] = $fieldTypeRuleMap[$type];
+                        $validIds = $form->form_details
+                            ->where('field_name', $field)
+                            ->pluck('id')
+                            ->toArray();
+
+                        $dynamicRules["form_data.$buId.$field.*"] = 'integer|in:' . implode(',', $validIds);
+                    } elseif (isset($fieldTypeRuleMap[$type])) {
+                        $rules[] = $fieldTypeRuleMap[$type];
+                    }
+
+                    $dynamicRules["form_data.$buId.$field"] = implode('|', $rules);
                 }
-
-                $dynamicRules["form_data.$buId.$field"] = implode('|', $rules);
             }
         }
 
@@ -113,63 +118,68 @@ class UpdateReferralRequest extends FormRequest
     {
         $messages = [];
 
-        $buId = $this->input('referral.business_unit_id_reply');
+        // Skip form_data messages if status is 5 (patient not present)
+        $status = $this->input('referral.status');
 
-        $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+        if ($status != 5) {
+            $buId = $this->input('referral.business_unit_id_reply');
 
-        foreach ($forms as $form) {
-            foreach ($form->form_details as $detail) {
-                $field = $detail->field_name;
-                $label = ucwords(str_replace('_', ' ', $field));
-                $type = $detail->field_type;
-                $path = "form_data.{$form->id}.$field";
+            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
 
-                if ($detail->is_required) {
-                    $messages["$path.required"] = "$label is required.";
-                }
+            foreach ($forms as $form) {
+                foreach ($form->form_details as $detail) {
+                    $field = $detail->field_name;
+                    $label = ucwords(str_replace('_', ' ', $field));
+                    $type = $detail->field_type;
+                    $path = "form_data.{$form->id}.$field";
 
-                switch ($type) {
-                    case 'email':
-                        $messages["$path.email"] = "$label must be a valid email address.";
-                        break;
-                    case 'number':
-                    case 'range':
-                        $messages["$path.numeric"] = "$label must be a number.";
-                        break;
-                    case 'date':
-                    case 'datetime-local':
-                        $messages["$path.date"] = "$label must be a valid date.";
-                        break;
-                    case 'time':
-                        $messages["$path.date_format"] = "$label must be in HH:MM format.";
-                        break;
-                    case 'month':
-                        $messages["$path.date_format"] = "$label must be in YYYY-MM format.";
-                        break;
-                    case 'week':
-                        $messages["$path.date_format"] = "$label must be in YYYY-WW format.";
-                        break;
-                    case 'file':
-                        $messages["$path.file"] = "$label must be a valid file.";
-                        break;
-                    case 'image':
-                        $messages["$path.image"] = "$label must be an image.";
-                        break;
-                    case 'url':
-                        $messages["$path.url"] = "$label must be a valid URL.";
-                        break;
-                    case 'select':
-                    case 'radio':
-                        $messages["$path.integer"] = "$label must be a valid option.";
-                        $messages["$path.in"] = "$label is not a valid selection.";
-                        break;
-                    case 'checkbox':
-                        $messages["$path.array"] = "$label must be an array of selected options.";
-                        $messages["$path.in"] = "$label contains an invalid selection.";
-                        break;
-                    default:
-                        $messages["$path.string"] = "$label must be a string.";
-                        break;
+                    if ($detail->is_required) {
+                        $messages["$path.required"] = "$label is required.";
+                    }
+
+                    switch ($type) {
+                        case 'email':
+                            $messages["$path.email"] = "$label must be a valid email address.";
+                            break;
+                        case 'number':
+                        case 'range':
+                            $messages["$path.numeric"] = "$label must be a number.";
+                            break;
+                        case 'date':
+                        case 'datetime-local':
+                            $messages["$path.date"] = "$label must be a valid date.";
+                            break;
+                        case 'time':
+                            $messages["$path.date_format"] = "$label must be in HH:MM format.";
+                            break;
+                        case 'month':
+                            $messages["$path.date_format"] = "$label must be in YYYY-MM format.";
+                            break;
+                        case 'week':
+                            $messages["$path.date_format"] = "$label must be in YYYY-WW format.";
+                            break;
+                        case 'file':
+                            $messages["$path.file"] = "$label must be a valid file.";
+                            break;
+                        case 'image':
+                            $messages["$path.image"] = "$label must be an image.";
+                            break;
+                        case 'url':
+                            $messages["$path.url"] = "$label must be a valid URL.";
+                            break;
+                        case 'select':
+                        case 'radio':
+                            $messages["$path.integer"] = "$label must be a valid option.";
+                            $messages["$path.in"] = "$label is not a valid selection.";
+                            break;
+                        case 'checkbox':
+                            $messages["$path.array"] = "$label must be an array of selected options.";
+                            $messages["$path.in"] = "$label contains an invalid selection.";
+                            break;
+                        default:
+                            $messages["$path.string"] = "$label must be a string.";
+                            break;
+                    }
                 }
             }
         }
