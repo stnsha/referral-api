@@ -1,74 +1,340 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>External Referral Notification</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Referral from {{ $businessUnitName ?? 'Medical Center' }}</title>
     <style>
+        /* Reset styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px 0;
+        }
+
+        /* Email container */
+        .email-container {
             max-width: 600px;
+            width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .header {
-            background-color: #4a5568;
-            color: white;
-            padding: 20px;
+
+        /* Header with logo */
+        .email-header {
+            background-color: #ffffff;
+            padding: 30px 20px;
             text-align: center;
-            border-radius: 5px 5px 0 0;
+            border-bottom: 3px solid #0066cc;
         }
-        .content {
-            background-color: #f7fafc;
-            padding: 30px;
-            border: 1px solid #e2e8f0;
-            border-radius: 0 0 5px 5px;
+
+        .email-logo {
+            max-width: 200px;
+            width: 100%;
+            height: auto;
+            display: inline-block;
         }
-        .info-row {
+
+        /* Email body */
+        .email-body {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .email-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0 0 25px 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .greeting {
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .intro-text {
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+
+        /* Section styling */
+        .section {
+            margin: 25px 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0066cc;
+            margin: 0 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-content {
+            margin: 0 0 15px 0;
+            color: #4a4a4a;
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+
+        /* Referral details table */
+        .details-table {
+            width: 100%;
             margin: 15px 0;
+            border-collapse: collapse;
         }
-        .label {
-            font-weight: bold;
-            color: #2d3748;
+
+        .details-table tr {
+            border-bottom: 1px solid #e8e8e8;
         }
-        .footer {
+
+        .details-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .details-table td {
+            padding: 12px 0;
+            vertical-align: top;
+        }
+
+        .details-label {
+            font-weight: 600;
+            color: #1a1a1a;
+            width: 40%;
+            padding-right: 15px;
+        }
+
+        .details-value {
+            color: #4a4a4a;
+            width: 60%;
+        }
+
+        /* Attachment notice */
+        .attachment-notice {
+            background-color: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px 20px;
+            margin: 25px 0;
+            font-size: 14px;
+            color: #0066cc;
+        }
+
+        /* Closing */
+        .closing {
+            margin-top: 30px;
+            line-height: 1.8;
+        }
+
+        /* Signature */
+        .signature {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            font-size: 12px;
-            color: #718096;
+            border-top: 2px solid #e8e8e8;
+        }
+
+        .signature-line {
+            margin: 5px 0;
+            color: #4a4a4a;
+        }
+
+        .signature-name {
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 16px;
+        }
+
+        /* Footer */
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
             text-align: center;
+            font-size: 12px;
+            color: #888888;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        /* Mobile responsive */
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 0;
+            }
+
+            .email-container {
+                width: 100% !important;
+                box-shadow: none;
+            }
+
+            .email-header {
+                padding: 25px 15px;
+            }
+
+            .email-logo {
+                max-width: 150px;
+            }
+
+            .email-body {
+                padding: 30px 20px !important;
+            }
+
+            .email-title {
+                font-size: 18px;
+            }
+
+            .section-title {
+                font-size: 15px;
+            }
+
+            .details-table td {
+                display: block;
+                width: 100% !important;
+                padding: 8px 0;
+            }
+
+            .details-label {
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+
+            .details-value {
+                padding-left: 0;
+            }
+
+            .attachment-notice {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+
+            .email-footer {
+                padding: 15px 20px;
+            }
+        }
+
+        @media only screen and (max-width: 480px) {
+            .email-body {
+                font-size: 14px;
+            }
+
+            .email-title {
+                font-size: 17px;
+            }
+
+            .section-title {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>New Referral Notification</h1>
-    </div>
-    <div class="content">
-        <p>Dear {{ $refereeName }},</p>
-
-        <p>You have received a new external referral. Please find the details below:</p>
-
-        <div class="info-row">
-            <span class="label">Referral ID:</span> {{ $referralId }}
+    <div class="email-container">
+        <!-- Header with Logo -->
+        <div class="email-header">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" class="email-logo">
         </div>
 
-        <div class="info-row">
-            <span class="label">Referral Reason:</span> {{ $referralReason }}
+        <!-- Email Body -->
+        <div class="email-body">
+            <h1 class="email-title">Referral from {{ $businessUnitName ?? 'Medical Center' }}</h1>
+
+            <div class="greeting">
+                Dear {{ $recipientName ?? 'Healthcare Provider' }},
+            </div>
+
+            <div class="intro-text">
+                I am <strong>{{ $refereeName ?? 'Dr. John Smith' }}</strong> from <strong>{{ $businessUnitName ?? 'Medical Center' }}</strong>. I am referring <strong>{{ $patientName ?? 'Patient Name' }}</strong> to your clinic/hospital for further evaluation and management.
+            </div>
+
+            <!-- Reason for Referral -->
+            <div class="section">
+                <div class="section-title">Reason for Referral:</div>
+                <div class="section-content">{{ $referralReason ?? 'Specialized evaluation and treatment required for ongoing medical condition.' }}</div>
+            </div>
+
+            <!-- Clinical Details -->
+            <div class="section">
+                <div class="section-title">Clinical Details:</div>
+                <div class="section-content">
+                    <strong>Condition:</strong><br>
+                    {{ $referralCondition ?? 'Patient presents with symptoms requiring specialized care and assessment.' }}
+                </div>
+
+                @if(isset($medicalHistory) && !empty($medicalHistory))
+                <div class="section-content">
+                    <strong>Medical History:</strong><br>
+                    {{ $medicalHistory }}
+                </div>
+                @endif
+
+                @if(isset($additionalRemarks) && !empty($additionalRemarks))
+                <div class="section-content">
+                    <strong>Additional Remarks:</strong><br>
+                    {{ $additionalRemarks }}
+                </div>
+                @endif
+
+                @if(isset($referralDetails) && is_array($referralDetails) && count($referralDetails) > 0)
+                <div class="section-content">
+                    <strong>Referral Information:</strong>
+                    <table class="details-table">
+                        @foreach($referralDetails as $detail)
+                        <tr>
+                            <td class="details-label">{{ $detail['form_name'] ?? 'Detail' }}:</td>
+                            <td class="details-value">{{ $detail['form_value'] ?? 'N/A' }}</td>
+                        </tr>
+                        @endforeach
+                    </table>
+                </div>
+                @endif
+            </div>
+
+            <!-- Attachment Notice -->
+            @if(isset($hasAttachments) && $hasAttachments)
+            <div class="attachment-notice">
+                📎 Attached are the relevant medical documents for your reference.
+            </div>
+            @endif
+
+            <!-- Closing -->
+            <div class="closing">
+                Thank you for your attention to this referral. Please do not hesitate to contact me if you require any further information or clarification regarding this case.
+            </div>
+
+            <!-- Signature -->
+            <div class="signature">
+                <div class="signature-line">Best regards,</div>
+                <div class="signature-line signature-name">{{ $refereeName ?? 'Dr. John Smith' }}</div>
+                @if(isset($refereeDesignation) && !empty($refereeDesignation))
+                <div class="signature-line">{{ $refereeDesignation }}</div>
+                @endif
+                @if(isset($refereeContact) && !empty($refereeContact))
+                <div class="signature-line">{{ $refereeContact }}</div>
+                @endif
+                @if(isset($businessUnitName) && !empty($businessUnitName))
+                <div class="signature-line">{{ $businessUnitName }}</div>
+                @endif
+            </div>
         </div>
 
-        <p>The complete referral details are attached to this email as a PDF document.</p>
-
-        <p>Please review the referral at your earliest convenience.</p>
-
-        <p>Best regards,<br>
-        Referral Management System</p>
-    </div>
-    <div class="footer">
-        <p>This is an automated notification. Please do not reply to this email.</p>
+        <!-- Footer -->
+        <div class="email-footer">
+            This is a confidential medical communication. If you have received this email in error, please notify the sender immediately.
+        </div>
     </div>
 </body>
 </html>
