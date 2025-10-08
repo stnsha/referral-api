@@ -406,52 +406,52 @@ class ReferralController extends Controller
                     $pdfBase64 = $this->exportPdf($data);
                     if ($pdfBase64) {
                         $response['pdf_base64'] = $pdfBase64;
+                    }
 
-                        // Send email to external referee if email exists
-                        $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
-                        if ($externalRefereeHistory && $externalRefereeHistory->external_referee) {
-                            $externalReferee = $externalRefereeHistory->external_referee;
+                    // Send email to external referee if email exists
+                    $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
+                    if ($externalRefereeHistory && $externalRefereeHistory->external_referee && $pdfBase64) {
+                        $externalReferee = $externalRefereeHistory->external_referee;
 
-                            if ($externalReferee->email) {
-                                try {
-                                    $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
-                                    $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
+                        if ($externalReferee->email) {
+                            try {
+                                $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
+                                $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
 
-                                    // Get attachments from the referral history with is_filled = true
-                                    $referralAttachments = [];
-                                    $filledHistory = $referralData->referral_histories->where('is_filled', true)->first();
-                                    if ($filledHistory) {
-                                        $attachments = ReferralAttachment::where('referral_history_id', $filledHistory->id)->get();
-                                        $referralAttachments = $attachments->map(function ($atc) {
-                                            return [
-                                                'file_name' => $atc->file_name,
-                                                'file_type' => $atc->file_type,
-                                                'encoded_base' => $atc->encoded_base
-                                            ];
-                                        })->toArray();
-                                    }
-
-                                    Mail::to($externalReferee->email)->send(
-                                        new ExternalReferralNotification(
-                                            createRefId($referral->id),
-                                            $externalReferee->name,
-                                            $referralReason,
-                                            $pdfBase64,
-                                            $referralAttachments
-                                        )
-                                    );
-                                    Log::info('External referral email sent', [
-                                        'referral_id' => $referral->id,
-                                        'email' => $externalReferee->email,
-                                        'attachments_count' => count($referralAttachments)
-                                    ]);
-                                } catch (Exception $e) {
-                                    Log::error('Failed to send external referral email', [
-                                        'referral_id' => $referral->id,
-                                        'email' => $externalReferee->email,
-                                        'error' => $e->getMessage()
-                                    ]);
+                                // Get attachments from the referral history with is_filled = true
+                                $referralAttachments = [];
+                                $filledHistory = $referralData->referral_histories->where('is_filled', true)->first();
+                                if ($filledHistory) {
+                                    $attachments = ReferralAttachment::where('referral_history_id', $filledHistory->id)->get();
+                                    $referralAttachments = $attachments->map(function ($atc) {
+                                        return [
+                                            'file_name' => $atc->file_name,
+                                            'file_type' => $atc->file_type,
+                                            'encoded_base' => $atc->encoded_base
+                                        ];
+                                    })->toArray();
                                 }
+
+                                Mail::to($externalReferee->email)->send(
+                                    new ExternalReferralNotification(
+                                        createRefId($referral->id),
+                                        $externalReferee->name,
+                                        $referralReason,
+                                        $pdfBase64,
+                                        $referralAttachments
+                                    )
+                                );
+                                Log::info('External referral email sent', [
+                                    'referral_id' => $referral->id,
+                                    'email' => $externalReferee->email,
+                                    'attachments_count' => count($referralAttachments)
+                                ]);
+                            } catch (Exception $e) {
+                                Log::error('Failed to send external referral email', [
+                                    'referral_id' => $referral->id,
+                                    'email' => $externalReferee->email,
+                                    'error' => $e->getMessage()
+                                ]);
                             }
                         }
                     }
