@@ -393,14 +393,113 @@ class ReferralController extends Controller
 
                 // Generate PDF base64 if external referral
                 if ($hasExternalReferee) {
-                    $referralData = $referral->load(['referral_histories.external_referee']);
+                    $referralData = $referral->load(['referral_histories.external_referee.organization']);
+
+                    // Prepare data for PDF (reuse data collection from email)
+                    $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
+                    $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
+
+                    // Collect PDF data
+                    $referralId = createRefId($referral->id);
+                    $dateCreated = $referral->created_at->format('d F Y');
+
+                    // Get referral history data
+                    $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
+                    $referralCondition = $firstHistory ? $firstHistory->referral_condition : '';
+                    $medicalHistory = $firstHistory ? $firstHistory->medical_history : '';
+                    $additionalRemarks = $firstHistory ? $firstHistory->additional_remarks : '';
+
+                    // Get referral details (form data)
+                    $referralDetailsList = [];
+                    if ($firstHistory) {
+                        $details = ReferralDetails::where('referral_history_id', $firstHistory->id)
+                            ->with(['form'])
+                            ->get();
+
+                        foreach ($details as $detail) {
+                            $formName = $detail->form ? $detail->form->label_name : 'Detail';
+                            $formValue = $detail->value;
+
+                            // If value is a form_detail_id (FK), get the field_value
+                            if (is_numeric($formValue)) {
+                                $formDetail = FormDetails::find($formValue);
+                                if ($formDetail && $formDetail->field_value) {
+                                    $formValue = $formDetail->field_value;
+                                }
+                            }
+
+                            $referralDetailsList[] = [
+                                'form_name' => $formName,
+                                'form_value' => $formValue
+                            ];
+                        }
+                    }
+
+                    // Get external referee and organization data
+                    $recipientName = '';
+                    $recipientPosition = '';
+                    $recipientSpecialty = '';
+                    $recipientPhone = '';
+                    $organizationName = '';
+                    $organizationAddress = '';
+
+                    if ($externalRefereeHistory && $externalRefereeHistory->external_referee) {
+                        $externalReferee = $externalRefereeHistory->external_referee;
+                        $recipientName = $externalReferee->name;
+                        $recipientPosition = $externalReferee->position;
+                        $recipientSpecialty = $externalReferee->specialty;
+                        $recipientPhone = $externalReferee->phone;
+
+                        if ($externalReferee->organization) {
+                            $organizationName = $externalReferee->organization->name;
+                            $addressParts = array_filter([
+                                $externalReferee->organization->address,
+                                $externalReferee->organization->postcode,
+                                $externalReferee->organization->state,
+                                $externalReferee->organization->country
+                            ]);
+                            $organizationAddress = implode(', ', $addressParts);
+                        }
+                    }
+
+                    // Hardcoded patient data (temporary)
+                    $patientName = 'John Doe';
+                    $patientIcNo = '990101-01-1234';
+                    $patientPhone = '012-3456789';
+                    $patientAddress = '123 Main Street, Kuala Lumpur, 50000, Malaysia';
+                    $patientEmail = 'john.doe@example.com';
+
+                    // Hardcoded referee data (temporary)
+                    $referrerName = 'Dr. Sarah Johnson';
+                    $referrerDesignation = 'Senior Consultant';
+                    $referrerBusinessUnit = 'Cardiology Department';
+                    $referrerPhone = '03-12345678';
+                    $referrerEmail = 'sarah.johnson@hospital.com';
+
                     $data = [
-                        'referral_id' => createRefId($referral->id),
-                        'status' => $referral->status,
-                        'status_note' => $referral->status_note,
-                        'customer_id' => $referral->customer_id,
-                        'priority' => $referral->priority,
-                        'referralDetails' => $referralData->referral_histories,
+                        'referralId' => $referralId,
+                        'dateCreated' => $dateCreated,
+                        'referralReason' => $referralReason,
+                        'referralCondition' => $referralCondition,
+                        'medicalHistory' => $medicalHistory,
+                        'additionalRemarks' => $additionalRemarks,
+                        'referralDetails' => $referralDetailsList,
+                        'recipientName' => $recipientName,
+                        'recipientPosition' => $recipientPosition,
+                        'recipientSpecialty' => $recipientSpecialty,
+                        'recipientPhone' => $recipientPhone,
+                        'organizationName' => $organizationName,
+                        'organizationAddress' => $organizationAddress,
+                        'patientName' => $patientName,
+                        'patientIcNo' => $patientIcNo,
+                        'patientPhone' => $patientPhone,
+                        'patientAddress' => $patientAddress,
+                        'patientEmail' => $patientEmail,
+                        'referrerName' => $referrerName,
+                        'referrerDesignation' => $referrerDesignation,
+                        'referrerBusinessUnit' => $referrerBusinessUnit,
+                        'referrerPhone' => $referrerPhone,
+                        'referrerEmail' => $referrerEmail,
                     ];
 
                     $pdfBase64 = $this->exportPdf($data);
@@ -409,15 +508,11 @@ class ReferralController extends Controller
                     }
 
                     // Send email to external referee if email exists
-                    $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
                     if ($externalRefereeHistory && $externalRefereeHistory->external_referee && $pdfBase64) {
                         $externalReferee = $externalRefereeHistory->external_referee;
 
                         if ($externalReferee->email) {
                             try {
-                                $firstHistory = $referralData->referral_histories->where('sequence', 1)->first();
-                                $referralReason = $firstHistory ? $firstHistory->referral_reason : 'N/A';
-
                                 // Get attachments from the referral history with is_filled = true
                                 $referralAttachments = [];
                                 $filledHistory = $referralData->referral_histories->where('is_filled', true)->first();
@@ -432,11 +527,30 @@ class ReferralController extends Controller
                                     })->toArray();
                                 }
 
+                                // Reuse data already collected for PDF
                                 Mail::to($externalReferee->email)->send(
                                     new ExternalReferralNotification(
-                                        createRefId($referral->id),
-                                        $externalReferee->name,
+                                        $referralId,
+                                        $dateCreated,
                                         $referralReason,
+                                        $referralCondition,
+                                        $medicalHistory,
+                                        $additionalRemarks,
+                                        $referralDetailsList,
+                                        $recipientName,
+                                        $recipientPosition,
+                                        $organizationName,
+                                        $organizationAddress,
+                                        $patientName,
+                                        $patientIcNo,
+                                        $patientPhone,
+                                        $patientAddress,
+                                        $patientEmail,
+                                        $referrerName,
+                                        $referrerDesignation,
+                                        $referrerBusinessUnit,
+                                        $referrerPhone,
+                                        $referrerEmail,
                                         $pdfBase64,
                                         $referralAttachments
                                     )

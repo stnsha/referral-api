@@ -9,53 +9,45 @@
             font-size: 12px;
             margin: 0;
             padding: 20px;
-            line-height: 1.2;
+            line-height: 1.4;
         }
 
         .header {
             text-align: center;
             margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #000;
         }
 
         .logo {
-            font-size: 36px;
+            font-size: 24px;
             font-weight: bold;
-            font-style: italic;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
 
         .title {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
-            line-height: 1.3;
+            margin: 10px 0;
         }
 
-        .print-button {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            border: 1px solid #000;
-            background: #f0f0f0;
-            font-size: 10px;
-        }
-
-        .notice {
+        .ref-info {
+            text-align: right;
             font-size: 11px;
-            margin: 15px 0;
-            line-height: 1.4;
+            margin-bottom: 15px;
         }
 
         .section {
-            margin: 20px 0;
+            margin: 15px 0;
         }
 
         .section-title {
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            padding: 5px;
+            background-color: #e8e8e8;
+            border-left: 4px solid #333;
         }
 
         table {
@@ -66,183 +58,222 @@
 
         td {
             border: 1px solid #000;
-            padding: 8px;
+            padding: 6px 8px;
             vertical-align: top;
-            height: 25px;
         }
 
         .field-label {
+            font-weight: bold;
+            font-size: 10px;
+            color: #333;
+        }
+
+        .data-value {
             font-weight: normal;
-            background: #fff;
+            color: #000;
             font-size: 11px;
+            margin-top: 2px;
         }
 
         .large-field {
-            height: 100px;
+            min-height: 80px;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            page-break-inside: avoid;
         }
 
         .footer {
             text-align: center;
-            margin-top: 40px;
-            font-size: 11px;
-            line-height: 1.4;
-        }
-
-        .footer-info {
-            margin: 5px 0;
-        }
-
-        .data-value {
-            font-weight: bold;
-            color: #333;
+            margin-top: 20px;
+            font-size: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="logo">Alpro Pharmacy</div>
-        {{-- <div class="title">
-            Minnesota Health Care Programs<br>
-            Minnesota Restricted Recipient Program (MRRP)<br>
-            Medical Referral for UCare Restricted Recipient Enrollee
-        </div> --}}
+        <div class="logo">Medical Referral Form</div>
     </div>
 
-    @php
-        $firstHistory = isset($referralDetails[0]) ? $referralDetails[0] : null;
-        $lastHistory = isset($referralDetails) ? end($referralDetails) : null;
-        $externalReferee = null;
-        $externalOrganization = null;
+    <div class="ref-info">
+        <strong>Referral ID:</strong> {{ $referralId }}<br>
+        <strong>Date:</strong> {{ $dateCreated }}
+    </div>
 
-        // Find external referral data from referral histories
-        if (isset($referralDetails)) {
-            foreach ($referralDetails as $detail) {
-                // Check if this is an Eloquent model or array
-                if (is_object($detail)) {
-                    if (!empty($detail->external_referee_id) && $detail->external_referee) {
-                        $externalReferee = $detail->external_referee;
-                        $externalOrganization = $externalReferee->organization ?? null;
-                        break;
-                    }
-                } else {
-                    // Array format (from show/download methods)
-                    if (isset($detail['external_referral']) && !empty($detail['external_referral'])) {
-                        $externalReferee = (object) $detail['external_referral'][0];
-                        $externalOrganization = $externalReferee;
-                        break;
-                    }
-                }
-            }
-        }
-    @endphp
-
+    <!-- Referring From Section -->
     <div class="section">
-        <div class="section-title">Referral Information</div>
+        <div class="section-title">REFERRING FROM</div>
         <table>
             <tr>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    Referring to (First & Last Name):<br>
-                    <span class="data-value">{{ $externalReferee->name ?? 'External Provider' }}</span>
+                <td class="field-label" style="width: 50%;">
+                    Referring Doctor:<br>
+                    <span class="data-value">{{ $referrerName }}</span>
                 </td>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    Specialty:<br>
-                    <span class="data-value">{{ $externalReferee->specialty ?? 'General Practice' }}</span>
-                </td>
-            </tr>
-            <tr>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    Clinic Name:<br>
-                    <span class="data-value">{{ $externalOrganization->name ?? 'External Clinic' }}</span>
-                </td>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    Phone Number:<br>
-                    <span class="data-value">{{ $externalReferee->phone ?? 'N/A' }}</span>
+                <td class="field-label" style="width: 50%;">
+                    Designation:<br>
+                    <span class="data-value">{{ $referrerDesignation }}</span>
                 </td>
             </tr>
             <tr>
-                <td class="field-label" colspan="4">
-                    Street Address:<br>
-                    <span class="data-value">{{ $externalOrganization->address ?? 'Provider Address' }}</span>
+                <td class="field-label" style="width: 50%;">
+                    Department/Business Unit:<br>
+                    <span class="data-value">{{ $referrerBusinessUnit }}</span>
+                </td>
+                <td class="field-label" style="width: 50%;">
+                    Phone:<br>
+                    <span class="data-value">{{ $referrerPhone }}</span>
                 </td>
             </tr>
             <tr>
-                <td class="field-label" style="width: 33%">
-                    City:<br>
-                    <span class="data-value">{{ $externalOrganization->state ?? 'Kuala Lumpur' }}</span>
-                </td>
-                <td class="field-label" style="width: 33%">
-                    State:<br>
-                    <span class="data-value">{{ $externalOrganization->state ?? 'Malaysia' }}</span>
-                </td>
-                <td class="field-label" style="width: 34%" colspan="2">
-                    Zip Code:<br>
-                    <span class="data-value">{{ $externalOrganization->postcode ?? 'N/A' }}</span>
+                <td class="field-label" colspan="2">
+                    Email:<br>
+                    <span class="data-value">{{ $referrerEmail }}</span>
                 </td>
             </tr>
-            <tr>
-                <td class="field-label large-field" colspan="4">
-                    Reason for Referral:<br><br>
-                    <span class="data-value">
-                        @if($firstHistory)
-                            @php
-                                $reason = is_object($firstHistory) ? ($firstHistory->referral_reason ?? 'N/A') : ($firstHistory['referral_reason'] ?? 'N/A');
-                                $condition = is_object($firstHistory) ? ($firstHistory->referral_condition ?? 'N/A') : ($firstHistory['referral_condition'] ?? 'N/A');
-                                $history = is_object($firstHistory) ? ($firstHistory->medical_history ?? 'N/A') : ($firstHistory['medical_history'] ?? 'N/A');
-                                $remarks = is_object($firstHistory) ? ($firstHistory->additional_remarks ?? 'N/A') : ($firstHistory['additional_remarks'] ?? 'N/A');
-                            @endphp
-                            <strong>Reason:</strong> {{ $reason }}<br><br>
-                            <strong>Condition:</strong> {{ $condition }}<br><br>
-                            <strong>Medical History:</strong> {{ $history }}<br><br>
-                            <strong>Additional Remarks:</strong> {{ $remarks }}
-                        @endif
-                    </span>
-                </td>
-            </tr>
-            <tr>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    Start Date:<br>
-                    @php
-                        $createdAt = is_object($firstHistory) ? ($firstHistory->created_at ?? date('m/d/Y')) : ($firstHistory['created_at'] ?? date('m/d/Y'));
-                    @endphp
-                    <span class="data-value">{{ $createdAt }}</span>
-                </td>
-                <td class="field-label" style="width: 50%" colspan="2">
-                    End Date:<br>
-                    <span class="data-value">{{ 'Open-ended' }}</span>
-                </td>
-            </tr>
-            {{-- <tr>
-                <td class="field-label" style="width: 50%">
-                    Signature:<br>
-                    <span class="data-value">{{ 'Digital Signature' }}</span>
-                </td>
-                <td class="field-label" style="width: 50%">
-                    Date:<br>
-                    <span class="data-value">{{ date('m/d/Y') }}</span>
-                </td>
-            </tr> --}}
         </table>
     </div>
 
+    <!-- Referring To Section -->
+    <div class="section">
+        <div class="section-title">REFERRING TO</div>
+        <table>
+            <tr>
+                <td class="field-label" style="width: 50%;">
+                    Recipient Name:<br>
+                    <span class="data-value">{{ $recipientName }}</span>
+                </td>
+                <td class="field-label" style="width: 50%;">
+                    Position:<br>
+                    <span class="data-value">{{ $recipientPosition }}</span>
+                </td>
+            </tr>
+            @if(!empty($recipientSpecialty))
+            <tr>
+                <td class="field-label" colspan="2">
+                    Specialty:<br>
+                    <span class="data-value">{{ $recipientSpecialty }}</span>
+                </td>
+            </tr>
+            @endif
+            <tr>
+                <td class="field-label" style="width: 50%;">
+                    Organization/Clinic Name:<br>
+                    <span class="data-value">{{ $organizationName }}</span>
+                </td>
+                <td class="field-label" style="width: 50%;">
+                    Phone:<br>
+                    <span class="data-value">{{ $recipientPhone }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="field-label" colspan="2">
+                    Address:<br>
+                    <span class="data-value">{{ $organizationAddress }}</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Patient Information Section -->
+    <div class="section">
+        <div class="section-title">PATIENT INFORMATION</div>
+        <table>
+            <tr>
+                <td class="field-label" style="width: 50%;">
+                    Patient Name:<br>
+                    <span class="data-value">{{ $patientName }}</span>
+                </td>
+                <td class="field-label" style="width: 50%;">
+                    IC/Passport No:<br>
+                    <span class="data-value">{{ $patientIcNo }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="field-label" style="width: 50%;">
+                    Phone Number:<br>
+                    <span class="data-value">{{ $patientPhone }}</span>
+                </td>
+                @if(!empty($patientEmail))
+                <td class="field-label" style="width: 50%;">
+                    Email:<br>
+                    <span class="data-value">{{ $patientEmail }}</span>
+                </td>
+                @else
+                <td class="field-label" style="width: 50%;">
+                    Email:<br>
+                    <span class="data-value">N/A</span>
+                </td>
+                @endif
+            </tr>
+            <tr>
+                <td class="field-label" colspan="2">
+                    Address:<br>
+                    <span class="data-value">{{ $patientAddress }}</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Clinical Information Section -->
+    <div class="section">
+        <div class="section-title">CLINICAL INFORMATION</div>
+        <table>
+            <tr>
+                <td class="field-label large-field" colspan="2">
+                    Reason for Referral:<br>
+                    <span class="data-value">{{ $referralReason }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="field-label large-field" colspan="2">
+                    Condition:<br>
+                    <span class="data-value">{{ $referralCondition }}</span>
+                </td>
+            </tr>
+            @if(!empty($medicalHistory))
+            <tr>
+                <td class="field-label large-field" colspan="2">
+                    Medical History:<br>
+                    <span class="data-value">{{ $medicalHistory }}</span>
+                </td>
+            </tr>
+            @endif
+            @if(!empty($additionalRemarks))
+            <tr>
+                <td class="field-label large-field" colspan="2">
+                    Additional Remarks:<br>
+                    <span class="data-value">{{ $additionalRemarks }}</span>
+                </td>
+            </tr>
+            @endif
+        </table>
+    </div>
+
+    <!-- Referral Details Section -->
+    @if(!empty($referralDetails) && is_array($referralDetails) && count($referralDetails) > 0)
+    <div class="section">
+        <div class="section-title">ADDITIONAL REFERRAL DETAILS</div>
+        <table>
+            @foreach($referralDetails as $detail)
+            <tr>
+                <td class="field-label" style="width: 40%;">
+                    {{ $detail['form_name'] }}:
+                </td>
+                <td class="data-value" style="width: 60%;">
+                    {{ $detail['form_value'] }}
+                </td>
+            </tr>
+            @endforeach
+        </table>
+    </div>
+    @endif
+
     <div class="footer">
-        {{-- <div class="footer-info">
-            <strong>UCare Clinical Services</strong><br>
-            Restricted Recipient Program<br>
-            P.O. Box 52<br>
-            Minneapolis, MN 55440
-        </div>
-
-        <div class="footer-info">
-            <strong>Fax Number: (612) 884-2316</strong>
-        </div>
-
-        <div class="footer-info">
-            If you have any questions, call (612) 676-3397 or (877) 447-4384
-        </div> --}}
-
-        <div style="text-align: right; margin-top: 20px; font-size: 10px;">
-            {{ date('n/j/Y') }}
-        </div>
+        <p>This is a confidential medical document. Please handle with care.</p>
+        <p style="font-size: 9px; color: #666;">Generated on {{ $dateCreated }}</p>
     </div>
 </body>
 </html>

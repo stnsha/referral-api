@@ -14,19 +14,78 @@ class ExternalReferralNotification extends Mailable
     use Queueable, SerializesModels;
 
     public $referralId;
-    public $refereeName;
+    public $dateCreated;
     public $referralReason;
+    public $referralCondition;
+    public $medicalHistory;
+    public $additionalRemarks;
+    public $referralDetails;
+    public $recipientName;
+    public $recipientPosition;
+    public $organizationName;
+    public $organizationAddress;
+    public $patientName;
+    public $patientIcNo;
+    public $patientPhone;
+    public $patientAddress;
+    public $patientEmail;
+    public $referrerName;
+    public $referrerDesignation;
+    public $referrerBusinessUnit;
+    public $referrerPhone;
+    public $referrerEmail;
     public $pdfBase64;
     public $referralAttachments;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($referralId, $refereeName, $referralReason, $pdfBase64 = null, $referralAttachments = [])
-    {
+    public function __construct(
+        $referralId,
+        $dateCreated,
+        $referralReason,
+        $referralCondition,
+        $medicalHistory,
+        $additionalRemarks,
+        $referralDetails,
+        $recipientName,
+        $recipientPosition,
+        $organizationName,
+        $organizationAddress,
+        $patientName,
+        $patientIcNo,
+        $patientPhone,
+        $patientAddress,
+        $patientEmail,
+        $referrerName,
+        $referrerDesignation,
+        $referrerBusinessUnit,
+        $referrerPhone,
+        $referrerEmail,
+        $pdfBase64 = null,
+        $referralAttachments = []
+    ) {
         $this->referralId = $referralId;
-        $this->refereeName = $refereeName;
+        $this->dateCreated = $dateCreated;
         $this->referralReason = $referralReason;
+        $this->referralCondition = $referralCondition;
+        $this->medicalHistory = $medicalHistory;
+        $this->additionalRemarks = $additionalRemarks;
+        $this->referralDetails = $referralDetails;
+        $this->recipientName = $recipientName;
+        $this->recipientPosition = $recipientPosition;
+        $this->organizationName = $organizationName;
+        $this->organizationAddress = $organizationAddress;
+        $this->patientName = $patientName;
+        $this->patientIcNo = $patientIcNo;
+        $this->patientPhone = $patientPhone;
+        $this->patientAddress = $patientAddress;
+        $this->patientEmail = $patientEmail;
+        $this->referrerName = $referrerName;
+        $this->referrerDesignation = $referrerDesignation;
+        $this->referrerBusinessUnit = $referrerBusinessUnit;
+        $this->referrerPhone = $referrerPhone;
+        $this->referrerEmail = $referrerEmail;
         $this->pdfBase64 = $pdfBase64;
         $this->referralAttachments = $referralAttachments;
     }
@@ -37,7 +96,7 @@ class ExternalReferralNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New External Referral - ' . $this->referralId,
+            subject: 'Referral from ' . $this->referrerBusinessUnit . ' - ' . $this->referralId,
         );
     }
 

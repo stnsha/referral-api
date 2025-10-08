@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Referral from {{ $businessUnitName ?? 'Medical Center' }}</title>
+    <title>Referral from {{ $referrerBusinessUnit }}</title>
     <style>
         /* Reset styles */
         body, html {
@@ -250,20 +250,54 @@
 
         <!-- Email Body -->
         <div class="email-body">
-            <h1 class="email-title">Referral from {{ $businessUnitName ?? 'Medical Center' }}</h1>
+            <h1 class="email-title">Referral from {{ $referrerBusinessUnit }}</h1>
+
+            <div style="text-align: right; color: #888; font-size: 14px; margin-bottom: 20px;">
+                <strong>Referral ID:</strong> {{ $referralId }}<br>
+                <strong>Date:</strong> {{ $dateCreated }}
+            </div>
 
             <div class="greeting">
-                Dear {{ $recipientName ?? 'Healthcare Provider' }},
+                Dear {{ $recipientName }},
             </div>
 
             <div class="intro-text">
-                I am <strong>{{ $refereeName ?? 'Dr. John Smith' }}</strong> from <strong>{{ $businessUnitName ?? 'Medical Center' }}</strong>. I am referring <strong>{{ $patientName ?? 'Patient Name' }}</strong> to your clinic/hospital for further evaluation and management.
+                I am <strong>{{ $referrerName }}</strong> from <strong>{{ $referrerBusinessUnit }}</strong>. I am referring <strong>{{ $patientName }}</strong> to your clinic/hospital for further evaluation and management.
+            </div>
+
+            <!-- Patient Information -->
+            <div class="section">
+                <div class="section-title">Patient Information:</div>
+                <table class="details-table">
+                    <tr>
+                        <td class="details-label">Name:</td>
+                        <td class="details-value">{{ $patientName }}</td>
+                    </tr>
+                    <tr>
+                        <td class="details-label">IC No:</td>
+                        <td class="details-value">{{ $patientIcNo }}</td>
+                    </tr>
+                    <tr>
+                        <td class="details-label">Phone No:</td>
+                        <td class="details-value">{{ $patientPhone }}</td>
+                    </tr>
+                    <tr>
+                        <td class="details-label">Address:</td>
+                        <td class="details-value">{{ $patientAddress }}</td>
+                    </tr>
+                    @if(!empty($patientEmail))
+                    <tr>
+                        <td class="details-label">Email:</td>
+                        <td class="details-value">{{ $patientEmail }}</td>
+                    </tr>
+                    @endif
+                </table>
             </div>
 
             <!-- Reason for Referral -->
             <div class="section">
                 <div class="section-title">Reason for Referral:</div>
-                <div class="section-content">{{ $referralReason ?? 'Specialized evaluation and treatment required for ongoing medical condition.' }}</div>
+                <div class="section-content">{{ $referralReason }}</div>
             </div>
 
             <!-- Clinical Details -->
@@ -271,31 +305,31 @@
                 <div class="section-title">Clinical Details:</div>
                 <div class="section-content">
                     <strong>Condition:</strong><br>
-                    {{ $referralCondition ?? 'Patient presents with symptoms requiring specialized care and assessment.' }}
+                    {{ $referralCondition }}
                 </div>
 
-                @if(isset($medicalHistory) && !empty($medicalHistory))
+                @if(!empty($medicalHistory))
                 <div class="section-content">
                     <strong>Medical History:</strong><br>
                     {{ $medicalHistory }}
                 </div>
                 @endif
 
-                @if(isset($additionalRemarks) && !empty($additionalRemarks))
+                @if(!empty($additionalRemarks))
                 <div class="section-content">
                     <strong>Additional Remarks:</strong><br>
                     {{ $additionalRemarks }}
                 </div>
                 @endif
 
-                @if(isset($referralDetails) && is_array($referralDetails) && count($referralDetails) > 0)
+                @if(!empty($referralDetails) && is_array($referralDetails) && count($referralDetails) > 0)
                 <div class="section-content">
                     <strong>Referral Information:</strong>
                     <table class="details-table">
                         @foreach($referralDetails as $detail)
                         <tr>
-                            <td class="details-label">{{ $detail['form_name'] ?? 'Detail' }}:</td>
-                            <td class="details-value">{{ $detail['form_value'] ?? 'N/A' }}</td>
+                            <td class="details-label">{{ $detail['form_name'] }}:</td>
+                            <td class="details-value">{{ $detail['form_value'] }}</td>
                         </tr>
                         @endforeach
                     </table>
@@ -304,7 +338,7 @@
             </div>
 
             <!-- Attachment Notice -->
-            @if(isset($hasAttachments) && $hasAttachments)
+            @if(!empty($referralAttachments) && count($referralAttachments) > 0)
             <div class="attachment-notice">
                 📎 Attached are the relevant medical documents for your reference.
             </div>
@@ -318,15 +352,14 @@
             <!-- Signature -->
             <div class="signature">
                 <div class="signature-line">Best regards,</div>
-                <div class="signature-line signature-name">{{ $refereeName ?? 'Dr. John Smith' }}</div>
-                @if(isset($refereeDesignation) && !empty($refereeDesignation))
-                <div class="signature-line">{{ $refereeDesignation }}</div>
+                <div class="signature-line signature-name">{{ $referrerName }}</div>
+                <div class="signature-line">{{ $referrerDesignation }}</div>
+                <div class="signature-line">{{ $referrerBusinessUnit }}</div>
+                @if(!empty($referrerPhone))
+                <div class="signature-line">Phone: {{ $referrerPhone }}</div>
                 @endif
-                @if(isset($refereeContact) && !empty($refereeContact))
-                <div class="signature-line">{{ $refereeContact }}</div>
-                @endif
-                @if(isset($businessUnitName) && !empty($businessUnitName))
-                <div class="signature-line">{{ $businessUnitName }}</div>
+                @if(!empty($referrerEmail))
+                <div class="signature-line">Email: {{ $referrerEmail }}</div>
                 @endif
             </div>
         </div>
