@@ -22,7 +22,7 @@ class FormsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_unit_id' => 'required|exists:business_units,staff_department_id',
+            'business_unit_id' => 'required|exists:business_units,id',
             'label_name' => 'required|string|max:255',
             'is_hidden' => 'required|boolean',
             'is_required' => 'required|boolean',
