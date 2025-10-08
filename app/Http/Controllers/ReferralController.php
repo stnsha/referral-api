@@ -1040,34 +1040,36 @@ class ReferralController extends Controller
                         $rh->is_read = true;
                         $rh->save();
 
-                        //update referral details
-                        if (isset($validated['form_data']) && filled($validated['form_data'])) {
+                        // Skip form_data and attachments processing if status is 5 (patient not present)
+                        if ($validated['referral']['status'] != 5) {
+                            //update referral details
+                            if (isset($validated['form_data']) && filled($validated['form_data'])) {
 
-                            $formFields = $validated['form_data'][$business_unit_id] ?? [];
+                                $formFields = $validated['form_data'][$business_unit_id] ?? [];
 
-                            foreach ($formFields as $field => $value) {
-                                $form_detail = FormDetails::where('field_name', $field)
-                                    ->whereHas('form', function ($query) use ($business_unit_id) {
-                                        $query->where('business_unit_id', $business_unit_id);
-                                    })
-                                    ->first();
+                                foreach ($formFields as $field => $value) {
+                                    $form_detail = FormDetails::where('field_name', $field)
+                                        ->whereHas('form', function ($query) use ($business_unit_id) {
+                                            $query->where('business_unit_id', $business_unit_id);
+                                        })
+                                        ->first();
 
-                                if ($form_detail) {
-                                    ReferralDetails::updateOrCreate(
-                                        [
-                                            'referral_history_id' => $referral_history_id,
-                                            'form_id' => $form_detail->form_id,
-                                        ],
-                                        [
-                                            'value' => is_array($value) ? json_encode($value) : $value,
-                                        ]
-                                    );
+                                    if ($form_detail) {
+                                        ReferralDetails::updateOrCreate(
+                                            [
+                                                'referral_history_id' => $referral_history_id,
+                                                'form_id' => $form_detail->form_id,
+                                            ],
+                                            [
+                                                'value' => is_array($value) ? json_encode($value) : $value,
+                                            ]
+                                        );
+                                    }
                                 }
                             }
-                        }
 
-                        //run through attachments if exist
-                        if (filled($request['attachments'])) {
+                            //run through attachments if exist
+                            if (filled($request['attachments'])) {
                             $mimeMap = [
                                 'image/jpeg' => 'jpg',
                                 'image/png' => 'png',
@@ -1120,6 +1122,7 @@ class ReferralController extends Controller
                                     'saved_file_name' => $referralAttachment->file_name
                                 ]);
                             }
+                        }
                         }
                     }
                 }

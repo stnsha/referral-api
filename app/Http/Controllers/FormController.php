@@ -421,7 +421,7 @@ class FormController extends Controller
      *     path="/api/form/{id}",
      *     tags={"Forms"},
      *     summary="Update an existing form of a business unit",
-     *     description="Updates the form with the given ID and provided data (business unit ID, label name, and visibility).",
+     *     description="Updates the form with the given ID and provided data (label name and visibility). The form must belong to the authenticated user's business unit.",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="id",
@@ -435,9 +435,9 @@ class FormController extends Controller
      *         description="Form data to be updated",
      *         @OA\JsonContent(
      *             required={"business_unit_id", "label_name"},
-     *             @OA\Property(property="business_unit_id", type="integer", description="The ID of the business unit"),
-     *             @OA\Property(property="label_name", type="string", description="The label name of the form"),
-     *             @OA\Property(property="is_hidden", type="boolean", description="Whether the form is hidden or not")
+     *             @OA\Property(property="business_unit_id", type="integer", description="The ID of the business unit", example=1),
+     *             @OA\Property(property="label_name", type="string", description="The label name of the form", example="Updated Form Name"),
+     *             @OA\Property(property="is_hidden", type="boolean", description="Whether the form is hidden or not", example=false)
      *         )
      *     ),
      *     @OA\Response(
@@ -449,18 +449,18 @@ class FormController extends Controller
      *         )
      *     ),
      *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Update failed")
-     *         )
-     *     ),
-     *     @OA\Response(
      *         response=401,
      *         description="Unauthorized",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthorized: Cannot update form from different business unit.")
      *         )
      *     ),
      *     @OA\Response(
@@ -471,7 +471,7 @@ class FormController extends Controller
      *             @OA\Property(property="message", type="string", example="Update failed"),
      *             @OA\Property(property="error", type="string", example="Error message from exception")
      *         )
-     *     ),
+     *     )
      * )
      */
     public function update(FormsRequest $request, Form $form)
