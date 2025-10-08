@@ -403,9 +403,9 @@ class ReferralController extends Controller
                         'referralDetails' => $referralData->referral_histories,
                     ];
 
-                    $pdf = $this->exportPdf($data);
-                    if ($pdf) {
-                        $response['pdf_base64'] = $pdf;
+                    $pdfBase64 = $this->exportPdf($data);
+                    if ($pdfBase64) {
+                        $response['pdf_base64'] = $pdfBase64;
 
                         // Send email to external referee if email exists
                         $externalRefereeHistory = $referralData->referral_histories->firstWhere('external_referee_id', '!=', null);
