@@ -14,9 +14,9 @@
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #000;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            /* border-bottom: 2px solid #000; */
         }
 
         .logo {
@@ -43,7 +43,7 @@
 
         .section-title {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             margin-bottom: 8px;
             padding: 5px;
             background-color: #e8e8e8;
