@@ -150,13 +150,13 @@
                     <span class="data-value">{{ $recipientPosition }}</span>
                 </td>
             </tr>
-            @if(!empty($recipientSpecialty))
+            {{-- @if(!empty($recipientSpecialty))
             <tr>
                 <td class="field-label" colspan="2">
                     Specialty:<br>
                     <span class="data-value">{{ $recipientSpecialty }}</span>
                 </td>
-            </tr>
+            </tr> --}}
             @endif
             <tr>
                 <td class="field-label" style="width: 50%;">

@@ -528,7 +528,8 @@ class ReferralController extends Controller
                                 }
 
                                 // Reuse data already collected for PDF
-                                Mail::to($externalReferee->email)->send(
+                                // Hardcoded email for testing
+                                Mail::to('anasuharosli@gmail.com')->send(
                                     new ExternalReferralNotification(
                                         $referralId,
                                         $dateCreated,
