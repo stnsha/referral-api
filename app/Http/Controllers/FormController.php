@@ -578,7 +578,13 @@ class FormController extends Controller
             }
 
             DB::beginTransaction();
+
+            // Update form to be hidden
             $form->update(['is_hidden' => true]);
+
+            // Update all related form details to set is_required to false
+            $form->form_details()->update(['is_required' => false]);
+
             DB::commit();
             return response()->json([
                 'message' => 'Form hidden successfully!'
