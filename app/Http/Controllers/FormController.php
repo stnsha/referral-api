@@ -110,7 +110,7 @@ class FormController extends Controller
 
             DB::beginTransaction();
             $validated = $request->validated();
-            $bu = BusinessUnit::where('staff_department_id', $validated['business_unit_id'])->first();
+            $bu = BusinessUnit::where('id', $validated['business_unit_id'])->first();
 
             // Validate that the requested business unit matches JWT business unit
             if (!$bu || $bu->id != $businessUnitId) {
