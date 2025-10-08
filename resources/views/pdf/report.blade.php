@@ -156,8 +156,8 @@
                     Specialty:<br>
                     <span class="data-value">{{ $recipientSpecialty }}</span>
                 </td>
-            </tr> --}}
-            @endif
+            </tr>
+            @endif --}}
             <tr>
                 <td class="field-label" style="width: 50%;">
                     Organization/Clinic Name:<br>
