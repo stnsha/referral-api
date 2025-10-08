@@ -293,6 +293,14 @@ class ExternalRefereeController extends Controller
      *         )
      *     ),
      *     @OA\Response(
+     *         response=400,
+     *         description="Cannot delete - referee has existing referrals",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Cannot delete external referee. This referee has 5 existing referral(s)."),
+     *             @OA\Property(property="referral_count", type="integer", example=5)
+     *         )
+     *     ),
+     *     @OA\Response(
      *         response=404,
      *         description="External referee not found"
      *     ),
@@ -305,10 +313,20 @@ class ExternalRefereeController extends Controller
     public function destroy(ExternalReferee $externalReferee): JsonResponse
     {
         try {
+            // Check if external referee has any referrals
+            $referralCount = $externalReferee->referral_histories()->count();
+
+            if ($referralCount > 0) {
+                return response()->json([
+                    'message' => "Cannot delete external referee. This referee has {$referralCount} existing referral(s).",
+                    'referral_count' => $referralCount,
+                ], 400);
+            }
+
             $externalReferee->delete();
             return response()->json([
                 'message' => 'External referee deleted successfully',
-            ]);
+            ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'External referee not found.',
