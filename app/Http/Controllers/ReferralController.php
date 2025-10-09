@@ -446,6 +446,7 @@ class ReferralController extends Controller
                     $recipientPosition = '';
                     $recipientSpecialty = '';
                     $recipientPhone = '';
+                    $recipientEmail = '';
                     $organizationName = '';
                     $organizationAddress = '';
 
@@ -455,6 +456,7 @@ class ReferralController extends Controller
                         $recipientPosition = $externalReferee->position;
                         $recipientSpecialty = $externalReferee->specialty;
                         $recipientPhone = $externalReferee->phone;
+                        $recipientEmail = $externalReferee->email;
 
                         if ($externalReferee->organization) {
                             $organizationName = $externalReferee->organization->name;
@@ -540,8 +542,7 @@ class ReferralController extends Controller
                                 }
 
                                 // Reuse data already collected for PDF
-                                // Hardcoded email for testing
-                                Mail::to('anasuharosli@gmail.com')->send(
+                                Mail::to($recipientEmail)->send(
                                     new ExternalReferralNotification(
                                         $referralId,
                                         $dateCreated,
