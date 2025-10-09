@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreReferralRequest;
 use App\Http\Requests\UpdateReferralRequest;
 use App\Mail\ExternalReferralNotification;
+use App\Models\BusinessUnit;
 use App\Models\FormDetails;
 use App\Models\Referral;
 use App\Models\ReferralAttachment;
@@ -479,7 +480,7 @@ class ReferralController extends Controller
                     $assignee = $validated['business_units']['assignee'] ?? null;
                     $referrerName = $assignee['nama_staff'] ?? 'N/A';
                     $referrerDesignation = $assignee['designation'] ?? 'N/A';
-                    $referrerBusinessUnit = $assignee['outlet'] ?? 'N/A';
+                    $referrerBusinessUnit = BusinessUnit::find($businessUnitId)->name ?? 'N/A';
                     $referrerPhone = $assignee['contact'] ?? 'N/A';
                     $referrerEmail = $assignee['email'] ?? 'N/A';
 
