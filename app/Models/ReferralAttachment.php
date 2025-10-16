@@ -12,15 +12,15 @@ class ReferralAttachment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'referral_history_id',
+        'referral_hierarchy_id',
         'file_name',
         'file_type',
         'file_size',
         'encoded_base'
     ];
 
-    public function referralHistory(): BelongsTo
+    public function referralHierarchy(): BelongsTo
     {
-        return $this->belongsTo(ReferralHistory::class, 'referral_history_id', 'id');
+        return $this->belongsTo(ReferralHierarchy::class, 'referral_hierarchy_id', 'id');
     }
 }

@@ -18,7 +18,6 @@ class ExternalReferee extends Model
         'email',
         'phone',
         'position',
-        'specialty',
         'is_active'
     ];
 

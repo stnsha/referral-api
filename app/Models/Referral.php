@@ -33,14 +33,25 @@ class Referral extends Model
         return $this->hasMany(ReferralDetails::class, 'referral_id', 'id');
     }
 
-    public function referral_histories(): HasMany
+    public function referral_hierarchies(): HasMany
     {
-        return $this->hasMany(ReferralHistory::class, 'referral_id', 'id');
+        return $this->hasMany(ReferralHierarchy::class, 'referral_id', 'id');
     }
 
-    public function latest_referral_history()
+    public function latest_referral_hierarchy()
     {
-        return $this->hasOne(ReferralHistory::class)->latestOfMany();
+        return $this->hasOne(ReferralHierarchy::class)->latestOfMany();
+    }
+
+    // Aliases for backward compatibility
+    public function referral_histories_old(): HasMany
+    {
+        return $this->referral_hierarchies();
+    }
+
+    public function latest_referral_history_old()
+    {
+        return $this->latest_referral_hierarchy();
     }
 
     public function referral_attachments(): HasMany

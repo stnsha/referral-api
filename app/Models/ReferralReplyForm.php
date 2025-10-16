@@ -7,25 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class ReferralDetails extends Model
+class ReferralReplyForm extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'referral_hierarchy_id',
-        'form_id',
-        'value',
+        'post_diagnosis',
+        'feedback',
+        'outcome',
     ];
-
-    public function referral(): BelongsTo
-    {
-        return $this->belongsTo(Referral::class, 'referral_id', 'id');
-    }
-
-    public function form(): BelongsTo
-    {
-        return $this->belongsTo(Form::class, 'form_id', 'id');
-    }
 
     public function referral_hierarchy(): BelongsTo
     {

@@ -22,9 +22,9 @@ class LibraryController extends Controller
     public function displayPriority()
     {
         $data = [
-            '1' => 'Low',
-            '2' => 'Medium',
-            '3' => 'High',
+            '1' => 'Low (3 days and above)',
+            '2' => 'Medium (1 - 3 days)',
+            '3' => 'High (3 hours)',
         ];
 
         return response()->json($data, 200);
