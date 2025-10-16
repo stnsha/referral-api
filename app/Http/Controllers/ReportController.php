@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessUnit;
 use App\Models\Referral;
-use App\Models\ReferralHistory;
+use App\Models\ReferralHierarchy;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Exports\ReportExport;
@@ -286,11 +286,13 @@ class ReportController extends Controller
 
         try {
             if (!$hasFilters) {
-                // Get ALL ReferralHistory records when no filters are applied
-                $allReferralHistories = ReferralHistory::with([
+                // Get ALL ReferralHierarchy records when no filters are applied
+                $allReferralHistories = ReferralHierarchy::with([
                     'referral',
                     'business_unit',
-                    'referral_details.form.form_details'
+                    'referral_details.form.form_details',
+                    'referral_create_form',
+                    'referral_reply_form'
                 ])
                     ->orderBy('referral_id')
                     ->orderBy('sequence')
@@ -298,7 +300,7 @@ class ReportController extends Controller
                     ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
             } else {
                 // Apply filters when parameters are provided
-                $rhQuery = ReferralHistory::with(['referral']);
+                $rhQuery = ReferralHierarchy::with(['referral']);
 
                 if ($businessUnitId) {
                     $rhQuery->where('business_unit_id', $businessUnitId);
@@ -321,7 +323,7 @@ class ReportController extends Controller
                 if ($isReferred) {
                     $rhQuery->whereIn('referral_id', function ($query) {
                         $query->select('referral_id')
-                            ->from('referral_histories')
+                            ->from('referral_hierarchies')
                             ->groupBy('referral_id')
                             ->havingRaw('COUNT(*) > 2');
                     });
@@ -352,11 +354,13 @@ class ReportController extends Controller
                 // Get the referral_ids that match the criteria
                 $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
 
-                // Now get ALL ReferralHistory records for those referral_ids
-                $allReferralHistories = ReferralHistory::with([
+                // Now get ALL ReferralHierarchy records for those referral_ids
+                $allReferralHistories = ReferralHierarchy::with([
                     'referral',
                     'business_unit',
-                    'referral_details.form.form_details'
+                    'referral_details.form.form_details',
+                    'referral_create_form',
+                    'referral_reply_form'
                 ])
                     ->whereIn('referral_id', $matchingReferralIds)
                     ->orderBy('referral_id')
@@ -412,14 +416,33 @@ class ReportController extends Controller
                     }
                 }
 
+                // Get form data from create and reply forms
+                $createFormData = [];
+                $replyFormData = [];
+
+                if ($rh->referral_create_form) {
+                    $createFormData = [
+                        'referral_reason' => $rh->referral_create_form->referral_reason,
+                        'referral_condition' => $rh->referral_create_form->referral_condition,
+                        'medical_history' => $rh->referral_create_form->medical_history,
+                    ];
+                }
+
+                if ($rh->referral_reply_form) {
+                    $replyFormData = [
+                        'post_diagnosis' => $rh->referral_reply_form->post_diagnosis,
+                        'outcome' => $rh->referral_reply_form->outcome,
+                        'feedback' => $rh->referral_reply_form->feedback,
+                    ];
+                }
+
                 $historyData = [
                     'staff_id' => $rh->staff_id,
                     'business_unit' => $rh->business_unit ? $rh->business_unit->name : null,
                     'location' => $rh->location,
                     'sequence' => $rh->sequence,
-                    'referral_reason' => $rh->referral_reason,
-                    'referral_condition' => $rh->referral_condition,
-                    'medical_history' => $rh->medical_history,
+                    'create_form' => $createFormData,
+                    'reply_form' => $replyFormData,
                     'additional_remarks' => $rh->additional_remarks,
                     'is_filled' => $rh->is_filled,
                     'external_referee_id' => $isExternal ? $rh->external_referee_id : null,
@@ -541,8 +564,8 @@ class ReportController extends Controller
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-        $referrals = Referral::with(['referral_histories.business_unit'])
-            ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
+        $referrals = Referral::with(['referral_hierarchies.business_unit'])
+            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId) {
                 $query->where('business_unit_id', $userBusinessUnitId);
             })
             ->get();
@@ -564,7 +587,7 @@ class ReportController extends Controller
         }
 
         foreach ($referrals as $referral) {
-            foreach ($referral->referral_histories as $rh) {
+            foreach ($referral->referral_hierarchies as $rh) {
                 if ($rh->business_unit != null && $rh->business_unit_id == $userBusinessUnitId) {
                     $businessUnit = $rh->business_unit->name;
 
@@ -715,8 +738,8 @@ class ReportController extends Controller
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-        $referrals = Referral::with(['referral_histories.business_unit'])
-            ->whereHas('referral_histories', function ($query) use ($userBusinessUnitId) {
+        $referrals = Referral::with(['referral_hierarchies.business_unit'])
+            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId) {
                 $query->where('business_unit_id', $userBusinessUnitId);
             })
             ->get();
@@ -789,7 +812,7 @@ class ReportController extends Controller
             }
 
             // Count referrals per business unit (only for user's business unit)
-            foreach ($referral->referral_histories as $rh) {
+            foreach ($referral->referral_hierarchies as $rh) {
                 if ($rh->business_unit_id && $rh->business_unit_id == $userBusinessUnitId && isset($businessUnitCounts[$rh->business_unit_id])) {
                     $businessUnitCounts[$rh->business_unit_id]['count']++;
                 }
@@ -817,8 +840,8 @@ class ReportController extends Controller
             ], 401);
         }
 
-        // Get referral histories with all necessary relationships
-        $referralHistories = ReferralHistory::with([
+        // Get referral hierarchies with all necessary relationships
+        $referralHistories = ReferralHierarchy::with([
             'referral',
             'business_unit',
             'external_referee'
@@ -970,11 +993,13 @@ class ReportController extends Controller
 
         try {
             if (!$hasFilters) {
-                // Get ALL ReferralHistory records when no filters are applied
-                $allReferralHistories = ReferralHistory::with([
+                // Get ALL ReferralHierarchy records when no filters are applied
+                $allReferralHistories = ReferralHierarchy::with([
                     'referral',
                     'business_unit',
-                    'referral_details.form.form_details'
+                    'referral_details.form.form_details',
+                    'referral_create_form',
+                    'referral_reply_form'
                 ])
                     ->orderBy('referral_id')
                     ->orderBy('sequence')
@@ -982,7 +1007,7 @@ class ReportController extends Controller
                     ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
             } else {
                 // Apply filters when parameters are provided
-                $rhQuery = ReferralHistory::with(['referral']);
+                $rhQuery = ReferralHierarchy::with(['referral']);
 
                 if ($businessUnitId) {
                     $rhQuery->where('business_unit_id', $businessUnitId);
@@ -1005,7 +1030,7 @@ class ReportController extends Controller
                 if ($isReferred) {
                     $rhQuery->whereIn('referral_id', function ($query) {
                         $query->select('referral_id')
-                            ->from('referral_histories')
+                            ->from('referral_hierarchies')
                             ->groupBy('referral_id')
                             ->havingRaw('COUNT(*) > 2');
                     });
@@ -1036,11 +1061,13 @@ class ReportController extends Controller
                 // Get the referral_ids that match the criteria
                 $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
 
-                // Now get ALL ReferralHistory records for those referral_ids
-                $allReferralHistories = ReferralHistory::with([
+                // Now get ALL ReferralHierarchy records for those referral_ids
+                $allReferralHistories = ReferralHierarchy::with([
                     'referral',
                     'business_unit',
-                    'referral_details.form.form_details'
+                    'referral_details.form.form_details',
+                    'referral_create_form',
+                    'referral_reply_form'
                 ])
                     ->whereIn('referral_id', $matchingReferralIds)
                     ->orderBy('referral_id')
@@ -1096,14 +1123,33 @@ class ReportController extends Controller
                     }
                 }
 
+                // Get form data from create and reply forms
+                $createFormData = [];
+                $replyFormData = [];
+
+                if ($rh->referral_create_form) {
+                    $createFormData = [
+                        'referral_reason' => $rh->referral_create_form->referral_reason,
+                        'referral_condition' => $rh->referral_create_form->referral_condition,
+                        'medical_history' => $rh->referral_create_form->medical_history,
+                    ];
+                }
+
+                if ($rh->referral_reply_form) {
+                    $replyFormData = [
+                        'post_diagnosis' => $rh->referral_reply_form->post_diagnosis,
+                        'outcome' => $rh->referral_reply_form->outcome,
+                        'feedback' => $rh->referral_reply_form->feedback,
+                    ];
+                }
+
                 $historyData = [
                     'staff_id' => $rh->staff_id,
                     'business_unit' => $rh->business_unit ? $rh->business_unit->name : null,
                     'location' => $rh->location,
                     'sequence' => $rh->sequence,
-                    'referral_reason' => $rh->referral_reason,
-                    'referral_condition' => $rh->referral_condition,
-                    'medical_history' => $rh->medical_history,
+                    'create_form' => $createFormData,
+                    'reply_form' => $replyFormData,
                     'additional_remarks' => $rh->additional_remarks,
                     'is_filled' => $rh->is_filled,
                     'external_referee_id' => $isExternal ? $rh->external_referee_id : null,
@@ -1166,7 +1212,7 @@ class ReportController extends Controller
 
     public function adminChart()
     {
-        $referrals = Referral::with(['referral_histories.business_unit'])->get();
+        $referrals = Referral::with(['referral_hierarchies.business_unit'])->get();
         $businessUnits = BusinessUnit::all();
 
         // Initialize all business units with zero counts
@@ -1185,7 +1231,7 @@ class ReportController extends Controller
         }
 
         foreach ($referrals as $referral) {
-            foreach ($referral->referral_histories as $rh) {
+            foreach ($referral->referral_hierarchies as $rh) {
                 if ($rh->business_unit != null) {
                     $businessUnit = $rh->business_unit->name;
 
@@ -1204,7 +1250,7 @@ class ReportController extends Controller
 
     public function adminDashboard()
     {
-        $referrals = Referral::with(['referral_histories.business_unit'])->get();
+        $referrals = Referral::with(['referral_hierarchies.business_unit'])->get();
         $businessUnits = BusinessUnit::all();
 
         if ($referrals->isEmpty()) {
@@ -1274,7 +1320,7 @@ class ReportController extends Controller
             }
 
             // Count referrals per business unit
-            foreach ($referral->referral_histories as $rh) {
+            foreach ($referral->referral_hierarchies as $rh) {
                 if ($rh->business_unit_id && isset($businessUnitCounts[$rh->business_unit_id])) {
                     $businessUnitCounts[$rh->business_unit_id]['count']++;
                 }
