@@ -348,9 +348,11 @@ class ReferralController extends Controller
 
                     //for second level of business unit
                     $is_filled = false;
+                    $is_read = false;
 
                     if (isset($value['business_unit_id']) && $business_unit_id == $value['business_unit_id']) {
                         $is_filled = true;
+                        $is_read = true;
                     }
 
                     // Determine if this is the recipient (has external referee/organization data)
@@ -384,6 +386,7 @@ class ReferralController extends Controller
                         'sequence' => $sequence,
                         'additional_remarks' => $value['additional_remarks'] ?? null,
                         'is_filled' => $is_filled,
+                        'is_read' => $is_read,
                         'external_referee_id' =>  $isRecipient ? ($newRefereeId ?? (isset($value['referee']) ? $value['referee'] : null)) : null,
                         'external_organization_id' => $externalOrganizationId
                     ];
