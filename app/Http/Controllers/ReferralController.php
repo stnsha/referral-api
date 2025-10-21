@@ -855,11 +855,16 @@ class ReferralController extends Controller
                 'referral_hierarchies.referral_attachments'
             ]);
 
-            //check if referral accessible by this business unit
-            $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
+            // Check view_only parameter
+            $viewOnly = $request->query('view_only', false);
 
-            if (!$exists) {
-                return response()->json(['message' => 'Referral not accessible.'], 403);
+            //check if referral accessible by this business unit (skip if view_only)
+            if (!$viewOnly) {
+                $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
+
+                if (!$exists) {
+                    return response()->json(['message' => 'Referral not accessible.'], 403);
+                }
             }
 
             //initialize for default value
@@ -1052,7 +1057,7 @@ class ReferralController extends Controller
             return response()->json([
                 'message' => 'Referral not found.'
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['message' => 'Internal server error.'], 500);
         }
     }
@@ -1392,7 +1397,7 @@ class ReferralController extends Controller
             return response()->json([
                 'message' => $e->getMessage()
             ], 404);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
@@ -1447,8 +1452,111 @@ class ReferralController extends Controller
                 'count' => $num,
                 'notifications' => $noti_list
             ], 200, [], JSON_UNESCAPED_SLASHES);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['message' => 'Internal server error.'], 500);
+        }
+    }
+
+    public function search(Request $request)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            $customerId = $request->input('customer_id', '');
+
+            if (empty($customerId)) {
+                return response()->json([
+                    'message' => 'Customer ID is required.',
+                    'data' => [],
+                ], 422);
+            }
+
+            $referrals = Referral::with([
+                    'referral_hierarchies.business_unit',
+                    'referral_hierarchies.external_referee',
+                    'referral_hierarchies.external_organization',
+                    'referral_hierarchies.referral_create_form'
+                ])
+                ->where('customer_id', $customerId)
+                ->orderByDesc('created_at')
+                ->get();
+
+            if ($referrals->isEmpty()) {
+                return response()->json([
+                    'message' => 'Customer not found.',
+                    'data' => [],
+                ], 404);
+            }
+
+            $results = [];
+
+            foreach ($referrals as $ref) {
+                // Find the latest sequence (maximum sequence number)
+                $latestSequence = $ref->referral_hierarchies->max('sequence');
+
+                // Get the referral hierarchy with the latest sequence
+                $latestReferralHierarchy = $ref->referral_hierarchies->where('sequence', $latestSequence)->first();
+
+                // Get the second-to-last sequence for 'from' business unit
+                $secondToLastSequence = $latestSequence > 1 ? $latestSequence - 1 : 1;
+                $secondToLastReferralHierarchy = $ref->referral_hierarchies->where('sequence', $secondToLastSequence)->first();
+
+                $is_external = $latestReferralHierarchy->external_organization_id != null ? true : false;
+
+                // Get referral reason from the second-to-last hierarchy's create form
+                $referralReason = 'N/A';
+                if ($secondToLastReferralHierarchy && $secondToLastReferralHierarchy->referral_create_form) {
+                    $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? 'N/A';
+                }
+
+                $referralData = [];
+                if ($latestReferralHierarchy && $secondToLastReferralHierarchy && !$is_external) {
+                    $referralData = [
+                        'id' => $ref->id,
+                        'ref_id' => createRefId($ref->id),
+                        'reason' => $referralReason,
+                        'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
+                        'to_business_unit' => $latestReferralHierarchy->business_unit->name,
+                        'priority' => $ref->priority,
+                        'status' => $ref->status,
+                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                        'ori_created_at' => $ref->created_at,
+                        'is_external' => $is_external
+                    ];
+                } else {
+                    $referralData = [
+                        'id' => $ref->id,
+                        'ref_id' => createRefId($ref->id),
+                        'reason' => $referralReason,
+                        'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
+                        'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : 'N/A'),
+                        'priority' => $ref->priority,
+                        'status' => $ref->status,
+                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                        'ori_created_at' => $ref->created_at,
+                        'is_external' => $is_external
+                    ];
+                }
+
+                $results[] = $referralData;
+            }
+
+            return response()->json([
+                'data' => $results
+            ], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to search referrals.',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }
