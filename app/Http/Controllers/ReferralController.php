@@ -72,10 +72,18 @@ class ReferralController extends Controller
     {
         $jwtPayload = $request->get('jwt_payload');
         $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+        $listOutlets = $jwtPayload['outlet'] ?? null;
 
         if (!$businessUnitId) {
             return response()->json([
                 'message' => 'Business unit ID not found in session.',
+                'data' => [],
+            ], 401);
+        }
+
+        if (!$listOutlets || !is_array($listOutlets)) {
+            return response()->json([
+                'message' => 'Outlet list not found in session.',
                 'data' => [],
             ], 401);
         }
@@ -86,8 +94,9 @@ class ReferralController extends Controller
                 'referral_hierarchies.external_organization',
                 'referral_hierarchies.referral_create_form'
             ])
-            ->whereHas('referral_hierarchies', function ($query) use ($businessUnitId) {
-                $query->where('business_unit_id', $businessUnitId);
+            ->whereHas('referral_hierarchies', function ($query) use ($businessUnitId, $listOutlets) {
+                $query->where('business_unit_id', $businessUnitId)
+                      ->whereIn('location', $listOutlets);
             })
             ->orderByDesc('created_at')
             ->get();

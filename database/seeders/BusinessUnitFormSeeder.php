@@ -63,7 +63,7 @@ class BusinessUnitFormSeeder extends Seeder
                             'field_type' => $field['type'],
                             'field_value' => $option,
                         ], [
-                            'is_required' => true,
+                            'is_required' => false,
                         ]);
                     }
                 } else {
@@ -72,7 +72,7 @@ class BusinessUnitFormSeeder extends Seeder
                         'field_name' => $field['field'],
                         'field_type' => $field['type'],
                     ], [
-                        'is_required' => true,
+                        'is_required' => false,
                         'field_value' => null,
                     ]);
                 }

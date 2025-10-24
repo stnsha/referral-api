@@ -114,9 +114,10 @@ class ODBController extends Controller
     {
         if ($staffDepartmentId == 1) {
             $isAudiologist = in_array(strtolower($statusSemasa), [
-                'junior audiologist', 
-                'audiologist', 
-                'senior audiologist'
+                'junior audiologist',
+                'audiologist',
+                'senior audiologist',
+                'audiologist in charge'
             ]);
 
             if ($isAudiologist) {
@@ -139,10 +140,16 @@ class ODBController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"staff_id", "staff_department_id", "status_semasa"},
+     *             required={"staff_id", "staff_department_id", "status_semasa", "outlet"},
      *             @OA\Property(property="staff_id", type="integer", example=2222),
-     *             @OA\Property(property="staff_department_id", type="integer", example=1),
-     *             @OA\Property(property="status_semasa", type="string", example="Junior Audiologist")
+     *             @OA\Property(property="staff_department_id", type="integer", example=20),
+     *             @OA\Property(property="status_semasa", type="string", example="Tester"),
+     *             @OA\Property(
+     *                 property="outlet",
+     *                 type="array",
+     *                 @OA\Items(type="integer"),
+     *                 example={99, 100, 101, 102, 161, 216, 217, 232, 260, 317, 318, 337, 338, 354, 356, 362, 378}
+     *             )
      *         )
      *     ),
      *     @OA\Response(
@@ -168,10 +175,15 @@ class ODBController extends Controller
             'staff_id' => 'required|integer',
             'staff_department_id' => 'required|integer',
             'status_semasa' => 'required|string',
+            'outlet' => 'required|array',
+            'outlet.*' => 'integer',
         ], [
             'staff_id.required' => 'Staff ID is required.',
             'staff_department_id.required' => 'Staff Department ID is required.',
             'status_semasa.required' => 'Status Semasa is required.',
+            'outlet.required' => 'Outlet is required.',
+            'outlet.array' => 'Outlet must be an array.',
+            'outlet.*.integer' => 'Each outlet must be an integer.',
         ]);
 
         if ($validated) {
@@ -187,7 +199,8 @@ class ODBController extends Controller
                 'exp' => time() + (60 * 60 * 24),
                 'staff_id' => $validated['staff_id'],
                 'business_unit_id' => $businessUnitId,
-                'status_semasa' => $validated['status_semasa']
+                'status_semasa' => $validated['status_semasa'],
+                'outlet' => $validated['outlet']
             ];
 
             $token = $this->generateJWT($payload);
