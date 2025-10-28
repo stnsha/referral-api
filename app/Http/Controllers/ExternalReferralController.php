@@ -21,7 +21,111 @@ use Throwable;
 class ExternalReferralController extends Controller
 {
     use Octopus;
+
+    /**
+     * @OA\Post(
+     *     path="/api/external-referral",
+     *     summary="Create a new external referral",
+     *     tags={"External Referrals"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"business_units", "referral"},
+     *             @OA\Property(property="business_units", type="object",
+     *                 @OA\Property(property="assignee", type="object",
+     *                     @OA\Property(property="staff_id", type="integer", example=2222),
+     *                     @OA\Property(property="business_unit_id", type="string", example="6"),
+     *                     @OA\Property(property="location", type="string", example="101"),
+     *                     @OA\Property(property="referral_reason", type="string", example="Specialized cardiac assessment required"),
+     *                     @OA\Property(property="referral_condition", type="string", example="Patient presents with irregular heartbeat and chest discomfort. Initial ECG shows abnormalities requiring specialist review."),
+     *                     @OA\Property(property="medical_history", type="string", example="Hypertension for 5 years, controlled with medication."),
+     *                     @OA\Property(property="additional_remarks", type="string", example="Patient prefers morning appointments", nullable=true)
+     *                 ),
+     *                 @OA\Property(property="recipient", type="object",
+     *                     description="Four possible conditions: A) Existing org + existing referee, B) New org + new referee, C) New org only, D) Existing org + new referee",
+     *                     @OA\Property(property="organization", type="integer", example=1, description="Existing organization ID (Conditions A & D)"),
+     *                     @OA\Property(property="referee", type="integer", example=1, description="Existing referee ID (Condition A only)"),
+     *                     @OA\Property(property="new_organization", type="object", description="New organization details (Conditions B & C)",
+     *                         @OA\Property(property="name", type="string", example="Hospital Tuanku Jaafar"),
+     *                         @OA\Property(property="address", type="string", example="Jalan Rasah, Seremban"),
+     *                         @OA\Property(property="postcode", type="string", example="70300"),
+     *                         @OA\Property(property="state", type="string", example="Negeri Sembilan"),
+     *                         @OA\Property(property="country", type="string", example="Malaysia")
+     *                     ),
+     *                     @OA\Property(property="new_recipient", type="object", description="New referee details (Conditions B & D)",
+     *                         @OA\Property(property="name", type="string", example="Dr. Farisah"),
+     *                         @OA\Property(property="email", type="string", example="dummy1@dummy.com"),
+     *                         @OA\Property(property="phone", type="string", example="0123456789"),
+     *                         @OA\Property(property="position", type="string", example="Medical Officer")
+     *                     )
+     *                 )
+     *             ),
+     *             @OA\Property(property="referral", type="object",
+     *                 @OA\Property(property="customer_id", type="integer", example=10),
+     *                 @OA\Property(property="priority", type="integer", example=2)
+     *             ),
+     *             @OA\Property(property="form_data", type="object",
+     *                 @OA\Property(property="6", type="object",
+     *                     @OA\Property(property="targeted_area", type="string", example="Cardiovascular"),
+     *                     @OA\Property(property="pain_level", type="string", example="6"),
+     *                     @OA\Property(property="previous_treatment", type="string", example="30")
+     *                 )
+     *             ),
+     *             @OA\Property(property="attachments", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="name", type="string", example="ECG_Report.pdf"),
+     *                     @OA\Property(property="type", type="string", example="application/pdf"),
+     *                     @OA\Property(property="size", type="integer", example=25600),
+     *                     @OA\Property(property="base64", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago...")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="External referral created successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1234),
+     *             @OA\Property(property="pdf_base64", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthorized: Cannot create referral for different business unit.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation failed.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Validation failed."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create external referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
+     *             @OA\Property(property="error", type="string", example="Connection Failure"),
+     *             @OA\Property(property="line", type="integer", example=123),
+     *             @OA\Property(property="file", type="string", example="/app/Http/Controllers/ExternalReferralController.php")
+     *         )
+     *     )
+     * )
+     */
     public function store(StoreReferralRequest $request) {
+
         try {
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
@@ -122,23 +226,20 @@ class ExternalReferralController extends Controller
                         $is_read = true;
                     }
 
-                    $isRecipient = isset($value['new_recipient']) || isset($value['new_organization']) || isset($value['organization']);
+                    $isRecipient = isset($value['new_recipient']) || isset($value['new_organization']) || isset($value['organization']) || isset($value['referee']);
 
                     // Determine external_organization_id for external referrals
                     $externalOrganizationId = null;
                     if ($isRecipient) {
-                        // If only existing organization is selected (no referee)
-                        if (isset($value['organization']) && !isset($value['referee']) && !isset($value['new_recipient'])) {
-                            $externalOrganizationId = $value['organization'];
-                        }
-                        // If new organization was created (with or without new recipient)
-                        elseif ($newOrganizationId) {
+                        // Priority 1: If new organization was created, use it
+                        if ($newOrganizationId) {
                             $externalOrganizationId = $newOrganizationId;
                         }
-                        // If existing organization is specified for new recipient
-                        elseif (isset($value['new_recipient']) && isset($value['organization'])) {
+                        // Priority 2: If existing organization is specified, use it
+                        elseif (isset($value['organization'])) {
                             $externalOrganizationId = $value['organization'];
                         }
+                        // else: remains null (for cases where only referee is specified without organization)
                     }
 
                     $sequence = $key + 1;

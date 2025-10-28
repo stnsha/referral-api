@@ -25,9 +25,10 @@ class StoreReferralRequest extends FormRequest
     {
         // Check if this is an external referral
         // External if has: referee, new_organization, new_recipient, or organization (existing external org)
-        // $isExternalReferral = $this->input('business_units.recipient.new_organization') !== null
-        //     || $this->input('business_units.recipient.new_recipient') !== null
-        //     || $this->input('business_units.recipient.organization') !== null;
+        $isExternalReferral = $this->input('business_units.recipient.new_organization') !== null
+            || $this->input('business_units.recipient.new_recipient') !== null
+            || $this->input('business_units.recipient.organization') !== null
+            || $this->input('business_units.recipient.referee') !== null;
 
         $staticRules = [
             'business_units.assignee.staff_id' => 'required|integer',

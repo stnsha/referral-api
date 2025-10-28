@@ -202,7 +202,7 @@ class ReferralController extends Controller
     /**
      * @OA\Post(
      *     path="/api/referral",
-     *     summary="Create a new referral",
+     *     summary="Create a new internal referral",
      *     tags={"Referrals"},
      *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
@@ -216,7 +216,7 @@ class ReferralController extends Controller
      *                     @OA\Property(property="location", type="string", example="101"),
      *                     @OA\Property(property="referral_reason", type="string", example="Vestibular-Related Balance Issue"),
      *                     @OA\Property(property="referral_condition", type="string", example="Patient reports persistent dizziness and unsteadiness during standing and walking exercises. Symptoms suggest possible vestibular involvement that is beyond musculoskeletal causes. Referral to audiology is requested for further assessment and vestibular testing."),
-     *                     @OA\Property(property="medical_history", type="string", example=""),
+     *                     @OA\Property(property="medical_history", type="string", example="Mild scoliosis diagnosed during teenage years."),
      *                     @OA\Property(property="additional_remarks", type="string", example=null, nullable=true)
      *                 ),
      *                 @OA\Property(property="recipient", type="object",
@@ -251,14 +251,22 @@ class ReferralController extends Controller
      *         response=201,
      *         description="Referral created successfully.",
      *         @OA\JsonContent(
-     *             @OA\Property(property="id", type="integer", example=1234)
+     *             @OA\Property(property="id", type="integer", example=1234),
+     *             @OA\Property(property="pdf_base64", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago...", description="Base64 encoded PDF with QR code")
      *         )
      *     ),
      *     @OA\Response(
      *         response=401,
      *         description="Unauthorized",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Invalid or expired token.")
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthorized: Cannot create referral for different business unit.")
      *         )
      *     ),
      *     @OA\Response(
@@ -267,6 +275,16 @@ class ReferralController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Validation failed."),
      *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to create referral.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to create referral."),
+     *             @OA\Property(property="error", type="string", example="Connection Failure"),
+     *             @OA\Property(property="line", type="integer", example=123),
+     *             @OA\Property(property="file", type="string", example="/app/Http/Controllers/ReferralController.php")
      *         )
      *     )
      * )
@@ -1318,6 +1336,49 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/{id}/download",
+     *     summary="Download referral PDF",
+     *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Referral ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="PDF retrieved successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="pdfBase64", type="string", format="byte", example="JVBERi0xLjQKJaqrrK0KMSAwIG9iago...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Referral or PDF not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="PDF not found for this referral.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Internal server error.")
+     *         )
+     *     )
+     * )
+     */
     public function download(Request $request, $id)
     {
         try {
@@ -1372,6 +1433,36 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/notification",
+     *     summary="Get unread referral notifications",
+     *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Notifications retrieved successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="count", type="integer", example=3),
+     *             @OA\Property(property="notifications", type="string", example="<a href='../../odb/referral/view.php?id=1'><span style='font-size:12px; font-weight:bold;'>New Referral #REF0001</span></a>")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Internal server error.")
+     *         )
+     *     )
+     * )
+     */
     public function notification(Request $request)
     {
         try {
@@ -1386,7 +1477,7 @@ class ReferralController extends Controller
             }
 
             // Fetch unread notifications for the staff (only if business unit is the last sequence)
-            $notifications = ReferralHistory::with(['referral'])
+            $notifications = ReferralHierarchy::with(['referral'])
                 ->where('business_unit_id', $businessUnitId)
                 ->where('is_read', false)
                 ->whereRaw('sequence = (SELECT MAX(sequence) FROM referral_histories WHERE referral_id = referral_histories.referral_id)')
@@ -1411,6 +1502,72 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/search",
+     *     summary="Search referrals by customer ID",
+     *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="customer_id",
+     *         in="query",
+     *         required=true,
+     *         description="Customer ID to search for",
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Referrals found successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="ref_id", type="string", example="#REF0001"),
+     *                     @OA\Property(property="reason", type="string", example="Vestibular-Related Balance Issue"),
+     *                     @OA\Property(property="from_business_unit", type="string", example="Alpro Physio"),
+     *                     @OA\Property(property="to_business_unit", type="string", example="Alpro Audiology"),
+     *                     @OA\Property(property="priority", type="integer", example=2),
+     *                     @OA\Property(property="status", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", example="1 July 2025, Sunday"),
+     *                     @OA\Property(property="ori_created_at", type="string", example="2025-07-01T10:30:00"),
+     *                     @OA\Property(property="is_external", type="boolean", example=false)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Customer not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Customer not found."),
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Customer ID is required.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Customer ID is required."),
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Failed to search referrals.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Failed to search referrals."),
+     *             @OA\Property(property="error", type="string", example="Database error")
+     *         )
+     *     )
+     * )
+     */
     public function search(Request $request)
     {
         try {
