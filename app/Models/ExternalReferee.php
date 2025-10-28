@@ -29,9 +29,4 @@ class ExternalReferee extends Model
     {
         return $this->belongsTo(ExternalOrganization::class, 'external_organization_id', 'id');
     }
-
-    public function referral_histories(): HasMany
-    {
-        return $this->hasMany(ReferralHistory::class, 'external_referee_id', 'id');
-    }
 }

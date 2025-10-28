@@ -31,4 +31,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'odb' => [
+        'username' => env('ODB_API_USERNAME'),
+        'password' => env('ODB_API_PASSWORD'),
+        'url' => env('ODB_API_URL'),
+    ],
+
 ];

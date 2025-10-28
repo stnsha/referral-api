@@ -1,0 +1,416 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StoreReferralRequest;
+use App\Models\ExternalOrganization;
+use App\Models\ExternalReferee;
+use App\Models\FormDetails;
+use App\Models\Referral;
+use App\Models\ReferralAttachment;
+use App\Models\ReferralCreateForm;
+use App\Models\ReferralDetails;
+use App\Models\ReferralHierarchy;
+use App\Traits\Octopus;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Throwable;
+
+class ExternalReferralController extends Controller
+{
+    use Octopus;
+    public function store(StoreReferralRequest $request) {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            $validated = $request->validated();
+
+            if($validated)
+            {
+                DB::beginTransaction();
+
+                //data from business units
+                $businessUnits = $validated['business_units'];
+
+                //get business unit id
+                $business_unit_id = $businessUnits['assignee']['business_unit_id'];
+
+                // Validate that the assignee business unit matches JWT business unit
+                if ($business_unit_id != $businessUnitId) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot create referral for different business unit.',
+                    ], 403);
+                }
+
+                // Determine external referral
+                $isExternalReferral = isset($businessUnits['recipient']['new_organization'])
+                    || isset($businessUnits['recipient']['new_recipient'])
+                    || isset($businessUnits['recipient']['organization']);
+
+                // Determine customer_id based on external referral
+                $customerId = $validated['referral']['customer_id'];
+
+                // Create referral
+                $referral = Referral::create([
+                    'customer_id' => $customerId,
+                    'priority' => $validated['referral']['priority'],
+                    'status' => 3, //Referred (because external org/ref might respond)
+                ]);
+
+                // Handle new organization and recipient creation for external referrals
+                $newOrganizationId = null;
+                $newRefereeId = null;
+
+                if (isset($businessUnits['recipient']['new_organization'])) {
+                    $newOrgData = $businessUnits['recipient']['new_organization'];
+                    $newOrganization = ExternalOrganization::firstOrCreate(
+                        [
+                            'name' => $newOrgData['name'],
+                        ],
+                        [
+                        'address' => $newOrgData['address'] ?? null,
+                        'postcode' => $newOrgData['postcode'] ?? null,
+                        'state' => $newOrgData['state'] ?? null,
+                        'country' => $newOrgData['country'] ?? null,
+                    ]);
+                    $newOrganizationId = $newOrganization->id;
+                }
+
+                if (isset($businessUnits['recipient']['new_recipient'])) {
+                    $newRecipientData = $businessUnits['recipient']['new_recipient'];
+
+                    // Priority: newly created org > existing org ID > null
+                    $orgId = $newOrganizationId ?? $businessUnits['recipient']['organization'] ?? null;
+
+                    $newReferee = ExternalReferee::firstOrCreate(
+                        [
+                            'email' => $newRecipientData['email'] ?? null,
+                        ],
+                        [
+                            'name' => $newRecipientData['name'],
+                        'phone' => $newRecipientData['phone'] ?? null,
+                        'position' => $newRecipientData['position'] ?? null,
+                        'external_organization_id' => $orgId,
+                    ]);
+                    $newRefereeId = $newReferee->id;
+                }
+
+                // If new organization created but no new recipient, still need to update recipient to use new org
+                if ($newOrganizationId && !$newRefereeId && isset($businessUnits['recipient']['organization'])) {
+                    // This case shouldn't happen based on the examples, but keeping for safety
+                }
+
+                //run through businessunits
+                foreach (array_values($businessUnits) as $key => $value) {
+
+                    //for second level of business unit
+                    $is_filled = false;
+                    $is_read = false;
+
+                    if (isset($value['business_unit_id']) && $business_unit_id == $value['business_unit_id']) {
+                        $is_filled = true;
+                        $is_read = true;
+                    }
+
+                    $isRecipient = isset($value['new_recipient']) || isset($value['new_organization']) || isset($value['organization']);
+
+                    // Determine external_organization_id for external referrals
+                    $externalOrganizationId = null;
+                    if ($isRecipient) {
+                        // If only existing organization is selected (no referee)
+                        if (isset($value['organization']) && !isset($value['referee']) && !isset($value['new_recipient'])) {
+                            $externalOrganizationId = $value['organization'];
+                        }
+                        // If new organization was created (with or without new recipient)
+                        elseif ($newOrganizationId) {
+                            $externalOrganizationId = $newOrganizationId;
+                        }
+                        // If existing organization is specified for new recipient
+                        elseif (isset($value['new_recipient']) && isset($value['organization'])) {
+                            $externalOrganizationId = $value['organization'];
+                        }
+                    }
+
+                    $sequence = $key + 1;
+
+                    //compile data for referral hierarchy (no form fields)
+                    $data = [
+                        'referral_id' => $referral->id,
+                        'staff_id' => ($value['staff_id'] ?? 0) != 0 ? $value['staff_id'] : null,
+                        'business_unit_id' => isset($value['business_unit_id']) ? $value['business_unit_id'] : null,
+                        'location' => $value['location'] ?? null,
+                        'sequence' => $sequence,
+                        'additional_remarks' => $value['additional_remarks'] ?? null,
+                        'is_filled' => $is_filled,
+                        'is_read' => $is_read,
+                        'external_referee_id' =>  $isRecipient ? ($newRefereeId ?? (isset($value['referee']) ? $value['referee'] : null)) : null,
+                        'external_organization_id' => $externalOrganizationId
+                    ];
+
+                    //create referral hierarchy
+                    $referralHierarchy = ReferralHierarchy::create($data);
+                    $referral_hierarchy_id = $referralHierarchy->id;
+                    $business_unit = $is_filled ? $referralHierarchy->business_unit->name : null;
+
+                    // Create form based on sequence (odd = create form, even = reply form)
+                    if ($sequence % 2 === 1) {
+                        // Odd sequence - Create Form
+                        if (
+                            isset($value['referral_reason']) ||
+                            isset($value['referral_condition']) ||
+                            isset($value['medical_history'])
+                        ) {
+                            ReferralCreateForm::create([
+                                'referral_hierarchy_id' => $referral_hierarchy_id,
+                                'referral_reason' => $value['referral_reason'] ?? null,
+                                'referral_condition' => $value['referral_condition'] ?? null,
+                                'medical_history' => $value['medical_history'] ?? null,
+                            ]);
+                        }
+                    }
+
+                    //run through first level of business unit
+                    if ($is_filled) {
+                        $formFields = $request->input("form_data.$business_unit_id", []);
+
+                        // Only process form fields if form_data is not empty
+                        if (!empty($formFields) && is_array($formFields)) {
+                            foreach ($formFields as $field => $value) {
+                                //get data from form details
+                                $form_detail = FormDetails::where('field_name', $field)
+                                    ->whereHas('form', function ($query) use ($business_unit_id) {
+                                        $query->where('business_unit_id', $business_unit_id);
+                                    })
+                                    ->first();
+
+                                //create referral details
+                                if ($form_detail) {
+                                    ReferralDetails::create([
+                                        'referral_hierarchy_id' => $referral_hierarchy_id,
+                                        'form_id' => $form_detail->form_id,
+                                        'value' => is_array($value) ? json_encode($value) : $value,
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+
+                    //run through attachments if exist
+                    if (filled($request['attachments']) && $is_filled) {
+                        $mimeMap = [
+                            'image/jpeg' => 'jpg',
+                            'image/png' => 'png',
+                            'application/pdf' => 'pdf',
+                            'application/msword' => 'doc',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+                            'application/vnd.ms-excel' => 'xls',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx'
+                        ];
+
+                        foreach ($validated['attachments'] as $key => $atc) {
+                            $referralAttachment = ReferralAttachment::create([
+                                'referral_hierarchy_id' => $referral_hierarchy_id,
+                                'file_name' => $atc['name'],
+                                'file_type' => $atc['type'],
+                                'file_size' => $atc['size'],
+                                'encoded_base' => $atc['base64']
+                            ]);
+
+                            $extension = $mimeMap[$atc['type']] ?? pathinfo($atc['name'], PATHINFO_EXTENSION);
+                            $newFileName = $business_unit != null
+                                ? str_replace(' ', '_', $business_unit)
+                                : pathinfo($atc['name'], PATHINFO_FILENAME);
+
+                            $suffix = $referral->id . $referral_hierarchy_id . $referralAttachment->id;
+                            $referralAttachment->file_name = $newFileName . '_' . $suffix . '.' . $extension;
+                            $referralAttachment->save();
+                        }
+                    }
+                }
+
+                $response = ['id' => $referral->id];
+
+                // Generate PDF base64 for ALL referrals (both internal and external)
+                $referralData = $referral->load([
+                    'referral_hierarchies.business_unit',
+                    'referral_hierarchies.external_referee.organization',
+                    'referral_hierarchies.external_organization',
+                    'referral_hierarchies.referral_create_form'
+                ]);
+
+                // Prepare data for PDF
+                $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+                $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
+
+                // Collect PDF data
+                $referralId = createRefId($referral->id);
+                $dateCreated = $referral->created_at->format('d F Y');
+
+                /************************************************** Customer *****************************************/
+                // Get customer_id
+                $customerId = $referral->customer_id;
+                $patient = $this->customerDetails($customerId);
+                $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
+
+                if (blank($patient)) {
+                    Log::info('Patient not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'customer_id' => $customerId,
+                    ]);
+                } else {
+                    $data = $patient[0] ?? $patient;
+                    $patientName = data_get($data, 'customer_name', null);
+                    $patientIcNo = data_get($data, 'ic', null);
+                    $patientPhone = data_get($data, 'phone', null);
+                    $patientAddress = data_get($data, 'c_addr', null);
+                    $patientEmail = data_get($data, 'email', null);
+                }
+
+                /************************************************** Assignee *****************************************/
+                $referralReason = null;
+                $referralCondition = null;
+                $medicalHistory = null;
+                if ($firstHierarchy && $firstHierarchy->referral_create_form) {
+                    $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
+                    $referralCondition = $firstHierarchy->referral_create_form->referral_condition ?? null;
+                    $medicalHistory = $firstHierarchy->referral_create_form->medical_history ?? null;
+                    $additionalRemarks = $firstHierarchy ? $firstHierarchy->additional_remarks : null;
+                }
+
+                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+                // Get staff data from assignee
+                $staffId = $firstHierarchy->staff_id;
+                $assignee = $this->staffDetails($staffId);
+                $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+                if (blank($assignee)) {
+                    Log::info('Staff not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'staff_id' => $staffId,
+                    ]);
+                } else {
+                    $staff = $assignee[0] ?? $assignee;
+                    $assigneeName = data_get($staff, 'nama_staff', null);
+                    $assigneeDesignation = data_get($staff, 'status_semasa', null);
+                    $assigneePhone = data_get($staff, 'hp', null);
+                    $assigneeEmail = data_get($staff, 'email', null);
+                }
+
+                $locationId = $firstHierarchy->location ?? null;
+                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+                $assigneeOutletInfo = $assigneeOutletEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+                if ($locationId) {
+                    $outlet = $this->outletDetails($locationId);
+                    if (blank($outlet)) {
+                        Log::info('Outlet not found in ODB', [
+                            'referral_id' => $referral->id,
+                            'outlet_id' => $locationId,
+                        ]);
+                    } else {
+                        $outletData = $outlet[0] ?? $outlet;
+                        $assigneeOutletInfo = $outletData['code'] . ', ' . $assigneeBusinessUnit;
+                        $assigneeOutletEmail = data_get($outletData, 'email', null);
+                        $assigneeOutletPhone = $outletData['office1'] . '/' . $outletData['office2'];
+                        $assigneeOutletAddr = data_get($outletData, 'addr', null);
+                    }
+                }
+                /************************************************** End of Assignee *****************************************/
+                /************************************************** Referee/Organization *****************************************/
+
+                $refereeName = $refereeEmail = $refereePhone = $refereePosition = $organizationName = $organizationAddr = null;
+
+                if (!is_null($lastHierarchy->external_referee_id)) {
+                    $refereeName = $lastHierarchy->external_referee->name;
+                    $refereeEmail = $lastHierarchy->external_referee->email;
+                    $refereePhone = $lastHierarchy->external_referee->phone;
+                    $refereePosition = $lastHierarchy->external_referee->position;
+                }
+
+                if (!is_null($lastHierarchy->external_organization_id)) {
+                    $addr = $lastHierarchy->external_organization->address . ', ' . $lastHierarchy->external_organization->postcode . ', ' . $lastHierarchy->external_organization->state . ', ' . $lastHierarchy->external_organization->country;
+
+                    $organizationName = $lastHierarchy->external_organization->name;
+                    $organizationAddr = $addr;
+                }
+
+
+                /************************************************** End of Referee/Organization *****************************************/
+                // Prepare data for PDF generation
+                $data = [
+                    'is_external' => true,
+                    'referralId' => $referralId,
+                    'dateCreated' => $dateCreated,
+
+                    'assigneeName' => $assigneeName,
+                    'assigneeDesignation' => $assigneeDesignation,
+                    'assigneeBusinessUnit' => $assigneeBusinessUnit,
+                    'assigneePhone' => $assigneePhone,
+                    'assigneeEmail' => $assigneeEmail,
+
+                    'assigneeOutletInfo' => $assigneeOutletInfo,
+                    'assigneeOutletAddr' => $assigneeOutletAddr,
+                    'assigneeOutletPhone' => $assigneeOutletPhone,
+                    'assigneeOutletEmail' => $assigneeOutletEmail,
+
+                    'referralReason' => $referralReason,
+                    'referralCondition' => $referralCondition,
+                    'medicalHistory' => $medicalHistory,
+                    'additionalRemarks' => $additionalRemarks,
+
+                    'refereeName' => $refereeName,
+                    'refereeEmail' => $refereeEmail,
+                    'refereePhone' => $refereePhone,
+                    'refereePosition' => $refereePosition,
+                    'organizationName' => $organizationName,
+                    'organizationAddr' => $organizationAddr,
+
+                    // Patient data from API
+                    'patientName' => $patientName,
+                    'patientIcNo' => $patientIcNo,
+                    'patientPhone' => $patientPhone,
+                    'patientAddress' => $patientAddress,
+
+                    'referralDetails' => [], // Form details if needed
+                ];
+
+                // Generate PDF with QR code using helper function
+                $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
+                if ($pdfBase64) {
+                    $response['pdf_base64'] = $pdfBase64;
+
+                    // Store the PDF base64 in referral record
+                    $referral->encoded_base = $pdfBase64;
+                    $referral->save();
+                }
+
+                DB::commit();
+                return response()->json($response, 201);
+            }
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create referral.',
+                'error'   => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
+            ], 500);
+        }
+    }
+}

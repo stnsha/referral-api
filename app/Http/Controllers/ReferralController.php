@@ -14,8 +14,8 @@ use App\Models\ReferralAttachment;
 use App\Models\ReferralCreateForm;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHierarchy;
-use App\Models\ReferralHistory;
 use App\Models\ReferralReplyForm;
+use App\Traits\Octopus;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
@@ -29,6 +29,8 @@ use Throwable;
 
 class ReferralController extends Controller
 {
+    use Octopus;
+
     /**
      * @OA\Get(
      *     path="/api/referral",
@@ -89,14 +91,14 @@ class ReferralController extends Controller
         }
 
         $referrals = Referral::with([
-                'referral_hierarchies.business_unit',
-                'referral_hierarchies.external_referee',
-                'referral_hierarchies.external_organization',
-                'referral_hierarchies.referral_create_form'
-            ])
+            'referral_hierarchies.business_unit',
+            'referral_hierarchies.external_referee',
+            'referral_hierarchies.external_organization',
+            'referral_hierarchies.referral_create_form'
+        ])
             ->whereHas('referral_hierarchies', function ($query) use ($businessUnitId, $listOutlets) {
                 $query->where('business_unit_id', $businessUnitId)
-                      ->whereIn('location', $listOutlets);
+                ->whereIn('location', $listOutlets);
             })
             ->orderByDesc('created_at')
             ->get();
@@ -137,9 +139,9 @@ class ReferralController extends Controller
             $is_external = $latestReferralHierarchy->external_organization_id != null ? true : false;
 
             // Get referral reason from the second-to-last hierarchy's create form
-            $referralReason = 'N/A';
+            $referralReason = null;
             if ($secondToLastReferralHierarchy && $secondToLastReferralHierarchy->referral_create_form) {
-                $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? 'N/A';
+                $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? null;
             }
 
             $referralData = [];
@@ -162,7 +164,7 @@ class ReferralController extends Controller
                     'ref_id' => createRefId($ref->id),
                     'reason' => $referralReason,
                     'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
-                    'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : 'N/A'),
+                    'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
                     'priority' => $ref->priority,
                     'status' => $ref->status,
                     'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
@@ -300,13 +302,7 @@ class ReferralController extends Controller
                 }
 
                 // Determine customer_id based on external referral
-                $isExternalReferral = isset($businessUnits['recipient']['referee'])
-                    || isset($businessUnits['recipient']['new_organization'])
-                    || isset($businessUnits['recipient']['new_recipient'])
-                    || isset($businessUnits['recipient']['organization']);
-                $customerId = $isExternalReferral && isset($validated['referral']['patient']['id'])
-                    ? $validated['referral']['patient']['id']
-                    : $validated['referral']['customer_id'];
+                $customerId = $validated['referral']['customer_id'];
 
                 //create referral
                 $referral = Referral::create([
@@ -315,42 +311,6 @@ class ReferralController extends Controller
                     'status' => 1, //Open
                 ]);
 
-                // Handle new organization and recipient creation for external referrals
-                $newOrganizationId = null;
-                $newRefereeId = null;
-
-                if (isset($businessUnits['recipient']['new_organization'])) {
-                    $newOrgData = $businessUnits['recipient']['new_organization'];
-                    $newOrganization = ExternalOrganization::create([
-                        'name' => $newOrgData['name'],
-                        'address' => $newOrgData['address'] ?? null,
-                        'postcode' => $newOrgData['postcode'] ?? null,
-                        'state' => $newOrgData['state'] ?? null,
-                        'country' => $newOrgData['country'] ?? null,
-                    ]);
-                    $newOrganizationId = $newOrganization->id;
-                }
-
-                if (isset($businessUnits['recipient']['new_recipient'])) {
-                    $newRecipientData = $businessUnits['recipient']['new_recipient'];
-
-                    // Priority: newly created org > existing org ID > null
-                    $orgId = $newOrganizationId ?? $businessUnits['recipient']['organization'] ?? null;
-
-                    $newReferee = ExternalReferee::create([
-                        'name' => $newRecipientData['name'],
-                        'email' => $newRecipientData['email'] ?? null,
-                        'phone' => $newRecipientData['phone'] ?? null,
-                        'position' => $newRecipientData['position'] ?? null,
-                        'external_organization_id' => $orgId,
-                    ]);
-                    $newRefereeId = $newReferee->id;
-                }
-
-                // If new organization created but no new recipient, still need to update recipient to use new org
-                if ($newOrganizationId && !$newRefereeId && isset($businessUnits['recipient']['organization'])) {
-                    // This case shouldn't happen based on the examples, but keeping for safety
-                }
 
                 //run through businessunits
                 foreach (array_values($businessUnits) as $key => $value) {
@@ -364,26 +324,6 @@ class ReferralController extends Controller
                         $is_read = true;
                     }
 
-                    // Determine if this is the recipient (has external referee/organization data)
-                    $isRecipient = isset($value['referee']) || isset($value['new_recipient']) || isset($value['new_organization']) || isset($value['organization']);
-
-                    // Determine external_organization_id for external referrals
-                    $externalOrganizationId = null;
-                    if ($isRecipient) {
-                        // If only existing organization is selected (no referee)
-                        if (isset($value['organization']) && !isset($value['referee']) && !isset($value['new_recipient'])) {
-                            $externalOrganizationId = $value['organization'];
-                        }
-                        // If new organization was created (with or without new recipient)
-                        elseif ($newOrganizationId) {
-                            $externalOrganizationId = $newOrganizationId;
-                        }
-                        // If existing organization is specified for new recipient
-                        elseif (isset($value['new_recipient']) && isset($value['organization'])) {
-                            $externalOrganizationId = $value['organization'];
-                        }
-                    }
-
                     $sequence = $key + 1;
 
                     //compile data for referral hierarchy (no form fields)
@@ -395,13 +335,8 @@ class ReferralController extends Controller
                         'sequence' => $sequence,
                         'additional_remarks' => $value['additional_remarks'] ?? null,
                         'is_filled' => $is_filled,
-                        'is_read' => $is_read,
-                        'external_referee_id' =>  $isRecipient ? ($newRefereeId ?? (isset($value['referee']) ? $value['referee'] : null)) : null,
-                        'external_organization_id' => $externalOrganizationId
+                        'is_read' => $is_read
                     ];
-
-                    $new_status = $isRecipient ? 4 : 1;
-                    $referral->status = $new_status;
 
                     //create referral hierarchy
                     $referralHierarchy = ReferralHierarchy::create($data);
@@ -486,223 +421,223 @@ class ReferralController extends Controller
 
                 $referral->save();
 
-                // Check if any referral history has external referee (is_external)
-                $hasExternalReferee = false;
-                foreach ($validated['business_units'] as $value) {
-                    if (isset($value['referee']) || $newRefereeId) {
-                        $hasExternalReferee = true;
-                        break;
-                    }
-                }
-
                 $response = ['id' => $referral->id];
 
-                // Generate PDF base64 if external referral
-                if ($hasExternalReferee) {
-                    $referralData = $referral->load(['referral_hierarchies.external_referee.organization', 'referral_hierarchies.referral_create_form']);
+                // Generate PDF base64 for ALL referrals (both internal and external)
+                $referralData = $referral->load([
+                    'referral_hierarchies.business_unit',
+                    'referral_hierarchies.external_referee.organization',
+                    'referral_hierarchies.referral_create_form'
+                ]);
 
-                    // Prepare data for PDF (reuse data collection from email)
-                    $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
-                    $externalRefereeHierarchy = $referralData->referral_hierarchies->firstWhere('external_referee_id', '!=', null);
+                // Prepare data for PDF
+                $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+                $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
 
-                    // Collect PDF data
-                    $referralId = createRefId($referral->id);
-                    $dateCreated = $referral->created_at->format('d F Y');
+                // Collect PDF data
+                $referralId = createRefId($referral->id);
+                $dateCreated = $referral->created_at->format('d F Y');
 
-                    // Get referral data from create form
-                    $referralReason = 'N/A';
-                    $referralCondition = '';
-                    $medicalHistory = '';
-                    if ($firstHierarchy && $firstHierarchy->referral_create_form) {
-                        $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? 'N/A';
-                        $referralCondition = $firstHierarchy->referral_create_form->referral_condition ?? '';
-                        $medicalHistory = $firstHierarchy->referral_create_form->medical_history ?? '';
-                    }
-                    $additionalRemarks = $firstHierarchy ? $firstHierarchy->additional_remarks : '';
+                /************************************************** Assignee *****************************************/
+                // Get referral data from create form
+                $referralReason = null;
+                $referralCondition = null;
+                $medicalHistory = null;
+                $additionalRemarks = null;
+                if ($firstHierarchy && $firstHierarchy->referral_create_form) {
+                    $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
+                    $referralCondition = $firstHierarchy->referral_create_form->referral_condition ?? null;
+                    $medicalHistory = $firstHierarchy->referral_create_form->medical_history ?? null;
+                    $additionalRemarks = $firstHierarchy ? $firstHierarchy->additional_remarks : null;
+                }
 
-                    // Get referral details (form data)
-                    $referralDetailsList = [];
-                    if ($firstHierarchy) {
-                        $details = ReferralDetails::where('referral_hierarchy_id', $firstHierarchy->id)
-                            ->with(['form'])
-                            ->get();
+                // Get referral details (form data)
+                $referralDetailsList = [];
+                if ($firstHierarchy) {
+                    $details = ReferralDetails::where('referral_hierarchy_id', $firstHierarchy->id)
+                        ->with(['form'])
+                        ->get();
 
-                        foreach ($details as $detail) {
-                            $formName = $detail->form ? $detail->form->label_name : 'Detail';
-                            $formValue = $detail->value;
+                    foreach ($details as $detail) {
+                        $formName = $detail->form ? $detail->form->label_name : 'Detail';
+                        $formValue = $detail->value;
 
-                            // If value is a form_detail_id (FK), get the field_value
-                            if (is_numeric($formValue)) {
-                                $formDetail = FormDetails::find($formValue);
-                                if ($formDetail && $formDetail->field_value) {
-                                    $formValue = $formDetail->field_value;
-                                }
-                            }
-
-                            $referralDetailsList[] = [
-                                'form_name' => $formName,
-                                'form_value' => $formValue
-                            ];
-                        }
-                    }
-
-                    // Get external referee and organization data
-                    $recipientName = '';
-                    $recipientPosition = '';
-                    $recipientPhone = '';
-                    $recipientEmail = '';
-                    $organizationName = '';
-                    $organizationAddress = '';
-
-                    if ($externalRefereeHierarchy && $externalRefereeHierarchy->external_referee) {
-                        $externalReferee = $externalRefereeHierarchy->external_referee;
-                        $recipientName = $externalReferee->name ?? '';
-                        $recipientPosition = $externalReferee->position ?? '';
-                        $recipientPhone = $externalReferee->phone ?? '';
-                        $recipientEmail = $externalReferee->email ?? '';
-
-                        if ($externalReferee->organization) {
-                            $organizationName = $externalReferee->organization->name ?? '';
-                            $addressParts = array_filter([
-                                $externalReferee->organization->address ?? '',
-                                $externalReferee->organization->postcode ?? '',
-                                $externalReferee->organization->state ?? '',
-                                $externalReferee->organization->country ?? ''
-                            ]);
-                            $organizationAddress = implode(', ', $addressParts);
-                        }
-                    }
-
-                    // If recipient data is empty (e.g., new organization without recipient), use organization data
-                    if (empty($recipientEmail) && $newOrganizationId && !$newRefereeId) {
-                        // This is the case where only new organization was created
-                        $newOrg = ExternalOrganization::find($newOrganizationId);
-                        if ($newOrg) {
-                            $organizationName = $newOrg->name;
-                            $addressParts = array_filter([
-                                $newOrg->address,
-                                $newOrg->postcode,
-                                $newOrg->state,
-                                $newOrg->country
-                            ]);
-                            $organizationAddress = implode(', ', $addressParts);
-                        }
-                    }
-
-                    // Get patient data from request
-                    $patient = $validated['referral']['patient'] ?? null;
-                    $patientName = $patient['name'] ?? 'N/A';
-                    $patientIcNo = $patient['ic'] ?? 'N/A';
-                    $patientPhone = $patient['phone'] ?? 'N/A';
-                    $patientAddress = $patient['address'] ?? 'N/A';
-                    $patientEmail = $patient['email'] ?? '';
-
-                    // Get referee (staff) data from assignee
-                    $assignee = $validated['business_units']['assignee'] ?? null;
-                    $referrerName = $assignee['nama_staff'] ?? 'N/A';
-                    $referrerDesignation = $assignee['designation'] ?? 'N/A';
-                    $referrerBusinessUnit = BusinessUnit::find($businessUnitId)->name ?? 'N/A';
-                    $referrerPhone = $assignee['contact'] ?? 'N/A';
-                    $referrerEmail = $assignee['email'] ?? 'N/A';
-
-                    $data = [
-                        'referralId' => $referralId,
-                        'dateCreated' => $dateCreated,
-                        'referralReason' => $referralReason,
-                        'referralCondition' => $referralCondition,
-                        'medicalHistory' => $medicalHistory,
-                        'additionalRemarks' => $additionalRemarks,
-                        'referralDetails' => $referralDetailsList,
-                        'recipientName' => $recipientName,
-                        'recipientPosition' => $recipientPosition,
-                        'recipientPhone' => $recipientPhone,
-                        'organizationName' => $organizationName,
-                        'organizationAddress' => $organizationAddress,
-                        'patientName' => $patientName,
-                        'patientIcNo' => $patientIcNo,
-                        'patientPhone' => $patientPhone,
-                        'patientAddress' => $patientAddress,
-                        'patientEmail' => $patientEmail,
-                        'referrerName' => $referrerName,
-                        'referrerDesignation' => $referrerDesignation,
-                        'referrerBusinessUnit' => $referrerBusinessUnit,
-                        'referrerPhone' => $referrerPhone,
-                        'referrerEmail' => $referrerEmail,
-                    ];
-
-                    $pdfBase64 = $this->exportPdf($data);
-                    if ($pdfBase64) {
-                        $response['pdf_base64'] = $pdfBase64;
-
-                        // Store the PDF base64 in referral record
-                        $referral->encoded_base = $pdfBase64;
-                        $referral->save();
-                    }
-
-                    // Send email to external referee if email exists
-                    if ($externalRefereeHierarchy && $externalRefereeHierarchy->external_referee && $pdfBase64) {
-                        $externalReferee = $externalRefereeHierarchy->external_referee;
-
-                        if ($externalReferee->email) {
-                            try {
-                                // Get attachments from the referral hierarchy with is_filled = true
-                                $referralAttachments = [];
-                                $filledHierarchy = $referralData->referral_hierarchies->where('is_filled', true)->first();
-                                if ($filledHierarchy) {
-                                    $attachments = ReferralAttachment::where('referral_hierarchy_id', $filledHierarchy->id)->get();
-                                    $referralAttachments = $attachments->map(function ($atc) {
-                                        return [
-                                            'file_name' => $atc->file_name,
-                                            'file_type' => $atc->file_type,
-                                            'encoded_base' => $atc->encoded_base
-                                        ];
-                                    })->toArray();
-                                }
-
-                                // Reuse data already collected for PDF
-                                Mail::to($recipientEmail)->send(
-                                    new ExternalReferralNotification(
-                                        $referralId,
-                                        $dateCreated,
-                                        $referralReason,
-                                        $referralCondition,
-                                        $medicalHistory,
-                                        $additionalRemarks,
-                                        $referralDetailsList,
-                                        $recipientName,
-                                        $recipientPosition,
-                                        $organizationName,
-                                        $organizationAddress,
-                                        $patientName,
-                                        $patientIcNo,
-                                        $patientPhone,
-                                        $patientAddress,
-                                        $patientEmail,
-                                        $referrerName,
-                                        $referrerDesignation,
-                                        $referrerBusinessUnit,
-                                        $referrerPhone,
-                                        $referrerEmail,
-                                        $pdfBase64,
-                                        $referralAttachments
-                                    )
-                                );
-                                Log::info('External referral email sent', [
-                                    'referral_id' => $referral->id,
-                                    'email' => $externalReferee->email,
-                                    'attachments_count' => count($referralAttachments)
-                                ]);
-                            } catch (Exception $e) {
-                                Log::error('Failed to send external referral email', [
-                                    'referral_id' => $referral->id,
-                                    'email' => $externalReferee->email,
-                                    'error' => $e->getMessage()
-                                ]);
+                        // If value is a form_detail_id (FK), get the field_value
+                        if (is_numeric($formValue)) {
+                            $formDetail = FormDetails::find($formValue);
+                            if ($formDetail && $formDetail->field_value) {
+                                $formValue = $formDetail->field_value;
                             }
                         }
+
+                        $referralDetailsList[] = [
+                            'form_name' => $formName,
+                            'form_value' => $formValue
+                        ];
                     }
                 }
 
+                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+                // Get staff data from assignee
+                $staffId = $firstHierarchy->staff_id;
+                $assignee = $this->staffDetails($staffId);
+                $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+                if (blank($assignee)) {
+                    Log::info('Staff not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'staff_id' => $staffId,
+                    ]);
+                } else {
+                    $staff = $assignee[0] ?? $assignee;
+                    $assigneeName = data_get($staff, 'nama_staff', null);
+                    $assigneeDesignation = data_get($staff, 'status_semasa', null);
+                    $assigneePhone = data_get($staff, 'hp', null);
+                    $assigneeEmail = data_get($staff, 'email', null);
+                }
+
+                $locationId = $lastHierarchy->location;
+                $outlet = $this->outletDetails($locationId);
+                if (blank($outlet)) {
+                    $assigneeOutletInfo = $assigneeOutletEmail = null;
+
+                    Log::info('Outlet not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'outlet_id' => $locationId,
+                    ]);
+                } else {
+                    $outlet = $outlet[0] ?? $outlet;
+                    $assigneeOutletInfo = $outlet['code'] . ', ' . $assigneeBusinessUnit;
+                    $assigneeOutletEmail = data_get($outlet, 'email', null);
+                    $assigneeOutletPhone = $outlet['office1'] . '/' . $outlet['office2'];
+                    $assigneeOutletAddr = data_get($outlet, 'addr', null);
+                }
+
+                /************************************************** End of Assignee *****************************************/
+                /************************************************** Recipient *****************************************/
+
+                $recipientName = $recipientPosition = $recipientPhone = $recipientEmail = null;
+                $recipientBusinessUnit = $lastHierarchy->business_unit->name;
+
+                if (!is_null($lastHierarchy->staff_id)) {
+
+                    // Get staff id from recipient
+                    $staffId = $lastHierarchy->staff_id;
+                    $recipient = $this->staffDetails($staffId);
+
+                    if (blank($recipient)) {
+                        Log::info('Staff not found in ODB', [
+                            'referral_id' => $referral->id,
+                            'staff_id' => $staffId,
+                        ]);
+                    } else {
+                        $staff = $recipient[0] ?? $recipient;
+                        $recipientName = data_get($staff, 'nama_staff', null);
+                        $recipientPosition = data_get($staff, 'status_semasa', null);
+                        $recipientBusinessUnit = $lastHierarchy->business_unit->name ?? null;
+                        $recipientPhone = data_get($staff, 'hp', null);
+                        $recipientEmail = data_get($staff, 'email', null);
+                    }
+                }
+
+                /************************************************** Location *****************************************/
+
+                // Get location id from recipient
+                $locationId = $lastHierarchy->location;
+                $outlet = $this->outletDetails($locationId);
+
+                if (blank($outlet)) {
+                    $recipientOutletInfo = $recipientOutletEmail = $recipientOutletPhone = $recipientOutletAddr = null;
+
+                    Log::info('Outlet not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'outlet_id' => $locationId,
+                    ]);
+                } else {
+                    $outlet = $outlet[0] ?? $outlet;
+                    $recipientOutletInfo = $outlet['code'] . ', ' . $recipientBusinessUnit;
+                    $recipientOutletEmail = data_get($outlet, 'email', null);
+                    $recipientOutletPhone = $outlet['office1'] . '/' . $outlet['office2'];
+                    $recipientOutletAddr = data_get($outlet, 'addr', null);
+                }
+
+
+                /************************************************** End of Location *****************************************/
+                /************************************************** End of Recipient *****************************************/
+
+                /************************************************** Customer *****************************************/
+
+                // Get customer_id
+                $customerId = $referral->customer_id;
+                $patient = $this->customerDetails($customerId);
+                $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
+
+                if (blank($patient)) {
+
+                    Log::info('Patient not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'customer_id' => $customerId,
+                    ]);
+                } else {
+                    $data = $patient[0] ?? $patient;
+                    $patientName = data_get($data, 'customer_name', null);
+                    $patientIcNo = data_get($data, 'ic', null);
+                    $patientPhone = data_get($data, 'phone', null);
+                    $patientAddress = data_get($data, 'c_addr', null);
+                    $patientEmail = data_get($data, 'email', null);
+                }
+
+                /************************************************** End of Customer *****************************************/
+
+                $data = [
+                    'is_external' => false,
+                    'referralId' => $referralId,
+                    'dateCreated' => $dateCreated,
+
+                    'assigneeName' => $assigneeName,
+                    'assigneeDesignation' => $assigneeDesignation,
+                    'assigneeBusinessUnit' => $assigneeBusinessUnit,
+                    'assigneePhone' => $assigneePhone,
+                    'assigneeEmail' => $assigneeEmail,
+
+                    'assigneeOutletInfo' => $assigneeOutletInfo,
+                    'assigneeOutletAddr' => $assigneeOutletAddr,
+                    'assigneeOutletPhone' => $assigneeOutletPhone,
+                    'assigneeOutletEmail' => $assigneeOutletEmail,
+
+                    'referralReason' => $referralReason,
+                    'referralCondition' => $referralCondition,
+                    'medicalHistory' => $medicalHistory,
+                    'additionalRemarks' => $additionalRemarks,
+
+                    'referralDetails' => $referralDetailsList,
+
+                    'recipientName' => $recipientName,
+                    'recipientPosition' => $recipientPosition,
+                    'recipientPhone' => $recipientPhone,
+                    'recipientEmail' => $recipientEmail,
+                    'recipientBusinessUnit' => $recipientBusinessUnit,
+
+                    'recipientOutletInfo' => $recipientOutletInfo,
+                    'recipientOutletEmail' => $recipientOutletEmail,
+                    'recipientOutletPhone' => $recipientOutletPhone,
+                    'recipientOutletAddr' => $recipientOutletAddr,
+
+                    'patientName' => $patientName,
+                    'patientIcNo' => $patientIcNo,
+                    'patientPhone' => $patientPhone,
+                    'patientAddress' => $patientAddress,
+                ];
+
+                // Generate PDF with QR code using helper function
+                $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
+                if ($pdfBase64) {
+                    $response['pdf_base64'] = $pdfBase64;
+
+                    // Store the PDF base64 in referral record
+                    $referral->encoded_base = $pdfBase64;
+                    $referral->save();
+                }
                 //return referral id if successfulD
                 DB::commit();
                 return response()->json($response, 201);
@@ -717,7 +652,9 @@ class ReferralController extends Controller
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to create referral.',
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
             ], 500);
         }
     }
@@ -802,7 +739,7 @@ class ReferralController extends Controller
      *                     )
      *                 )
      *             ),
-     *             @OA\Property(property="pdf_base64", type="string", format="byte", nullable=true, example=null, description="Present only for external referrals")
+     *             @OA\Property(property="pdf_base64", type="string", format="byte", nullable=true, example=null, description="PDF base64 string available for all referrals")
      *         )
      *     ),
      *     @OA\Response(
@@ -893,7 +830,7 @@ class ReferralController extends Controller
                         $form_details = $rd->form->form_details;
                         $value = $rd->value ? (json_decode($rd->value, true) ?: $rd->value) : null;
 
-                        //run through form details
+                    //run through form details
                     foreach ($form_details as $fd) {
                             $key = $fd->field_name;
 
@@ -974,35 +911,37 @@ class ReferralController extends Controller
                         $is_external = true;
                         $external_referee = $rh->external_referee;
                         $external_referral[] = [
-                            'external_referee_id' => $external_referee->id,
-                            'name' => $external_referee->name,
-                            'email' => $external_referee->email,
-                            'phone' => $external_referee->phone,
-                            'position' => $external_referee->position,
-                        'external_organization_id' => $external_referee->organization->id ?? null,
-                        'organization' => $external_referee->organization->name ?? null,
-                        'address' => $external_referee->organization->address ?? null,
-                        'postcode' => $external_referee->organization->postcode ?? null,
-                        'state' => $external_referee->organization->state ?? null,
-                        'country' => $external_referee->organization->country ?? null,
-                    ];
+                            'referee' => [
+                                'external_referee_id' => $external_referee->id,
+                                'name' => $external_referee->name,
+                                'email' => $external_referee->email,
+                                'phone' => $external_referee->phone,
+                                'position' => $external_referee->position,
+                            ],
+                            'organization' => [
+                                'external_organization_id' => $external_referee->organization->id ?? null,
+                                'name' => $external_referee->organization->name ?? null,
+                                'address' => $external_referee->organization->address ?? null,
+                                'postcode' => $external_referee->organization->postcode ?? null,
+                                'state' => $external_referee->organization->state ?? null,
+                                'country' => $external_referee->organization->country ?? null,
+                            ]
+                        ];
                 } elseif ($rh->external_organization_id) {
                     $is_external = true;
                     $external_organization = $rh->external_organization;
                     $external_referral[] = [
-                        'external_referee_id' => null,
-                        'name' => null,
-                        'email' => null,
-                        'phone' => null,
-                        'position' => null,
-                        'external_organization_id' => $external_organization->id,
-                        'organization' => $external_organization->name,
-                        'address' => $external_organization->address,
-                        'postcode' => $external_organization->postcode,
-                        'state' => $external_organization->state,
-                        'country' => $external_organization->country,
-                        ];
-                    }
+                        'referee' => null,
+                        'organization' => [
+                            'external_organization_id' => $external_organization->id,
+                            'name' => $external_organization->name,
+                            'address' => $external_organization->address,
+                            'postcode' => $external_organization->postcode,
+                            'state' => $external_organization->state,
+                            'country' => $external_organization->country,
+                        ]
+                    ];
+                }
 
                 // Get form data from CreateForm and ReplyForm if they exist
                 $createForm = [];
@@ -1053,11 +992,17 @@ class ReferralController extends Controller
                 'referralDetails' => $referralHierarchies,
             ];
 
-            if ($is_external) {
-                //get pdf base64
+            // Generate PDF base64 for ALL referrals (both internal and external)
+            // Use stored PDF if available, otherwise generate new one
+            if ($referral->encoded_base && !empty($referral->encoded_base)) {
+                $data['pdf_base64'] = $referral->encoded_base;
+            } else {
                 $pdf = $this->exportPdf($data);
                 if ($pdf) {
                     $data['pdf_base64'] = $pdf;
+                    // Store for future use
+                    $referral->encoded_base = $pdf;
+                    $referral->save();
                 }
             }
 
@@ -1396,7 +1341,7 @@ class ReferralController extends Controller
             // Check if PDF exists in the database
             if (!$referral->encoded_base || empty($referral->encoded_base)) {
                 return response()->json([
-                    'message' => 'PDF not found for this referral. PDF is only available for external referrals.'
+                    'message' => 'PDF not found for this referral.'
                 ], 404);
             }
 
@@ -1421,7 +1366,7 @@ class ReferralController extends Controller
             $pdfContent = $pdf->output();
             $base64Pdf = base64_encode($pdfContent);
             return $base64Pdf;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;
         }
@@ -1489,11 +1434,11 @@ class ReferralController extends Controller
             }
 
             $referrals = Referral::with([
-                    'referral_hierarchies.business_unit',
-                    'referral_hierarchies.external_referee',
-                    'referral_hierarchies.external_organization',
-                    'referral_hierarchies.referral_create_form'
-                ])
+                'referral_hierarchies.business_unit',
+                'referral_hierarchies.external_referee',
+                'referral_hierarchies.external_organization',
+                'referral_hierarchies.referral_create_form'
+            ])
                 ->where('customer_id', $customerId)
                 ->orderByDesc('created_at')
                 ->get();
@@ -1521,9 +1466,9 @@ class ReferralController extends Controller
                 $is_external = $latestReferralHierarchy->external_organization_id != null ? true : false;
 
                 // Get referral reason from the second-to-last hierarchy's create form
-                $referralReason = 'N/A';
+                $referralReason = null;
                 if ($secondToLastReferralHierarchy && $secondToLastReferralHierarchy->referral_create_form) {
-                    $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? 'N/A';
+                    $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? null;
                 }
 
                 $referralData = [];
@@ -1546,7 +1491,7 @@ class ReferralController extends Controller
                         'ref_id' => createRefId($ref->id),
                         'reason' => $referralReason,
                         'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
-                        'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : 'N/A'),
+                        'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
                         'priority' => $ref->priority,
                         'status' => $ref->status,
                         'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),

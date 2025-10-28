@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,8 +19,24 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+
 Route::controller(AuthController::class)->group(function () {
     Route::get('login', 'index')->name('index');
     Route::post('login', 'login')->name('login');
     Route::get('logout', 'logout')->name('logout');
+});
+
+Route::get('/pdf/{id}', function ($id) {
+    $referral = App\Models\Referral::findOrFail($id);
+    $pdfBase64 = $referral->encoded_base;
+
+    if (!$pdfBase64) {
+        return 'No PDF found';
+    }
+
+    $pdfContent = base64_decode($pdfBase64);
+
+    return response($pdfContent)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', 'inline; filename="referral.pdf"');
 });

@@ -8,6 +8,7 @@ use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\ReferralAttachmentController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ExternalRefereeController;
+use App\Http\Controllers\ExternalReferralController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\ODBController;
 use App\Http\Controllers\ReportController;
@@ -70,6 +71,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::apiResource('external-referees', ExternalRefereeController::class);
     Route::apiResource('external-organizations', ExternalOrganizationController::class);
+    Route::apiResource('external-referral', ExternalReferralController::class);
 
     Route::prefix('report')->controller(ReportController::class)->group(function () {
         Route::post('/', 'index')->name('report.index');
