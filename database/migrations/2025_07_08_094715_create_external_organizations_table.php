@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('postcode')->nullable();
             $table->string('state')->nullable();
             $table->string('country')->nullable();
+            $table->string('phone')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

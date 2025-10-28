@@ -17,6 +17,7 @@ class ExternalOrganization extends Model
         'postcode',
         'state',
         'country',
+        'phone',
     ];
 
     public function referees(): HasMany

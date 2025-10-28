@@ -61,6 +61,7 @@ Route::middleware('token.auth')->group(function () {
         Route::get('download/{id}', 'download')->name('referral.download');
         Route::get('notification', 'notification')->name('referral.notification');
         Route::post('search', 'search')->name('referral.search');
+        Route::get('successful/{id}', 'successful')->name('referral.successful');
     });
 
     Route::resource('referral', ReferralController::class)->only(['index', 'store', 'show']);

@@ -1670,4 +1670,92 @@ class ReferralController extends Controller
             ], 500);
         }
     }
+
+    public function successful(Request $request, $id)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
+            $referral = Referral::find($id);
+
+            //check if referral exist
+            if (!$referral) {
+                return response()->json(['message' => 'Referral not found.'], 404);
+            }
+
+            // Check if PDF exists in the database
+            if (!$referral->encoded_base || empty($referral->encoded_base)) {
+                return response()->json([
+                    'message' => 'PDF not found for this referral.'
+                ], 404);
+            }
+
+            $customerId = $referral->customer_id;
+            $patient = $this->customerDetails($customerId);
+            $patientPhone = null;
+
+            if (blank($patient)) {
+                Log::info('Patient not found in ODB', [
+                    'referral_id' => $referral->id,
+                    'customer_id' => $customerId,
+                ]);
+            } else {
+                $data = $patient[0] ?? $patient;
+                $rawPatientPhone = data_get($data, 'phone', null);
+                $patientPhone = formatMalaysianPhone($rawPatientPhone);
+            }
+
+            $lastHierarchy = $referral->referral_hierarchies->sortByDesc('sequence')->first();
+            $outletPhone = $organizationPhone = $refereePhone = null;
+
+            if (!is_null($lastHierarchy->external_organization_id)) {
+
+                $organizationPhone = $lastHierarchy->external_organization
+                    ? formatMalaysianPhone($lastHierarchy->external_organization->phone)
+                    : null;
+                $refereePhone = $lastHierarchy->external_referee
+                    ? formatMalaysianPhone($lastHierarchy->external_referee->phone)
+                    : null;
+            } else {
+
+                $locationId = $lastHierarchy->location;
+                $outlet = $this->outletDetails($locationId);
+
+                if (blank($outlet)) {
+
+                    Log::info('Outlet not found in ODB', [
+                        'referral_id' => $referral->id,
+                        'outlet_id' => $locationId,
+                    ]);
+                } else {
+                    $outlet = $outlet[0] ?? $outlet;
+                    $rawOutletPhone = $outlet['office1'];
+                    $outletPhone = formatMalaysianPhone($rawOutletPhone);
+                }
+            }
+
+            // Return the stored PDF base64 with formatted phone numbers
+            return response()->json([
+                'pdfBase64' => $referral->encoded_base,
+                'patientPhone' => $patientPhone,
+                'outletPhone' => $outletPhone,
+                'organizationPhone' => $organizationPhone,
+                'refereePhone' => $refereePhone
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
 }

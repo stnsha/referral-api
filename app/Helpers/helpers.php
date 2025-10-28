@@ -97,3 +97,75 @@ if (!function_exists('generateReferralPdfWithQr')) {
         }
     }
 }
+
+if (!function_exists('formatMalaysianPhone')) {
+    /**
+     * Format Malaysian phone number to international format (60XXXXXXXXXX)
+     *
+     * Rules:
+     * - Strips all non-digit characters (spaces, dashes, etc.)
+     * - Must start with "01" (Malaysian mobile format)
+     * - Must have 3-digit prefix (01X format: 011, 012, 013, etc.)
+     * - Total digits must be 10 or 11 (without 60 prefix)
+     * - If valid, prepends "60" and returns formatted number
+     * - If invalid, returns null
+     *
+     * Examples:
+     * - "0183776517" => "60183776517"
+     * - "019-985 3923" => "60199853923"
+     * - "019 - 985 3923" => "60199853923"
+     * - "06-7813923" => null (doesn't start with 01)
+     *
+     * @param string|null $phone The phone number to format
+     * @return string|null Formatted phone number or null if invalid
+     */
+    function formatMalaysianPhone($phone)
+    {
+        // Return null if phone is empty or null
+        if (empty($phone)) {
+            return null;
+        }
+
+        // Strip all non-digit characters
+        $cleaned = preg_replace('/[^0-9]/', '', $phone);
+
+        // Check if it's empty after cleaning
+        if (empty($cleaned)) {
+            return null;
+        }
+
+        // If already starts with "60", validate and return as is
+        if (substr($cleaned, 0, 2) === '60') {
+            $length = strlen($cleaned);
+            // Should be 12 or 13 digits total (60 + 10 or 11 digits)
+            if ($length >= 12 && $length <= 13) {
+                // In international format, the "0" is dropped, so "011" becomes "11"
+                // Verify the part after "60" starts with "1" (which represents "01X" in local format)
+                if (substr($cleaned, 2, 1) === '1') {
+                    return $cleaned;
+                }
+            }
+            return null;
+        }
+
+        // Check length (must be 10 or 11 digits)
+        $length = strlen($cleaned);
+        if ($length < 10 || $length > 11) {
+            return null;
+        }
+
+        // Check if starts with "01" (first two digits)
+        if (substr($cleaned, 0, 2) !== '01') {
+            return null;
+        }
+
+        // Check if has 3-digit prefix (01X format)
+        // The third character should be a digit (making it 01X)
+        if ($length < 3 || !ctype_digit(substr($cleaned, 2, 1))) {
+            return null;
+        }
+
+        // Valid Malaysian mobile number, prepend "60"
+        return '60' . $cleaned;
+    }
+}
