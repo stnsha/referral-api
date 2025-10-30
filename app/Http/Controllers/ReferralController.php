@@ -656,6 +656,66 @@ class ReferralController extends Controller
                     $referral->encoded_base = $pdfBase64;
                     $referral->save();
                 }
+
+                // Send email to recipient outlet if email exists and is valid
+                if ($recipientOutletEmail && filter_var($recipientOutletEmail, FILTER_VALIDATE_EMAIL)) {
+                    try {
+                        // Get referral attachments
+                        $referralAttachments = $firstHierarchy->referral_attachments->map(function ($attachment) {
+                            return [
+                                'file_name' => $attachment->file_name,
+                                'file_type' => $attachment->file_type,
+                                'encoded_base' => $attachment->encoded_base
+                            ];
+                        })->toArray();
+
+                        Mail::to($recipientOutletEmail)->send(
+                            new ExternalReferralNotification(
+                                $referralId,
+                                $dateCreated,
+                                $referralReason,
+                                $referralCondition,
+                                $medicalHistory,
+                                $additionalRemarks,
+                                $referralDetailsList,
+                                $recipientName,
+                                $recipientPosition,
+                                $recipientBusinessUnit, // organization name (business unit for internal)
+                                $recipientOutletAddr, // organization address (outlet address)
+                                $patientName,
+                                $patientIcNo,
+                                $patientPhone,
+                                $patientAddress,
+                                $patientEmail,
+                                $assigneeName, // referrer name
+                                $assigneeDesignation, // referrer designation
+                                $assigneeBusinessUnit, // referrer business unit
+                                $assigneePhone, // referrer phone
+                                $assigneeEmail, // referrer email
+                                $pdfBase64,
+                                $referralAttachments
+                            )
+                        );
+
+                        Log::info('Referral notification email sent', [
+                            'referral_id' => $referral->id,
+                            'recipient_email' => $recipientOutletEmail
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send referral notification email', [
+                            'referral_id' => $referral->id,
+                            'recipient_email' => $recipientOutletEmail,
+                            'error' => $e->getMessage()
+                        ]);
+                        // Don't fail the request if email fails
+                    }
+                } else {
+                    Log::info('Skipping email notification - no valid recipient email', [
+                        'referral_id' => $referral->id,
+                        'recipient_outlet_email' => $recipientOutletEmail
+                    ]);
+                }
+
                 //return referral id if successfulD
                 DB::commit();
                 return response()->json($response, 201);

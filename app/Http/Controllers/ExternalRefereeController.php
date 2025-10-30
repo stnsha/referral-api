@@ -768,11 +768,11 @@ class ExternalRefereeController extends Controller
                     $referral->save();
                 }
 
-                // Send email to external referee if email exists (only for external referrals)
+                // Send email to external referee if email exists and is valid (only for external referrals)
                 if ($hasExternalReferee && $externalRefereeHierarchy && $externalRefereeHierarchy->external_referee && $pdfBase64) {
                     $externalReferee = $externalRefereeHierarchy->external_referee;
 
-                    if ($externalReferee->email) {
+                    if ($externalReferee->email && filter_var($externalReferee->email, FILTER_VALIDATE_EMAIL)) {
                         try {
                             // Get attachments from the referral hierarchy with is_filled = true
                             $referralAttachments = [];
@@ -822,7 +822,18 @@ class ExternalRefereeController extends Controller
                                 'email' => $externalReferee->email,
                                 'error' => $e->getMessage()
                             ]);
+                            // Don't fail the request if email fails
                         }
+
+                        Log::info('External referral notification email sent', [
+                            'referral_id' => $referral->id,
+                            'recipient_email' => $externalReferee->email
+                        ]);
+                    } else {
+                        Log::info('Skipping external referral email - no valid recipient email', [
+                            'referral_id' => $referral->id,
+                            'external_referee_email' => $externalReferee->email ?? null
+                        ]);
                     }
                 }
 
