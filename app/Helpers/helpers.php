@@ -1,4 +1,7 @@
 <?php
+
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
 if (! function_exists('createRefId')) {
     function createRefId($id)
     {
@@ -68,15 +71,18 @@ if (!function_exists('generateReferralPdfWithQr')) {
     function generateReferralPdfWithQr($referralId, $data)
     {
         try {
-            // Generate QR code using external API (no extensions needed)
+            // Generate QR code locally using SimpleSoftwareIO/simple-qrcode
             $qrCodeUrl = 'http://octopusdb.info:8080/odb/referral/view.php?id=' . $referralId;
-            $qrCodeImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($qrCodeUrl);
 
-            // Fetch the image and convert to base64
+            // Generate QR code as base64 image using local library
             try {
-                $imageContent = file_get_contents($qrCodeImageUrl);
-                $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($imageContent);
-                $data['qrCodeBase64'] = $qrCodeBase64;
+                $qrCodeBase64 = QrCode::format('png')
+                    ->size(150)
+                    ->margin(1)
+                    ->generate($qrCodeUrl);
+
+                // Convert to base64 data URL
+                $data['qrCodeBase64'] = 'data:image/png;base64,' . base64_encode($qrCodeBase64);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('QR Code generation failed: ' . $e->getMessage());
                 $data['qrCodeBase64'] = ''; // Empty if fails
