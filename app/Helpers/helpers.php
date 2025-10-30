@@ -1,6 +1,9 @@
 <?php
 
-use SimpleSoftwareIO\QrCode\Generator as QrCodeGenerator;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 
 if (! function_exists('createRefId')) {
     function createRefId($id)
@@ -74,16 +77,17 @@ if (!function_exists('generateReferralPdfWithQr')) {
             // Generate QR code locally using SimpleSoftwareIO/simple-qrcode
             $qrCodeUrl = 'http://octopusdb.info:8080/odb/referral/view.php?id=' . $referralId;
 
-            // Generate QR code as base64 image using local library
+            // Generate QR code as base64 image using local library (BaconQrCode)
             try {
-                $qrCode = new QrCodeGenerator;
-                $qrCodeBase64 = $qrCode->format('png')
-                    ->size(150)
-                    ->margin(1)
-                    ->generate($qrCodeUrl);
+                $renderer = new ImageRenderer(
+                    new RendererStyle(150, 1),
+                    new SvgImageBackEnd()
+                );
+                $writer = new Writer($renderer);
+                $qrCodeSvg = $writer->writeString($qrCodeUrl);
 
-                // Convert to base64 data URL
-                $data['qrCodeBase64'] = 'data:image/png;base64,' . base64_encode($qrCodeBase64);
+                // Convert SVG to base64 data URL
+                $data['qrCodeBase64'] = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('QR Code generation failed: ' . $e->getMessage());
                 $data['qrCodeBase64'] = ''; // Empty if fails
