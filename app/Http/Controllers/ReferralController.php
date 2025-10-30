@@ -514,7 +514,7 @@ class ReferralController extends Controller
                     $assigneeEmail = data_get($staff, 'email', null);
                 }
 
-                $locationId = $lastHierarchy->location;
+                $locationId = $firstHierarchy->location;
                 $outlet = $this->outletDetails($locationId);
                 if (blank($outlet)) {
                     $assigneeOutletInfo = $assigneeOutletEmail = null;
