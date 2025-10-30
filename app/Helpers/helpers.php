@@ -1,6 +1,6 @@
 <?php
 
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use SimpleSoftwareIO\QrCode\Generator as QrCodeGenerator;
 
 if (! function_exists('createRefId')) {
     function createRefId($id)
@@ -76,7 +76,8 @@ if (!function_exists('generateReferralPdfWithQr')) {
 
             // Generate QR code as base64 image using local library
             try {
-                $qrCodeBase64 = QrCode::format('png')
+                $qrCode = new QrCodeGenerator;
+                $qrCodeBase64 = $qrCode->format('png')
                     ->size(150)
                     ->margin(1)
                     ->generate($qrCodeUrl);
