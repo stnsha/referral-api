@@ -1468,6 +1468,7 @@ class ReferralController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+            $listOutlets = $jwtPayload['outlet'] ?? null;
 
             if (!$businessUnitId) {
                 return response()->json([
@@ -1476,9 +1477,17 @@ class ReferralController extends Controller
                 ], 401);
             }
 
+            if (!$listOutlets || !is_array($listOutlets)) {
+                return response()->json([
+                    'message' => 'Outlet list not found in session.',
+                    'data' => [],
+                ], 401);
+            }
+
             // Fetch unread notifications for the staff (only if business unit is the last sequence)
             $notifications = ReferralHierarchy::with(['referral'])
                 ->where('business_unit_id', $businessUnitId)
+                ->whereIn('location', $listOutlets)
                 ->where('is_read', false)
                 ->whereRaw('sequence = (SELECT MAX(sequence) FROM referral_histories WHERE referral_id = referral_histories.referral_id)')
                 ->orderBy('created_at', 'desc')

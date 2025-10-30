@@ -4,6 +4,8 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 
 if (! function_exists('createRefId')) {
     function createRefId($id)
@@ -74,10 +76,10 @@ if (!function_exists('generateReferralPdfWithQr')) {
     function generateReferralPdfWithQr($referralId, $data)
     {
         try {
-            // Generate QR code locally using SimpleSoftwareIO/simple-qrcode
+            // Generate QR code URL
             $qrCodeUrl = 'http://octopusdb.info:8080/odb/referral/view.php?id=' . $referralId;
 
-            // Generate QR code as base64 image using local library (BaconQrCode)
+            // Try to generate QR code using BaconQrCode
             try {
                 $renderer = new ImageRenderer(
                     new RendererStyle(150, 1),
@@ -88,13 +90,21 @@ if (!function_exists('generateReferralPdfWithQr')) {
 
                 // Convert SVG to base64 data URL
                 $data['qrCodeBase64'] = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
+
+                Log::info('QR Code generated successfully for referral: ' . $referralId);
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('QR Code generation failed: ' . $e->getMessage());
-                $data['qrCodeBase64'] = ''; // Empty if fails
+                Log::warning('QR Code generation failed, generating PDF without QR: ' . $e->getMessage(), [
+                    'referral_id' => $referralId,
+                    'error' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile()
+                ]);
+                // Generate PDF without QR code
+                $data['qrCodeBase64'] = '';
             }
 
             // Generate PDF
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $data);
+            $pdf = Pdf::loadView('pdf.report', $data);
             $pdf->setPaper('A4', 'portrait');
 
             // Convert PDF to base64
@@ -103,7 +113,12 @@ if (!function_exists('generateReferralPdfWithQr')) {
 
             return $base64Pdf;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('PDF generation failed: ' . $e->getMessage());
+            Log::error('PDF generation failed: ' . $e->getMessage(), [
+                'referral_id' => $referralId,
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ]);
             return null;
         }
     }

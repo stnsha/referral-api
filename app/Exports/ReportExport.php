@@ -131,21 +131,21 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
             $formDetails = implode(' | ', $details);
         }
 
-        // Convert is_filled to true/false
+        // Convert is_filled to Yes/No
         $formCompleted = '';
         if (isset($history['is_filled'])) {
-            $formCompleted = $history['is_filled'] == 1 ? 'true' : 'false';
+            $formCompleted = $history['is_filled'] == 1 ? 'Yes' : 'No';
         }
 
         return [
-            // Referral data (show only on first row for each referral)
-            $isFirstRow ? $row['referral_id'] : '',
-            $isFirstRow ? ($referral['customer_id'] ?? '') : '',
-            $isFirstRow ? ($referral['priority'] ?? '') : '',
-            $isFirstRow ? ($referral['status_name'] ?? '') : '',
-            $isFirstRow ? ($referral['status_note'] ?? '') : '',
-            $isFirstRow ? ($referral['created_at'] ?? '') : '',
-            $isFirstRow ? ($referral['updated_at'] ?? '') : '',
+            // Referral data (repeated on every row for easy VLOOKUP and filtering)
+            $row['referral_id'],
+            $referral['customer_id'] ?? '',
+            $referral['priority'] ?? '',
+            $referral['status_name'] ?? '',
+            $referral['status_note'] ?? '',
+            $referral['created_at'] ?? '',
+            $referral['updated_at'] ?? '',
 
             // History data (show on every row)
             $row['role'] ?? '',

@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 trait Octopus
 {
@@ -35,14 +36,43 @@ trait Octopus
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
 
+        // Log API request
+        Log::info('ODB API Request', [
+            'method' => $method,
+            'url' => $url,
+            'data_length' => $data ? strlen($data) : 0
+        ]);
+
         // EXECUTE:
         $result = curl_exec($curl);
         if (!$result) {
             $error = curl_error($curl);
             $errno = curl_errno($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+            // Log API failure
+            Log::error('ODB API Connection Failure', [
+                'method' => $method,
+                'url' => $url,
+                'error_code' => $errno,
+                'error_message' => $error,
+                'http_code' => $httpCode
+            ]);
+
             curl_close($curl);
             throw new Exception("Connection Failure: [{$errno}] {$error}");
         }
+
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+        // Log API response
+        Log::info('ODB API Response', [
+            'method' => $method,
+            'url' => $url,
+            'http_code' => $httpCode,
+            'response_length' => strlen($result)
+        ]);
+
         curl_close($curl);
         return $result;
     }
