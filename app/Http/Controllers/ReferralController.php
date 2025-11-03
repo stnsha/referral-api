@@ -701,7 +701,7 @@ class ReferralController extends Controller
                             'referral_id' => $referral->id,
                             'recipient_email' => $recipientOutletEmail
                         ]);
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         Log::error('Failed to send referral notification email', [
                             'referral_id' => $referral->id,
                             'recipient_email' => $recipientOutletEmail,

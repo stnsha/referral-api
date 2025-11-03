@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ReferralAttachment;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -94,7 +95,7 @@ class ReferralAttachmentController extends Controller
                 'size' => $fileSize,
                 'base64' => $base64Data
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error retrieving attachment: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Internal server error'

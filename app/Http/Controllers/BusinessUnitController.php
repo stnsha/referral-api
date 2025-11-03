@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\BusinessUnitResource;
 use App\Models\BusinessUnit;
+use Exception;
 use Illuminate\Http\Request;
 
 class BusinessUnitController extends Controller
@@ -63,7 +64,7 @@ class BusinessUnitController extends Controller
             return response()->json([
                 'data' => $bus
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             return response()->json([
                 'message' => 'An error occurred: ' . $e->getMessage()

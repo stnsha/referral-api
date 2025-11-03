@@ -5,6 +5,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 if (! function_exists('createRefId')) {
@@ -92,7 +93,7 @@ if (!function_exists('generateReferralPdfWithQr')) {
                 $data['qrCodeBase64'] = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
 
                 Log::info('QR Code generated successfully for referral: ' . $referralId);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::warning('QR Code generation failed, generating PDF without QR: ' . $e->getMessage(), [
                     'referral_id' => $referralId,
                     'error' => $e->getMessage(),
@@ -112,7 +113,7 @@ if (!function_exists('generateReferralPdfWithQr')) {
             $base64Pdf = base64_encode($pdfContent);
 
             return $base64Pdf;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage(), [
                 'referral_id' => $referralId,
                 'error' => $e->getMessage(),

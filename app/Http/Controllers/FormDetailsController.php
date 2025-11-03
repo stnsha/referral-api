@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\FormDetailsRequest;
 use App\Models\Form;
 use App\Models\FormDetails;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -94,7 +95,7 @@ class FormDetailsController extends Controller
             return response()->json([
                 'message' => 'Form details created successfully!'
             ], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to create form details.',
@@ -171,7 +172,7 @@ class FormDetailsController extends Controller
             return response()->json([
                 'data' => $data
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'message' => 'Failed to retrieve form.',
                 'error' => $e->getMessage()
@@ -236,7 +237,7 @@ class FormDetailsController extends Controller
             return response()->json([
                 'message' => 'Form deleted successfully!'
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to delete form.',
@@ -320,7 +321,7 @@ class FormDetailsController extends Controller
             }
             DB::commit();
             return response()->json(['message' => 'Form updated successfully!'], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Update failed', 'error' => $e->getMessage()], 500);
         }

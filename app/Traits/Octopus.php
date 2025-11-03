@@ -113,7 +113,6 @@ trait Octopus
         $apiUrl = config('services.odb.url') . '/staffById.php';
         $response = $this->callAPI('POST', $apiUrl, json_encode($data), '');
         $result = json_decode($response, true);
-
         return $result;
     }
 

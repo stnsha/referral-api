@@ -7,6 +7,7 @@ use App\Http\Requests\FormsRequest;
 use App\Models\BusinessUnit;
 use App\Models\Form;
 use App\Models\FormDetails;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -41,7 +42,7 @@ class FormController extends Controller
             }
 
             return response()->json($data, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);
         }
     }
@@ -147,7 +148,7 @@ class FormController extends Controller
 
             DB::commit();
             return response()->json(['message' => 'Form created successfully!', 'form_id' => $form->id], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Form creation failed: ' . $e->getMessage());
 
@@ -277,7 +278,7 @@ class FormController extends Controller
             ];
 
             return response()->json($data, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);
         }
     }
@@ -411,7 +412,7 @@ class FormController extends Controller
             ];
 
             return response()->json($data, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);
         }
     }
@@ -511,7 +512,7 @@ class FormController extends Controller
 
             DB::commit();
             return response()->json(['message' => 'Form updated successfully!'], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Update failed', 'error' => $e->getMessage()], 500);
         }
@@ -589,7 +590,7 @@ class FormController extends Controller
             return response()->json([
                 'message' => 'Form hidden successfully!'
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to hide form.',
@@ -664,7 +665,7 @@ class FormController extends Controller
             return response()->json([
                 'message' => 'Form unhidden successfully!'
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to unhide form.',

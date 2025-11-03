@@ -96,7 +96,7 @@ class ExternalReferralNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Referral from ' . $this->referrerBusinessUnit . ' - ' . $this->referralId,
+            subject: '[THIS IS PRODUCTION TESTING. PLEASE IGNORE IF RECEIVED] Referral from ' . $this->referrerBusinessUnit . ' - ' . $this->referralId,
         );
     }
 
