@@ -40,3 +40,9 @@ Route::get('/pdf/{id}', function ($id) {
         ->header('Content-Type', 'application/pdf')
         ->header('Content-Disposition', 'inline; filename="referral.pdf"');
 });
+
+// Public Referral Viewing Routes (No Authentication Required)
+use App\Http\Controllers\ReferralController;
+
+Route::get('/view/{id}', [ReferralController::class, 'showNricForm'])->name('referral.nric.form');
+Route::post('/view/{id}/verify', [ReferralController::class, 'verifyAndShowPdf'])->name('referral.verify.nric');

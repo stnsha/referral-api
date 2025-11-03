@@ -1827,4 +1827,188 @@ class ReferralController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Show NRIC verification form for public referral viewing
+     *
+     * @param int $id Referral ID
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function showNricForm($id)
+    {
+        try {
+            $referral = Referral::findOrFail($id);
+
+            // Check if session is already verified
+            $sessionKey = "referral_verified_{$id}";
+            if (session()->has($sessionKey) && session($sessionKey) === true) {
+                // Session is valid, redirect to show PDF/status
+                return $this->displayReferralContent($referral);
+            }
+
+            // Show NRIC verification form
+            return view('referral.nric-form', [
+                'referralId' => $id,
+                'refId' => createRefId($id)
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return view('referral.not-found');
+        } catch (Exception $e) {
+            Log::error('Error in showNricForm', [
+                'referral_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return view('referral.error');
+        }
+    }
+
+    /**
+     * Verify NRIC and show PDF or completion message
+     *
+     * @param Request $request
+     * @param int $id Referral ID
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function verifyAndShowPdf(Request $request, $id)
+    {
+        try {
+            // Rate limiting: max 3 attempts per IP per referral per hour
+            $rateLimitKey = "nric_verify_{$id}_{$request->ip()}";
+            $attempts = cache()->get($rateLimitKey, 0);
+
+            if ($attempts >= 3) {
+                return back()->withErrors([
+                    'nric' => 'Too many attempts. Please try again later.'
+                ])->withInput();
+            }
+
+            // Validate input
+            $request->validate([
+                'nric_last4' => 'required|string|size:4'
+            ]);
+
+            $referral = Referral::findOrFail($id);
+            $nricLast4 = $request->input('nric_last4');
+
+            // Get customer NRIC from Octopus
+            $customerId = $referral->customer_id;
+            $patient = $this->customerDetails($customerId);
+
+            if (blank($patient)) {
+                Log::warning('Patient not found in ODB for NRIC verification', [
+                    'referral_id' => $id,
+                    'customer_id' => $customerId,
+                ]);
+
+                // Increment attempts
+                cache()->put($rateLimitKey, $attempts + 1, now()->addHour());
+
+                return back()->withErrors([
+                    'nric' => 'Unable to verify. Please contact support.'
+                ])->withInput();
+            }
+
+            $data = $patient[0] ?? $patient;
+            $fullNric = data_get($data, 'ic', null);
+
+            if (!$fullNric) {
+                // Increment attempts
+                cache()->put($rateLimitKey, $attempts + 1, now()->addHour());
+
+                return back()->withErrors([
+                    'nric' => 'Unable to verify. Please contact support.'
+                ])->withInput();
+            }
+
+            // Verify last 4 digits
+            $last4Digits = substr($fullNric, -4);
+
+            if ($nricLast4 !== $last4Digits) {
+                // Increment attempts
+                cache()->put($rateLimitKey, $attempts + 1, now()->addHour());
+
+                Log::warning('Failed NRIC verification attempt', [
+                    'referral_id' => $id,
+                    'ip' => $request->ip(),
+                    'attempts' => $attempts + 1
+                ]);
+
+                return back()->withErrors([
+                    'nric' => 'Invalid NRIC. Please check and try again.'
+                ])->withInput();
+            }
+
+            // NRIC verified successfully
+            Log::info('Successful NRIC verification', [
+                'referral_id' => $id,
+                'ip' => $request->ip()
+            ]);
+
+            // Clear rate limit on successful verification
+            cache()->forget($rateLimitKey);
+
+            // Create session (5 minutes)
+            $sessionKey = "referral_verified_{$id}";
+            session([
+                $sessionKey => true,
+                $sessionKey . '_expires_at' => now()->addMinutes(5)->timestamp
+            ]);
+
+            // Redirect back to the same route (GET) which will now show the content
+            return redirect()->route('referral.nric.form', ['id' => $id]);
+        } catch (ModelNotFoundException $e) {
+            return view('referral.not-found');
+        } catch (Exception $e) {
+            Log::error('Error in verifyAndShowPdf', [
+                'referral_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return view('referral.error');
+        }
+    }
+
+    /**
+     * Display referral content (PDF or completion message)
+     *
+     * @param Referral $referral
+     * @return \Illuminate\View\View
+     */
+    private function displayReferralContent($referral)
+    {
+        // Check if session is still valid (5 minutes)
+        $sessionKey = "referral_verified_{$referral->id}";
+        $expiresAt = session($sessionKey . '_expires_at');
+
+        if (!$expiresAt || now()->timestamp > $expiresAt) {
+            // Session expired, clear it and redirect to NRIC form
+            session()->forget([$sessionKey, $sessionKey . '_expires_at']);
+            return redirect()->route('referral.nric.form', ['id' => $referral->id]);
+        }
+
+        // Check referral status
+        // Assuming status 6 = Closed (adjust based on your status values)
+        if ($referral->status == 6) {
+            // Status is closed - show thank you page
+            return view('referral.completed', [
+                'referralId' => createRefId($referral->id),
+                'referral' => $referral
+            ]);
+        }
+
+        // Status is not closed - show PDF
+        $pdfBase64 = $referral->encoded_base;
+
+        if (!$pdfBase64) {
+            return view('referral.error', [
+                'message' => 'PDF not available for this referral.'
+            ]);
+        }
+
+        return view('referral.pdf-viewer', [
+            'referralId' => createRefId($referral->id),
+            'pdfBase64' => $pdfBase64,
+            'expiresAt' => $expiresAt,
+            'referral' => $referral
+        ]);
+    }
 }
