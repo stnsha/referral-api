@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call(BusinessUnitSeeder::class);
-        $this->call(BusinessUnitFormSeeder::class);
+        // $this->call(BusinessUnitFormSeeder::class);
         // $this->call(ExternalRefereeSeeder::class);
         // $this->call(ReferralSeeder::class);
     }
