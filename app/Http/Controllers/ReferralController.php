@@ -1995,7 +1995,7 @@ class ReferralController extends Controller
             ]);
         }
 
-        // Status is not closed - show PDF
+        // Status is not closed - return PDF directly
         $pdfBase64 = $referral->encoded_base;
 
         if (!$pdfBase64) {
@@ -2004,11 +2004,11 @@ class ReferralController extends Controller
             ]);
         }
 
-        return view('referral.pdf-viewer', [
-            'referralId' => createRefId($referral->id),
-            'pdfBase64' => $pdfBase64,
-            'expiresAt' => $expiresAt,
-            'referral' => $referral
-        ]);
+        // Decode and return PDF directly to browser
+        $pdfContent = base64_decode($pdfBase64);
+
+        return response($pdfContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="referral_' . createRefId($referral->id) . '.pdf"');
     }
 }
