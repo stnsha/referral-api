@@ -45,6 +45,8 @@ use App\Http\Requests\ExternalOrganizationRequest;
  */
 class ExternalOrganizationController extends Controller
 {
+    use \App\Traits\AccessControl;
+
     /**
      * @OA\Get(
      *     path="/api/external-organizations",
@@ -117,6 +119,15 @@ class ExternalOrganizationController extends Controller
     public function store(ExternalOrganizationRequest $request): JsonResponse
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can create external organizations.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $externalOrganization = ExternalOrganization::create($request->validated());
             DB::commit();
@@ -227,6 +238,15 @@ class ExternalOrganizationController extends Controller
     public function update(ExternalOrganizationRequest $request, ExternalOrganization $externalOrganization): JsonResponse
     {
         try {
+            $jwtPayload = $request->get('jwt_payload');
+
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can update external organizations.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $externalOrganization->update($request->validated());
             DB::commit();
@@ -273,6 +293,15 @@ class ExternalOrganizationController extends Controller
     public function destroy(ExternalOrganization $externalOrganization): JsonResponse
     {
         try {
+            $jwtPayload = request()->get('jwt_payload');
+
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can delete external organizations.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $externalOrganization->delete();
             DB::commit();

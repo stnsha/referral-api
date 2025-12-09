@@ -23,6 +23,8 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class ReportController extends Controller
 {
+    use \App\Traits\AccessControl;
+
     /**
      * @OA\Post(
      *     path="/api/report",
@@ -196,7 +198,10 @@ class ReportController extends Controller
         try {
             // Get business unit from JWT payload
             $jwtPayload = $request->get('jwt_payload');
-            $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
+
+            // Superadmin can see all data, others filtered by their business unit
+            $userBusinessUnitId = $this->getBusinessUnitIdForFilter($jwtPayload);
+
             $groupedResults = $this->getFilterResults($request->all(), $userBusinessUnitId);
 
             if ($groupedResults != null) {
@@ -265,8 +270,9 @@ class ReportController extends Controller
         $month = !empty($request[0]['month']) ? $request[0]['month'] : null;
         $year = !empty($request[0]['year']) ? $request[0]['year'] : null;
 
-        // If userBusinessUnitId is provided, force filter by that business unit
-        if ($userBusinessUnitId) {
+        // If userBusinessUnitId is provided (not null), force filter by that business unit
+        // Note: null means superadmin, should see all
+        if ($userBusinessUnitId !== null) {
             $businessUnitId = $userBusinessUnitId;
         }
 

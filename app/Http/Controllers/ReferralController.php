@@ -30,6 +30,7 @@ use Throwable;
 class ReferralController extends Controller
 {
     use Octopus;
+    use \App\Traits\AccessControl;
 
     /**
      * @OA\Get(
@@ -76,14 +77,15 @@ class ReferralController extends Controller
         $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
         $listOutlets = $jwtPayload['outlet'] ?? null;
 
-        if (!$businessUnitId) {
+        // Only validate for non-superadmin users
+        if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
             return response()->json([
                 'message' => 'Business unit ID not found in session.',
                 'data' => [],
             ], 401);
         }
 
-        if (!$listOutlets || !is_array($listOutlets)) {
+        if ((!$listOutlets || !is_array($listOutlets)) && !$this->isSuperadmin($jwtPayload)) {
             return response()->json([
                 'message' => 'Outlet list not found in session.',
                 'data' => [],
@@ -96,9 +98,12 @@ class ReferralController extends Controller
             'referral_hierarchies.external_organization',
             'referral_hierarchies.referral_create_form'
         ])
-            ->whereHas('referral_hierarchies', function ($query) use ($businessUnitId, $listOutlets) {
-                $query->where('business_unit_id', $businessUnitId)
-                ->whereIn('location', $listOutlets);
+            ->whereHas('referral_hierarchies', function ($query) use ($jwtPayload, $businessUnitId, $listOutlets) {
+                // Superadmin sees all referrals
+                if (!$this->isSuperadmin($jwtPayload)) {
+                    $query->where('business_unit_id', $businessUnitId)
+                    ->whereIn('location', $listOutlets);
+                }
             })
             ->orderByDesc('created_at')
             ->get();
@@ -312,8 +317,8 @@ class ReferralController extends Controller
                 //get business unit id
                 $business_unit_id = $businessUnits['assignee']['business_unit_id'];
 
-                // Validate that the assignee business unit matches JWT business unit
-                if ($business_unit_id != $businessUnitId) {
+                // Validate that the assignee business unit matches JWT business unit (skip for superadmin)
+                if (!$this->canAccessBusinessUnit($jwtPayload, $business_unit_id)) {
                     return response()->json([
                         'message' => 'Unauthorized: Cannot create referral for different business unit.',
                     ], 403);
@@ -856,7 +861,8 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            // Only validate for non-superadmin users
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -882,8 +888,8 @@ class ReferralController extends Controller
             // Check view_only parameter
             $viewOnly = $request->query('view_only', false);
 
-            //check if referral accessible by this business unit (skip if view_only)
-            if (!$viewOnly) {
+            //check if referral accessible by this business unit (skip if view_only or superadmin)
+            if (!$viewOnly && !$this->isSuperadmin($jwtPayload)) {
                 $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
 
                 if (!$exists) {
@@ -1193,9 +1199,13 @@ class ReferralController extends Controller
 
                 $referral_hierarchy_id = null;
 
-                // Find the current business unit's hierarchy
+                // Find the current business unit's hierarchy (superadmin can update any business unit)
                 foreach ($referral->referral_hierarchies as $rh) {
-                    if ($rh->business_unit_id == $business_unit_id) {
+                    if ($rh->business_unit_id == $business_unit_id || $this->isSuperadmin($jwtPayload)) {
+                        // For superadmin, only process the hierarchy matching the business_unit_id from request
+                        if ($this->isSuperadmin($jwtPayload) && $rh->business_unit_id != $business_unit_id) {
+                            continue;
+                        }
                         $referral_hierarchy_id = $rh->id;
 
                         // Update staff_id if not set
@@ -1643,7 +1653,8 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            // Only validate for non-superadmin users
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],

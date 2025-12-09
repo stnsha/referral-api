@@ -149,6 +149,14 @@ class ODBController extends Controller
      *                 type="array",
      *                 @OA\Items(type="integer"),
      *                 example={99, 100, 101, 102, 161, 216, 217, 232, 260, 317, 318, 337, 338, 354, 356, 362, 378}
+     *             ),
+     *             @OA\Property(
+     *                 property="referral",
+     *                 type="integer",
+     *                 example=2,
+     *                 description="Referral level: 0=normal user, 1=superadmin, 2=admin of dept",
+     *                 enum={0, 1, 2},
+     *                 nullable=true
      *             )
      *         )
      *     ),
@@ -177,6 +185,7 @@ class ODBController extends Controller
             'status_semasa' => 'required|string',
             'outlet' => 'required|array',
             'outlet.*' => 'integer',
+            'referral' => 'nullable|integer|in:0,1,2',
         ], [
             'staff_id.required' => 'Staff ID is required.',
             'staff_department_id.required' => 'Staff Department ID is required.',
@@ -184,6 +193,8 @@ class ODBController extends Controller
             'outlet.required' => 'Outlet is required.',
             'outlet.array' => 'Outlet must be an array.',
             'outlet.*.integer' => 'Each outlet must be an integer.',
+            'referral.integer' => 'Referral must be an integer.',
+            'referral.in' => 'Referral must be 0, 1, or 2.',
         ]);
 
         if ($validated) {
@@ -200,7 +211,8 @@ class ODBController extends Controller
                 'staff_id' => $validated['staff_id'],
                 'business_unit_id' => $businessUnitId,
                 'status_semasa' => $validated['status_semasa'],
-                'outlet' => $validated['outlet']
+                'outlet' => $validated['outlet'],
+                'referral' => $validated['referral'] ?? 2
             ];
 
             $token = $this->generateJWT($payload);

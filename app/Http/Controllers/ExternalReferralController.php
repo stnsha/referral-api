@@ -21,6 +21,7 @@ use Throwable;
 class ExternalReferralController extends Controller
 {
     use Octopus;
+    use \App\Traits\AccessControl;
 
     /**
      * @OA\Post(
@@ -149,8 +150,8 @@ class ExternalReferralController extends Controller
                 //get business unit id
                 $business_unit_id = $businessUnits['assignee']['business_unit_id'];
 
-                // Validate that the assignee business unit matches JWT business unit
-                if ($business_unit_id != $businessUnitId) {
+                // Validate that the assignee business unit matches JWT business unit (skip for superadmin)
+                if (!$this->canAccessBusinessUnit($jwtPayload, $business_unit_id)) {
                     return response()->json([
                         'message' => 'Unauthorized: Cannot create referral for different business unit.',
                     ], 403);

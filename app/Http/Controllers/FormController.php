@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
 {
+    use \App\Traits\AccessControl;
+
     public function index(Request $request)
     {
         try {
@@ -109,12 +111,19 @@ class FormController extends Controller
                 ], 401);
             }
 
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can create forms.',
+                ], 403);
+            }
+
             DB::beginTransaction();
             $validated = $request->validated();
             $bu = BusinessUnit::where('id', $validated['business_unit_id'])->first();
 
-            // Validate that the requested business unit matches JWT business unit
-            if (!$bu || $bu->id != $businessUnitId) {
+            // Validate that the requested business unit matches JWT business unit (skip for superadmin)
+            if (!$bu || !$this->canAccessBusinessUnit($jwtPayload, $bu->id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot create form for different business unit.',
                 ], 403);
@@ -222,11 +231,18 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
 
-            $forms = Form::with(['form_details'])->where('business_unit_id', $businessUnitId)->get();
+            $query = Form::with(['form_details']);
+
+            // Apply business unit filter only for non-superadmin
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $query->where('business_unit_id', $businessUnitId);
+            }
+
+            $forms = $query->get();
             $data = [];
             $arr = [];
 
@@ -356,11 +372,18 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
-            
-            $forms = Form::with(['form_details'])->where('business_unit_id', $businessUnitId)->get();
+
+            $query = Form::with(['form_details']);
+
+            // Apply business unit filter only for non-superadmin
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $query->where('business_unit_id', $businessUnitId);
+            }
+
+            $forms = $query->get();
             $data = [];
             $arr = [];
 
@@ -487,8 +510,15 @@ class FormController extends Controller
                 ], 401);
             }
 
-            // Check if user can access this form
-            if ($form->business_unit_id != $businessUnitId) {
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can update forms.',
+                ], 403);
+            }
+
+            // Check if user can access this form (skip for superadmin)
+            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot update form from different business unit.',
                 ], 403);
@@ -571,6 +601,13 @@ class FormController extends Controller
                 ], 401);
             }
 
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can hide forms.',
+                ], 403);
+            }
+
             // Check if user can access this form
             if ($form->business_unit_id != $businessUnitId) {
                 return response()->json([
@@ -650,6 +687,13 @@ class FormController extends Controller
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
+            }
+
+            // Check if user has write permission (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can unhide forms.',
+                ], 403);
             }
 
             // Check if user can access this form

@@ -33,9 +33,4 @@ class BusinessUnit extends Model
     {
         return $this->hasMany(Form::class, 'business_unit_id', 'id');
     }
-
-    public function referral_histories(): HasMany
-    {
-        return $this->hasMany(ReferralHistory::class, 'business_unit_id', 'id');
-    }
 }
