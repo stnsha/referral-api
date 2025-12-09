@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BusinessUnitRequest;
 use App\Http\Resources\BusinessUnitResource;
 use App\Models\BusinessUnit;
+use App\Traits\AccessControl;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Throwable;
 
 class BusinessUnitController extends Controller
 {
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     /**
      * @OA\Get(

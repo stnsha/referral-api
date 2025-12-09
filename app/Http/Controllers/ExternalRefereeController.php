@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ExternalRefereeRequest;
 use App\Models\ExternalOrganization;
 use App\Models\ExternalReferee;
+use App\Traits\AccessControl;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +61,7 @@ use Throwable;
  */
 class ExternalRefereeController extends Controller
 {
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     /**
      * @OA\Get(

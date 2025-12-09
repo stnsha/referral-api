@@ -7,6 +7,7 @@ use App\Http\Requests\FormsRequest;
 use App\Models\BusinessUnit;
 use App\Models\Form;
 use App\Models\FormDetails;
+use App\Traits\AccessControl;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
 {
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     public function index(Request $request)
     {

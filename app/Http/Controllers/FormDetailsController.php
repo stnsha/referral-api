@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\FormDetailsRequest;
 use App\Models\Form;
 use App\Models\FormDetails;
+use App\Traits\AccessControl;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class FormDetailsController extends Controller
 {
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     /**
      * @OA\Post(

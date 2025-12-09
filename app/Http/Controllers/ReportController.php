@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ReportExport;
 use App\Models\BusinessUnit;
 use App\Models\Referral;
 use App\Models\ReferralHierarchy;
+use App\Traits\AccessControl;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use App\Exports\ReportExport;
 use Exception;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Exceptions\LaravelExcelException;
@@ -23,7 +24,7 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class ReportController extends Controller
 {
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     /**
      * @OA\Post(

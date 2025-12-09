@@ -142,7 +142,7 @@ class ODBController extends Controller
      *         @OA\JsonContent(
      *             required={"staff_id", "staff_department_id", "status_semasa", "outlet"},
      *             @OA\Property(property="staff_id", type="integer", example=2222),
-     *             @OA\Property(property="staff_department_id", type="integer", example=20),
+     *             @OA\Property(property="staff_department_id", type="integer", example=20, description="Department ID. Use 16 for superadmin (no business unit required)"),
      *             @OA\Property(property="status_semasa", type="string", example="Tester"),
      *             @OA\Property(
      *                 property="outlet",
@@ -183,7 +183,7 @@ class ODBController extends Controller
             'staff_id' => 'required|integer',
             'staff_department_id' => 'required|integer',
             'status_semasa' => 'required|string',
-            'outlet' => 'required|array',
+            'outlet' => 'nullable|array',
             'outlet.*' => 'integer',
             'referral' => 'nullable|integer|in:0,1,2',
         ], [
@@ -198,10 +198,16 @@ class ODBController extends Controller
         ]);
 
         if ($validated) {
-            $businessUnitId = $this->mapToBusinessUnitId($validated['staff_department_id'], $validated['status_semasa']);
+            // Skip business unit mapping for superadmin department (16)
+            // Superadmin (referral = 1) doesn't need business unit assignment
+            if ($validated['staff_department_id'] == 16) {
+                $businessUnitId = null;
+            } else {
+                $businessUnitId = $this->mapToBusinessUnitId($validated['staff_department_id'], $validated['status_semasa']);
 
-            if (!$businessUnitId) {
-                return response()->json(['message' => 'Invalid department or status combination.'], 422);
+                if (!$businessUnitId) {
+                    return response()->json(['message' => 'Invalid department or status combination.'], 422);
+                }
             }
 
             $payload = [

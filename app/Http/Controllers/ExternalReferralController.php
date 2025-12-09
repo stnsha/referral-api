@@ -11,6 +11,7 @@ use App\Models\ReferralAttachment;
 use App\Models\ReferralCreateForm;
 use App\Models\ReferralDetails;
 use App\Models\ReferralHierarchy;
+use App\Traits\AccessControl;
 use App\Traits\Octopus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ use Throwable;
 class ExternalReferralController extends Controller
 {
     use Octopus;
-    use \App\Traits\AccessControl;
+    use AccessControl;
 
     /**
      * @OA\Post(
