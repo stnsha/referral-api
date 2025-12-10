@@ -998,41 +998,51 @@ class ReferralController extends Controller
                 //get external referee or organization
                 $external_referral = [];
 
-                    if ($rh->external_referee_id) {
-                        $is_external = true;
-                        $external_referee = $rh->external_referee;
-                        $external_referral[] = [
-                            'referee' => [
-                                'external_referee_id' => $external_referee->id,
-                                'name' => $external_referee->name,
-                                'email' => $external_referee->email,
-                                'phone' => $external_referee->phone,
-                                'position' => $external_referee->position,
-                            ],
-                            'organization' => [
-                                'external_organization_id' => $external_referee->organization->id ?? null,
-                                'name' => $external_referee->organization->name ?? null,
-                                'address' => $external_referee->organization->address ?? null,
-                                'postcode' => $external_referee->organization->postcode ?? null,
-                                'state' => $external_referee->organization->state ?? null,
-                                'country' => $external_referee->organization->country ?? null,
-                            ]
-                        ];
-                } elseif ($rh->external_organization_id) {
+                $referee = $rh->external_referee;
+                $org = $rh->external_organization;
+
+                // Check if referee is valid (not null and name != N/A)
+                $validReferee = $referee
+                    && $referee->name
+                    && strtolower($referee->name) !== 'n/a';
+
+                if ($validReferee) {
+
                     $is_external = true;
-                    $external_organization = $rh->external_organization;
+                    $external_referral[] = [
+                        'referee' => [
+                            'external_referee_id' => $referee->id,
+                            'name' => $referee->name,
+                            'email' => $referee->email,
+                            'phone' => $referee->phone,
+                            'position' => $referee->position,
+                        ],
+                        'organization' => [
+                            'external_organization_id' => $referee->organization->id ?? null,
+                            'name' => $referee->organization->name ?? null,
+                            'address' => $referee->organization->address ?? null,
+                            'postcode' => $referee->organization->postcode ?? null,
+                            'state' => $referee->organization->state ?? null,
+                            'country' => $referee->organization->country ?? null,
+                        ]
+                    ];
+                } elseif ($org) {
+
+                    // fallback: use organization
+                    $is_external = true;
                     $external_referral[] = [
                         'referee' => null,
                         'organization' => [
-                            'external_organization_id' => $external_organization->id,
-                            'name' => $external_organization->name,
-                            'address' => $external_organization->address,
-                            'postcode' => $external_organization->postcode,
-                            'state' => $external_organization->state,
-                            'country' => $external_organization->country,
+                            'external_organization_id' => $org->id,
+                            'name' => $org->name,
+                            'address' => $org->address,
+                            'postcode' => $org->postcode,
+                            'state' => $org->state,
+                            'country' => $org->country,
                         ]
                     ];
                 }
+
 
                 // Get form data from CreateForm and ReplyForm if they exist
                 $createForm = [];
@@ -1748,12 +1758,19 @@ class ReferralController extends Controller
                         'is_external' => $is_external
                     ];
                 } else {
+                    $refereeName = optional($latestReferralHierarchy->external_referee)->name;
+
+                    $toBusinessUnit = ($refereeName && strtolower($refereeName) !== 'n/a')
+                        ? $refereeName
+                        : optional($latestReferralHierarchy->external_organization)->name;
+
+
                     $referralData = [
                         'id' => $ref->id,
                         'ref_id' => createRefId($ref->id),
                         'reason' => $referralReason,
                         'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
-                        'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
+                        'to_business_unit' => $toBusinessUnit,
                         'priority' => $ref->priority,
                         'status' => $ref->status,
                         'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),

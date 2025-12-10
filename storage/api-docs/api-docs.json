@@ -87,6 +87,149 @@
                         "bearerAuth": []
                     }
                 ]
+            },
+            "post": {
+                "tags": [
+                    "Business Units"
+                ],
+                "summary": "Create a new business unit",
+                "operationId": "a3910ea554e78c7a7cea47dbc8958700",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "staff_department_id"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Alpro Clinic"
+                                    },
+                                    "staff_department_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "is_active": {
+                                        "description": "Optional, defaults to true",
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Business unit created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit created successfully."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Alpro Clinic"
+                                                },
+                                                "staff_department_id": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized - read-only access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized: Read-only access. Only admin and superadmin can create business units."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create business unit."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error details"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/external-organizations": {
@@ -755,11 +898,326 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "Cannot delete - referee has existing referrals",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cannot delete external referee. This referee has 5 existing referral(s)."
+                                        },
+                                        "referral_count": {
+                                            "type": "integer",
+                                            "example": 5
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "External referee not found"
                     },
                     "500": {
                         "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/external-referral": {
+            "post": {
+                "tags": [
+                    "External Referrals"
+                ],
+                "summary": "Create a new external referral",
+                "operationId": "0c8565af8a7edc1563df568af575a4c7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "business_units",
+                                    "referral"
+                                ],
+                                "properties": {
+                                    "business_units": {
+                                        "properties": {
+                                            "assignee": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 2222
+                                                    },
+                                                    "business_unit_id": {
+                                                        "type": "string",
+                                                        "example": "6"
+                                                    },
+                                                    "location": {
+                                                        "type": "string",
+                                                        "example": "101"
+                                                    },
+                                                    "referral_reason": {
+                                                        "type": "string",
+                                                        "example": "Specialized cardiac assessment required"
+                                                    },
+                                                    "referral_condition": {
+                                                        "type": "string",
+                                                        "example": "Patient presents with irregular heartbeat and chest discomfort. Initial ECG shows abnormalities requiring specialist review."
+                                                    },
+                                                    "medical_history": {
+                                                        "type": "string",
+                                                        "example": "Hypertension for 5 years, controlled with medication."
+                                                    },
+                                                    "additional_remarks": {
+                                                        "type": "string",
+                                                        "example": "Patient prefers morning appointments",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "recipient": {
+                                                "description": "Four possible conditions: A) Existing org + existing referee, B) New org + new referee, C) New org only, D) Existing org + new referee",
+                                                "properties": {
+                                                    "organization": {
+                                                        "description": "Existing organization ID (Conditions A & D)",
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "referee": {
+                                                        "description": "Existing referee ID (Condition A only)",
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "new_organization": {
+                                                        "description": "New organization details (Conditions B & C)",
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Hospital Tuanku Jaafar"
+                                                            },
+                                                            "address": {
+                                                                "type": "string",
+                                                                "example": "Jalan Rasah, Seremban"
+                                                            },
+                                                            "postcode": {
+                                                                "type": "string",
+                                                                "example": "70300"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Negeri Sembilan"
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "Malaysia"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "new_recipient": {
+                                                        "description": "New referee details (Conditions B & D)",
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Dr. Farisah"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "example": "dummy1@dummy.com"
+                                                            },
+                                                            "phone": {
+                                                                "type": "string",
+                                                                "example": "0123456789"
+                                                            },
+                                                            "position": {
+                                                                "type": "string",
+                                                                "example": "Medical Officer"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "referral": {
+                                        "properties": {
+                                            "customer_id": {
+                                                "type": "integer",
+                                                "example": 10
+                                            },
+                                            "priority": {
+                                                "type": "integer",
+                                                "example": 2
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "form_data": {
+                                        "properties": {
+                                            "6": {
+                                                "properties": {
+                                                    "targeted_area": {
+                                                        "type": "string",
+                                                        "example": "Cardiovascular"
+                                                    },
+                                                    "pain_level": {
+                                                        "type": "string",
+                                                        "example": "6"
+                                                    },
+                                                    "previous_treatment": {
+                                                        "type": "string",
+                                                        "example": "30"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "attachments": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "ECG_Report.pdf"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "application/pdf"
+                                                },
+                                                "size": {
+                                                    "type": "integer",
+                                                    "example": 25600
+                                                },
+                                                "base64": {
+                                                    "type": "string",
+                                                    "format": "byte",
+                                                    "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "External referral created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1234
+                                        },
+                                        "pdf_base64": {
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized: Cannot create referral for different business unit."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create external referral.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create referral."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Connection Failure"
+                                        },
+                                        "line": {
+                                            "type": "integer",
+                                            "example": 123
+                                        },
+                                        "file": {
+                                            "type": "string",
+                                            "example": "/app/Http/Controllers/ExternalReferralController.php"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -883,6 +1341,133 @@
                                     },
                                     "type": "object"
                                 }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/form/all": {
+            "get": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Get all forms (including hidden) by business unit id from JWT token",
+                "operationId": "b49c4f2346302b297ef454b16a88dd8c",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "business_unit_id": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "forms": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "form_id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "label_name": {
+                                                        "type": "string",
+                                                        "example": "Assessment Form"
+                                                    },
+                                                    "is_hidden": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    },
+                                                    "form_details": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "form_detail_id": {
+                                                                    "type": "integer",
+                                                                    "example": 101
+                                                                },
+                                                                "field_name": {
+                                                                    "type": "string",
+                                                                    "example": "Blood Pressure"
+                                                                },
+                                                                "field_type": {
+                                                                    "type": "string",
+                                                                    "example": "text"
+                                                                },
+                                                                "is_required": {
+                                                                    "type": "boolean",
+                                                                    "example": true
+                                                                },
+                                                                "field_value": {
+                                                                    "oneOf": [
+                                                                        {
+                                                                            "type": "string",
+                                                                            "example": "120/80"
+                                                                        },
+                                                                        {
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "properties": {
+                                                                                    "form_detail_id": {
+                                                                                        "type": "integer",
+                                                                                        "example": 201
+                                                                                    },
+                                                                                    "field_value": {
+                                                                                        "type": "string",
+                                                                                        "example": "Option A"
+                                                                                    }
+                                                                                },
+                                                                                "type": "object"
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "Error message"
                             }
                         }
                     }
@@ -1043,7 +1628,7 @@
                     "Forms"
                 ],
                 "summary": "Update an existing form of a business unit",
-                "description": "Updates the form with the given ID and provided data (business unit ID, label name, and visibility).",
+                "description": "Updates the form with the given ID and provided data (label name and visibility). The form must belong to the authenticated user's business unit.",
                 "operationId": "7c9c4e22851c4757a8352dd2a6f05f1e",
                 "parameters": [
                     {
@@ -1069,15 +1654,18 @@
                                 "properties": {
                                     "business_unit_id": {
                                         "description": "The ID of the business unit",
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "label_name": {
                                         "description": "The label name of the form",
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "Updated Form Name"
                                     },
                                     "is_hidden": {
                                         "description": "Whether the form is hidden or not",
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "example": false
                                     }
                                 },
                                 "type": "object"
@@ -1102,22 +1690,6 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Update failed"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized",
                         "content": {
@@ -1126,7 +1698,23 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Invalid or expired token."
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized: Cannot update form from different business unit."
                                         }
                                     },
                                     "type": "object"
@@ -1162,19 +1750,19 @@
                 ]
             }
         },
-        "/api/form/{form}": {
-            "delete": {
+        "/api/form/hide/{form}": {
+            "put": {
                 "tags": [
                     "Forms"
                 ],
-                "summary": "Delete a form of a business unit",
-                "description": "Delete a specific form by its ID.",
-                "operationId": "be84502d0c043af16325cb48e41bee12",
+                "summary": "Hide a form of a business unit",
+                "description": "Hide a specific form by its ID by setting is_hidden to true.",
+                "operationId": "2d5d3b663a7bf40403f3a41a5326194a",
                 "parameters": [
                     {
                         "name": "form",
                         "in": "path",
-                        "description": "The ID of the form to be deleted.",
+                        "description": "The ID of the form to be hidden.",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1183,14 +1771,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Form deleted successfully",
+                        "description": "Form hidden successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Form deleted successfully!"
+                                            "example": "Form hidden successfully!"
                                         }
                                     },
                                     "type": "object"
@@ -1215,14 +1803,94 @@
                         }
                     },
                     "500": {
-                        "description": "Failed to delete form",
+                        "description": "Failed to hide form",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Failed to delete form."
+                                            "example": "Failed to hide form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from exception"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/form/{form}/unhide": {
+            "put": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Unhide a form of a business unit",
+                "description": "Unhide a specific form by its ID by setting is_hidden to false.",
+                "operationId": "99e431532dae514f856464dddec4412d",
+                "parameters": [
+                    {
+                        "name": "form",
+                        "in": "path",
+                        "description": "The ID of the form to be unhidden.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form unhidden successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form unhidden successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired token."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to unhide form",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to unhide form."
                                         },
                                         "error": {
                                             "type": "string",
@@ -1694,7 +2362,8 @@
                                 "required": [
                                     "staff_id",
                                     "staff_department_id",
-                                    "status_semasa"
+                                    "status_semasa",
+                                    "outlet"
                                 ],
                                 "properties": {
                                     "staff_id": {
@@ -1702,12 +2371,49 @@
                                         "example": 2222
                                     },
                                     "staff_department_id": {
+                                        "description": "Department ID. Use 16 for superadmin (no business unit required)",
                                         "type": "integer",
-                                        "example": 1
+                                        "example": 20
                                     },
                                     "status_semasa": {
                                         "type": "string",
-                                        "example": "Junior Audiologist"
+                                        "example": "Tester"
+                                    },
+                                    "outlet": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            99,
+                                            100,
+                                            101,
+                                            102,
+                                            161,
+                                            216,
+                                            217,
+                                            232,
+                                            260,
+                                            317,
+                                            318,
+                                            337,
+                                            338,
+                                            354,
+                                            356,
+                                            362,
+                                            378
+                                        ]
+                                    },
+                                    "referral": {
+                                        "description": "Referral level: 0=normal user, 1=superadmin, 2=admin of dept",
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1,
+                                            2
+                                        ],
+                                        "example": 2,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2151,7 +2857,7 @@
                 "tags": [
                     "Referrals"
                 ],
-                "summary": "Create a new referral",
+                "summary": "Create a new internal referral",
                 "operationId": "4a03f158cec5d04a922637564726d870",
                 "requestBody": {
                     "required": true,
@@ -2160,8 +2866,7 @@
                             "schema": {
                                 "required": [
                                     "business_units",
-                                    "referral",
-                                    "required_treatment"
+                                    "referral"
                                 ],
                                 "properties": {
                                     "business_units": {
@@ -2190,7 +2895,7 @@
                                                     },
                                                     "medical_history": {
                                                         "type": "string",
-                                                        "example": ""
+                                                        "example": "Mild scoliosis diagnosed during teenage years."
                                                     },
                                                     "additional_remarks": {
                                                         "type": "string",
@@ -2233,23 +2938,32 @@
                                         },
                                         "type": "object"
                                     },
-                                    "required_treatment": {
-                                        "description": "Array of treatment IDs (PK). Must have at least 1 item. Associated with the referral history that has the highest sequence (recipient).",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 1
+                                    "form_data": {
+                                        "properties": {
+                                            "6": {
+                                                "properties": {
+                                                    "targeted_area": {
+                                                        "type": "string",
+                                                        "example": "Lower limbs and core"
+                                                    },
+                                                    "pain_level": {
+                                                        "type": "string",
+                                                        "example": "4"
+                                                    },
+                                                    "previous_physiotherapy": {
+                                                        "type": "string",
+                                                        "example": "30"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
                                         },
-                                        "example": [
-                                            1,
-                                            2,
-                                            3
-                                        ]
+                                        "type": "object"
                                     },
                                     "attachments": {
                                         "type": "array",
                                         "items": {
-                                            "description": "Attachments will be associated with the referral history that has sequence 1 (assignee).",
+                                            "description": "Attachments will be associated with the referral history that has is_filled=true",
                                             "properties": {
                                                 "name": {
                                                     "type": "string",
@@ -2288,6 +3002,12 @@
                                         "id": {
                                             "type": "integer",
                                             "example": 1234
+                                        },
+                                        "pdf_base64": {
+                                            "description": "Base64 encoded PDF with QR code",
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago..."
                                         }
                                     },
                                     "type": "object"
@@ -2303,7 +3023,23 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Invalid or expired token."
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized: Cannot create referral for different business unit."
                                         }
                                     },
                                     "type": "object"
@@ -2323,6 +3059,34 @@
                                         },
                                         "errors": {
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create referral.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to create referral."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Connection Failure"
+                                        },
+                                        "line": {
+                                            "type": "integer",
+                                            "example": 123
+                                        },
+                                        "file": {
+                                            "type": "string",
+                                            "example": "/app/Http/Controllers/ReferralController.php"
                                         }
                                     },
                                     "type": "object"
@@ -2544,10 +3308,6 @@
                                                                     "type": "string",
                                                                     "example": "Cardiologist"
                                                                 },
-                                                                "specialty": {
-                                                                    "type": "string",
-                                                                    "example": "Cardiology"
-                                                                },
                                                                 "external_organization_id": {
                                                                     "type": "integer",
                                                                     "example": 1
@@ -2581,7 +3341,7 @@
                                             }
                                         },
                                         "pdf_base64": {
-                                            "description": "Present only for external referrals",
+                                            "description": "PDF base64 string available for all referrals",
                                             "type": "string",
                                             "format": "byte",
                                             "example": null,
@@ -2650,6 +3410,345 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Internal server error."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/referral/{id}/download": {
+            "get": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Download referral PDF",
+                "operationId": "bd5b8cd62c7dfce059b304e1abceb680",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Referral ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "pdfBase64": {
+                                            "type": "string",
+                                            "format": "byte",
+                                            "example": "JVBERi0xLjQKJaqrrK0KMSAwIG9iago..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Referral or PDF not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "PDF not found for this referral."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/referral/notification": {
+            "get": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Get unread referral notifications",
+                "operationId": "43ea9a62c4ebe42fa079645b1a9c830f",
+                "responses": {
+                    "200": {
+                        "description": "Notifications retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "notifications": {
+                                            "type": "string",
+                                            "example": "<a href='../../odb/referral/view.php?id=1'><span style='font-size:12px; font-weight:bold;'>New Referral #REF0001</span></a>"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/referral/search": {
+            "post": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Search referrals by customer ID or ref ID (Public search - cross business unit)",
+                "operationId": "df04f26b712a6bfcd267336569b31638",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "customer_id": {
+                                        "description": "Customer ID to search for (optional if ref_id is provided)",
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "ref_id": {
+                                        "description": "Referral ID to search for (optional if customer_id is provided, takes priority if both provided)",
+                                        "type": "string",
+                                        "example": "#REF0001"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Referrals found successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "ref_id": {
+                                                        "type": "string",
+                                                        "example": "#REF0001"
+                                                    },
+                                                    "reason": {
+                                                        "type": "string",
+                                                        "example": "Vestibular-Related Balance Issue"
+                                                    },
+                                                    "from_business_unit": {
+                                                        "type": "string",
+                                                        "example": "Alpro Physio"
+                                                    },
+                                                    "to_business_unit": {
+                                                        "type": "string",
+                                                        "example": "Alpro Audiology"
+                                                    },
+                                                    "priority": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "status": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "1 July 2025, Sunday"
+                                                    },
+                                                    "ori_created_at": {
+                                                        "type": "string",
+                                                        "example": "2025-07-01T10:30:00"
+                                                    },
+                                                    "is_external": {
+                                                        "type": "boolean",
+                                                        "example": false
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer or referral not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Customer not found."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "At least one search parameter is required.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "At least one search parameter (customer_id or ref_id) is required."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to search referrals.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to search referrals."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Database error"
                                         }
                                     },
                                     "type": "object"
@@ -3099,11 +4198,7 @@
             },
             "ExternalReferee": {
                 "required": [
-                    "name",
-                    "email",
-                    "phone",
-                    "position",
-                    "specialty"
+                    "name"
                 ],
                 "properties": {
                     "id": {
@@ -3117,16 +4212,20 @@
                         "type": "string"
                     },
                     "email": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "phone": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "position": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "specialty": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "is_active": {
                         "type": "boolean",
@@ -3491,6 +4590,10 @@
         {
             "name": "External Referees",
             "description": "External Referees"
+        },
+        {
+            "name": "External Referrals",
+            "description": "External Referrals"
         },
         {
             "name": "Forms",

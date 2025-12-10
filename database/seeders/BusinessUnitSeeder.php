@@ -16,7 +16,7 @@ class BusinessUnitSeeder extends Seeder
         $units = [
             ['name' => 'Alpro Audiology',     'staff_department_id' => 1],
             ['name' => 'Alpro Baby',   'staff_department_id' => 21],
-            ['name' => 'Alpro Clinic',      'staff_department_id' => 2],
+            ['name' => 'Alpro Clinic',      'staff_department_id' => 3],
             ['name' => 'Alpro Optisaver',     'staff_department_id' => 35],
             ['name' => 'Alpro Pharmacy',  'staff_department_id' => 1],
             ['name' => 'Alpro Physio',       'staff_department_id' => 20],
