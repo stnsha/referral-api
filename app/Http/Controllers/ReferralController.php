@@ -1217,9 +1217,25 @@ class ReferralController extends Controller
 
             // Check if PDF exists in the database
             if (!$referral->encoded_base || empty($referral->encoded_base)) {
-                return response()->json([
-                    'message' => 'PDF not found for this referral.'
-                ], 404);
+                // Generate PDF using exportReferral
+                try {
+                    $this->exportReferral($referral);
+
+                    // Reload referral to get fresh data
+                    $referral->refresh();
+
+                    // Verify PDF was generated successfully
+                    if (!$referral->encoded_base || empty($referral->encoded_base)) {
+                        return response()->json([
+                            'message' => 'Failed to generate PDF for this referral.'
+                        ], 500);
+                    }
+                } catch (Throwable $e) {
+                    return response()->json([
+                        'message' => 'Failed to generate PDF for this referral.',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
             }
 
             // Return the stored PDF base64
