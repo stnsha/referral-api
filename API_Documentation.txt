@@ -19,9 +19,19 @@ Authentication: Bearer JWT Token (except auth endpoints)
    Request Body:
    {
      "staff_id": 2222,
-     "staff_department_id": 1,
-     "status_semasa": "Junior Audiologist"
+     "staff_department_id": 20,
+     "status_semasa": "Junior Audiologist",
+     "outlet": [99, 100, 101],  // Optional: Array of outlet IDs (nullable for superadmin)
+     "referral": 2              // Optional: Permission level (0=Normal User, 1=Superadmin, 2=Admin). Default: 2
    }
+
+   Notes:
+   - staff_department_id = 16 is reserved for superadmin (no business unit required)
+   - outlet field is nullable for superadmin (staff_department_id = 16)
+   - referral defaults to 2 (Admin) if not provided
+   - See "ACCESS CONTROL & PERMISSIONS" section for details on permission levels
+   - referral=0 (Normal users) are the MAIN users - they can create/update referrals
+   - referral=0 users have read-only access for administrative features only
 
    Success Response (200):
    {
@@ -63,9 +73,16 @@ Authentication: Bearer JWT Token (except auth endpoints)
        "exp": 1234654290,
        "staff_id": 2222,
        "business_unit_id": 1,
-       "status_semasa": "Junior Audiologist"
+       "status_semasa": "Junior Audiologist",
+       "outlet": [99, 100, 101],
+       "referral": 2
      }
    }
+
+   Notes:
+   - business_unit_id is null for superadmin users
+   - outlet array contains accessible outlet IDs (normal users can have 1 or more outlets)
+   - referral indicates permission level: 0=Normal User, 1=Superadmin, 2=Admin
 
    Error Responses:
    - 401 Invalid Token:
@@ -77,6 +94,113 @@ Authentication: Bearer JWT Token (except auth endpoints)
      {
        "message": "The token field is required."
      }
+
+===============================================================================
+                        ACCESS CONTROL & PERMISSIONS
+===============================================================================
+
+PERMISSION LEVELS:
+The API implements role-based access control with three permission levels
+based on the "referral" field in the JWT payload:
+
+1. NORMAL USER (referral = 0)
+   - Can view data within their assigned outlets only
+   - Can CREATE and UPDATE referrals for their assigned outlets
+   - Has one or more assigned outlets (not limited to single outlet)
+   - Read-only access for:
+     * Forms and Form Details
+     * External Referees and External Organizations
+     * Report exports (can view but cannot export to CSV/Excel)
+   - Cannot manage Business Units
+   - Main users of the referral system
+
+2. ADMIN (referral = 2) - DEFAULT
+   - Can view data across all their assigned outlets
+   - Full CRUD access for:
+     * Referrals (all assigned outlets)
+     * Forms and Form Details
+     * External Referees and External Organizations
+     * Report exports
+   - Cannot manage Business Units (superadmin only)
+   - Default permission level for administrative users
+
+3. SUPERADMIN (referral = 1)
+   - Full access to all business units and outlets
+   - Can view ALL referrals from ALL outlets (no filtering)
+   - Full CRUD access for all resources including Business Units
+   - Can use staff_department_id = 16 (no business unit assignment required)
+   - Bypasses all business unit and outlet restrictions
+
+COMPLETE JWT PAYLOAD STRUCTURE:
+{
+  "iss": "app_url",                // Issuer
+  "iat": 1234567890,                // Issued at (Unix timestamp)
+  "exp": 1234654290,                // Expires at (Unix timestamp)
+  "staff_id": 2222,                 // Staff identifier
+  "business_unit_id": 1,            // Business unit ID (null for superadmin)
+  "status_semasa": "Staff Title",   // Current staff status/role
+  "outlet": [99, 100, 101],         // Array of accessible outlet IDs
+  "referral": 2                     // Permission level (0, 1, or 2)
+}
+
+PERMISSION-BASED ERROR RESPONSES:
+
+1. Read-Only Access Denied for Administrative Resources (403):
+   {
+     "message": "Unauthorized: Read-only access. Only admin and superadmin can create/update/delete."
+   }
+
+   Occurs when: Normal user (referral = 0) attempts to:
+   - Create/update/delete Forms or Form Details
+   - Create/update/delete External Referees or Organizations
+   - Export reports to CSV/Excel
+
+2. Superadmin-Only Access Denied (403):
+   {
+     "message": "Unauthorized: Only superadmin can create business units."
+   }
+
+   Occurs when: Normal user or Admin attempts to create/update/delete Business Units
+
+3. Cross-Business Unit Access Denied (403):
+   {
+     "message": "Unauthorized: Cannot access resources from different business unit."
+   }
+
+   Occurs when: Non-superadmin attempts to access resources outside their business unit
+
+4. Missing Business Unit (401):
+   {
+     "message": "Business unit ID not found in session."
+   }
+
+   Occurs when: Non-superadmin user has no business_unit_id in JWT payload
+
+PERMISSION REQUIREMENTS BY RESOURCE TYPE:
+
+- REFERRALS:
+  * View: All users (filtered by assigned outlets)
+  * Create/Update: All users (outlet-restricted)
+  * Visibility difference:
+    - Normal users (0): See only their assigned outlets
+    - Admins (2): See all their assigned outlets
+    - Superadmins (1): See ALL outlets
+
+- FORMS & FORM DETAILS:
+  * View: All users
+  * Create/Update/Delete: Admin (2) and Superadmin (1) only
+
+- EXTERNAL REFEREES & ORGANIZATIONS:
+  * View: All users
+  * Create/Update/Delete: Admin (2) and Superadmin (1) only
+
+- REPORTS:
+  * View: All users
+  * Export to CSV/Excel: Admin (2) and Superadmin (1) only
+
+- BUSINESS UNITS:
+  * View: All users
+  * Create/Update/Delete: Superadmin (1) only
 
 ===============================================================================
                         PROTECTED ENDPOINTS (Require JWT Token)
@@ -132,6 +256,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 5. CREATE BUSINESS UNIT
    Method: POST
    URL: /business-units
+   Permission Required: Superadmin only (referral=1)
 
    Request Body:
    {
@@ -141,21 +266,41 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
    }
 
    Success Response (201): Returns created business unit
-   Error Response (422): Validation errors
+
+   Error Responses:
+   - 403 Superadmin-Only Access:
+     {
+       "message": "Unauthorized: Only superadmin can create business units."
+     }
+   - 422 Validation errors
 
 6. UPDATE BUSINESS UNIT
    Method: PUT/PATCH
    URL: /business-units/{id}
+   Permission Required: Superadmin only (referral=1)
 
    Request Body: Same as create
+
    Success Response (200): Returns updated business unit
+
+   Error Response (403):
+   {
+     "message": "Unauthorized: Only superadmin can update business units."
+   }
 
 7. DELETE BUSINESS UNIT
    Method: DELETE
    URL: /business-units/{id}
+   Permission Required: Superadmin only (referral=1)
 
    Success Response (204): No content
-   Error Response (404): Business unit not found
+
+   Error Responses:
+   - 403 Superadmin-Only Access:
+     {
+       "message": "Unauthorized: Only superadmin can delete business units."
+     }
+   - 404 Business unit not found
 
 ===============================================================================
                                 FORMS
@@ -164,6 +309,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 8. CREATE FORM
    Method: POST
    URL: /form
+   Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
    Request Body:
    {
@@ -183,7 +329,11 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
    }
 
    Error Responses:
-   - 403 Forbidden:
+   - 403 Read-Only Access:
+     {
+       "message": "Unauthorized: Read-only access. Only admin and superadmin can create forms."
+     }
+   - 403 Cross-Business Unit:
      {
        "message": "Unauthorized: Cannot create form for different business unit."
      }
@@ -213,6 +363,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 10. UPDATE FORM
     Method: PUT
     URL: /form/{id}
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
     Request Body:
     {
@@ -226,24 +377,35 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
       "message": "Form updated successfully!"
     }
 
-    Error Response (403):
-    {
-      "message": "Unauthorized: Cannot update form from different business unit."
-    }
+    Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can update forms."
+      }
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot update form from different business unit."
+      }
 
 11. DELETE FORM
     Method: DELETE
     URL: /form/{id}
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
     Success Response (200):
     {
       "message": "Form deleted successfully!"
     }
 
-    Error Response (403):
-    {
-      "message": "Unauthorized: Cannot delete form from different business unit."
-    }
+    Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can delete forms."
+      }
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot delete form from different business unit."
+      }
 
 ===============================================================================
                             FORM DETAILS
@@ -252,6 +414,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 12. CREATE FORM DETAILS
     Method: POST
     URL: /formDetails/create
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
     Request Body:
     {
@@ -270,10 +433,15 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
       "message": "Form details created successfully!"
     }
 
-    Error Response (403):
-    {
-      "message": "Unauthorized: Cannot create form details for different business unit."
-    }
+    Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can create form details."
+      }
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot create form details for different business unit."
+      }
 
 13. GET FORM DETAIL
     Method: GET
@@ -298,6 +466,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 14. UPDATE FORM DETAIL
     Method: PUT
     URL: /formDetails/{id}
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
     Request Body:
     {
@@ -313,14 +482,35 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
       "message": "Form updated successfully!"
     }
 
+    Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can update form details."
+      }
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot update form details from different business unit."
+      }
+
 15. DELETE FORM DETAIL
     Method: DELETE
     URL: /formDetails/{id}
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
 
     Success Response (200):
     {
       "message": "Form deleted successfully!"
     }
+
+    Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can delete form details."
+      }
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot delete form details from different business unit."
+      }
 
 ===============================================================================
                               REFERRALS
@@ -352,6 +542,14 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 17. CREATE REFERRAL
     Method: POST
     URL: /referral
+
+    Notes:
+    - All users can create referrals (referral=0, 1, 2)
+    - Users can only create referrals for their assigned outlets
+    - Outlet-based filtering applies:
+      * Normal users (0): Can create for their assigned outlets only
+      * Admins (2): Can create for any of their assigned outlets
+      * Superadmins (1): Can create for any outlet
 
     Request Body:
     {
@@ -403,7 +601,7 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
     }
 
     Error Responses:
-    - 403 Forbidden:
+    - 403 Cross-Business Unit:
       {
         "message": "Unauthorized: Cannot create referral for different business unit."
       }
@@ -447,6 +645,14 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
     Method: PUT
     URL: /referral
 
+    Notes:
+    - All users can update referrals (referral=0, 1, 2)
+    - Users can only update referrals for their assigned outlets
+    - Outlet-based filtering applies:
+      * Normal users (0): Can update referrals from their assigned outlets only
+      * Admins (2): Can update referrals from any of their assigned outlets
+      * Superadmins (1): Can update any referral
+
     Request Body:
     {
       "referral": {
@@ -478,6 +684,12 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
     {
       "message": "Referral updated successfully."
     }
+
+    Error Responses:
+    - 403 Cross-Business Unit:
+      {
+        "message": "Unauthorized: Cannot update referral from different business unit."
+      }
 
 ===============================================================================
                             ATTACHMENTS
@@ -534,9 +746,15 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
                               REPORTS
 ===============================================================================
 
-35. GENERATE REPORT
+35. GENERATE REPORT (Export to Excel)
     Method: POST
     URL: /report
+    Permission Required: Admin (referral=2) or Superadmin (referral=1)
+
+    Notes:
+    - Normal users (referral=0) cannot export reports to Excel/CSV
+    - Normal users can still view report data through dashboard and chart endpoints
+    - Only admin and superadmin can export data files
 
     Request Body:
     {
@@ -559,6 +777,10 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
     }
 
     Error Responses:
+    - 403 Read-Only Access:
+      {
+        "message": "Unauthorized: Read-only access. Only admin and superadmin can export reports."
+      }
     - 404 No Data:
       {
         "error": "No referral histories found",
@@ -580,6 +802,10 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
     Method: GET
     URL: /report/chart
 
+    Notes:
+    - All users can view chart data (referral=0, 1, 2)
+    - Data is filtered based on user's assigned outlets/business units
+
     Success Response (200):
     {
       "Emergency Department": [
@@ -599,6 +825,10 @@ COMMON ERROR RESPONSES FOR ALL PROTECTED ENDPOINTS:
 37. GET DASHBOARD STATISTICS
     Method: GET
     URL: /report/dashboard
+
+    Notes:
+    - All users can view dashboard statistics (referral=0, 1, 2)
+    - Data is filtered based on user's assigned outlets/business units
 
     Success Response (200):
     {
@@ -783,11 +1013,35 @@ Error Codes:
 2. Business unit filtering is enforced on all protected endpoints
 3. File uploads use base64 encoding in JSON requests
 4. All protected endpoints require valid JWT token in Authorization header
-5. Cross-business unit access is forbidden (403 error)
+5. Cross-business unit access is forbidden (403 error) for non-superadmin users
 6. Validation errors return detailed field-specific messages
 7. Referrals support external referees and multi-sequence workflows
 8. Reports can be filtered by various criteria and exported as Excel
 9. Form structures support dynamic field types (text, checkbox, radio, etc.)
 10. Attachments are stored as base64 encoded strings in database
+
+ACCESS CONTROL & PERMISSIONS:
+11. Three permission levels: Normal User (0), Superadmin (1), Admin (2)
+12. Normal users (referral=0) are the MAIN users - can create/update referrals for assigned outlets
+13. Normal users (referral=0) have read-only access for administrative features:
+    - Forms and Form Details (view only)
+    - External Referees and Organizations (view only)
+    - Reports (view only, cannot export to CSV/Excel)
+    - Business Units (view only)
+14. Admin users (referral=2) have full CRUD access within their business unit
+    - Cannot manage Business Units (superadmin only)
+    - Can export reports and manage all administrative resources
+15. Superadmin users (referral=1) bypass all business unit and outlet filtering
+    - Only superadmin can create/update/delete Business Units
+    - Full access to all resources across all business units
+16. Permission level defaults to 2 (Admin) for backwards compatibility
+17. Superadmin can use staff_department_id=16 (no business unit required)
+18. Outlet filtering differs by permission level:
+    - Normal users (0): Can view/manage only their assigned outlets' referrals
+    - Admin users (2): Can view/manage all their assigned outlets' referrals
+    - Superadmin (1): Can view/manage ALL outlets (no filtering)
+19. Normal users can have one or more assigned outlets (not limited to single outlet)
+20. JWT payload includes "referral" field (0, 1, or 2) and "outlet" array
+21. Business unit restrictions do not apply to superadmin (referral=1)
 
 ===============================================================================

@@ -6,9 +6,10 @@ use App\Http\Requests\FormDetailsRequest;
 use App\Models\Form;
 use App\Models\FormDetails;
 use App\Traits\AccessControl;
-use Exception;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class FormDetailsController extends Controller
 {
@@ -105,7 +106,13 @@ class FormDetailsController extends Controller
             return response()->json([
                 'message' => 'Form details created successfully!'
             ], 201);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create form details.',
+                'error' => 'Database error occurred'
+            ], 500);
+        } catch (Throwable $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to create form details.',
@@ -182,7 +189,12 @@ class FormDetailsController extends Controller
             return response()->json([
                 'data' => $data
             ], 200);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Failed to retrieve form.',
+                'error' => 'Database error occurred'
+            ], 500);
+        } catch (Throwable $e) {
             return response()->json([
                 'message' => 'Failed to retrieve form.',
                 'error' => $e->getMessage()
@@ -254,7 +266,13 @@ class FormDetailsController extends Controller
             return response()->json([
                 'message' => 'Form deleted successfully!'
             ], 200);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to delete form.',
+                'error' => 'Database error occurred'
+            ], 500);
+        } catch (Throwable $e) {
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to delete form.',
@@ -345,7 +363,10 @@ class FormDetailsController extends Controller
             }
             DB::commit();
             return response()->json(['message' => 'Form updated successfully!'], 200);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Update failed', 'error' => 'Database error occurred'], 500);
+        } catch (Throwable $e) {
             DB::rollBack();
             return response()->json(['message' => 'Update failed', 'error' => $e->getMessage()], 500);
         }

@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ReferralAttachment;
-use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Throwable;
 
 class ReferralAttachmentController extends Controller
 {
@@ -95,7 +96,12 @@ class ReferralAttachmentController extends Controller
                 'size' => $fileSize,
                 'base64' => $base64Data
             ], 200);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            Log::error('Database error retrieving attachment: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Database error occurred'
+            ], 500);
+        } catch (Throwable $e) {
             Log::error('Error retrieving attachment: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Internal server error'

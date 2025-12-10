@@ -6,7 +6,7 @@ use App\Http\Requests\BusinessUnitRequest;
 use App\Http\Resources\BusinessUnitResource;
 use App\Models\BusinessUnit;
 use App\Traits\AccessControl;
-use Exception;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -71,8 +71,11 @@ class BusinessUnitController extends Controller
             return response()->json([
                 'data' => $bus
             ], 200);
-        } catch (Exception $e) {
-
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Database error occurred while fetching business units.'
+            ], 500);
+        } catch (Throwable $e) {
             return response()->json([
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
@@ -139,10 +142,10 @@ class BusinessUnitController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
 
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
+            // Check if user is superadmin (referral 1 only)
+            if (!$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can create business units.',
+                    'message' => 'Unauthorized: Only superadmin can create business units.',
                 ], 403);
             }
 

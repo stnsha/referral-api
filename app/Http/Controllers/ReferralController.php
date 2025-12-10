@@ -19,9 +19,9 @@ use App\Traits\AccessControl;
 use App\Traits\Octopus;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -707,7 +707,7 @@ class ReferralController extends Controller
                             'referral_id' => $referral->id,
                             'recipient_email' => $recipientOutletEmail
                         ]);
-                    } catch (Exception $e) {
+                    } catch (Throwable $e) {
                         Log::error('Failed to send referral notification email', [
                             'referral_id' => $referral->id,
                             'recipient_email' => $recipientOutletEmail,
@@ -1096,7 +1096,9 @@ class ReferralController extends Controller
             return response()->json([
                 'message' => 'Referral not found.'
             ], 404);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Database error occurred.'], 500);
+        } catch (Throwable $e) {
             return response()->json(['message' => 'Internal server error.'], 500);
         }
     }
@@ -1483,7 +1485,9 @@ class ReferralController extends Controller
             return response()->json([
                 'message' => $e->getMessage()
             ], 404);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Database error occurred.'], 500);
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
@@ -1498,7 +1502,7 @@ class ReferralController extends Controller
             $pdfContent = $pdf->output();
             $base64Pdf = base64_encode($pdfContent);
             return $base64Pdf;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('PDF generation failed: ' . $e->getMessage());
             return null;
         }
@@ -1577,7 +1581,9 @@ class ReferralController extends Controller
                 'count' => $num,
                 'notifications' => $noti_list
             ], 200, [], JSON_UNESCAPED_SLASHES);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Database error occurred.'], 500);
+        } catch (Throwable $e) {
             return response()->json(['message' => 'Internal server error.'], 500);
         }
     }
@@ -1835,7 +1841,9 @@ class ReferralController extends Controller
             return response()->json([
                 'message' => $e->getMessage()
             ], 404);
-        } catch (Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Database error occurred.'], 500);
+        } catch (Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
@@ -1865,7 +1873,7 @@ class ReferralController extends Controller
             ]);
         } catch (ModelNotFoundException $e) {
             return view('referral.not-found');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Error in showNricForm', [
                 'referral_id' => $id,
                 'error' => $e->getMessage()
@@ -1970,7 +1978,7 @@ class ReferralController extends Controller
             return redirect()->route('referral.nric.form', ['id' => $id]);
         } catch (ModelNotFoundException $e) {
             return view('referral.not-found');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Error in verifyAndShowPdf', [
                 'referral_id' => $id,
                 'error' => $e->getMessage()

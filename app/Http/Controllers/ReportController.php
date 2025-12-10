@@ -8,13 +8,13 @@ use App\Models\Referral;
 use App\Models\ReferralHierarchy;
 use App\Traits\AccessControl;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Exceptions\LaravelExcelException;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 /**
  * @OA\Tag(
@@ -200,6 +200,13 @@ class ReportController extends Controller
             // Get business unit from JWT payload
             $jwtPayload = $request->get('jwt_payload');
 
+            // Check if user has write permission to export reports (referral 1 or 2 only)
+            if (!$this->canWrite($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can export reports.',
+                ], 403);
+            }
+
             // Superadmin can see all data, others filtered by their business unit
             $userBusinessUnitId = $this->getBusinessUnitIdForFilter($jwtPayload);
 
@@ -232,7 +239,7 @@ class ReportController extends Controller
                         'error' => 'Failed to generate Excel file',
                         'message' => 'There was an error creating the report file'
                     ], 500);
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                     Log::error('File creation error: ' . $e->getMessage());
                     return response()->json([
                         'error' => 'Failed to create report file',
@@ -251,7 +258,7 @@ class ReportController extends Controller
                 'message' => 'Invalid input parameters',
                 'details' => $e->errors()
             ], 422);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Unexpected error in ReportController: ' . $e->getMessage());
             return response()->json([
                 'error' => 'An unexpected error occurred',
@@ -416,7 +423,7 @@ class ReportController extends Controller
                                 'form_name' => $form ? $form->label_name : null,
                                 'value' => $actualValue,
                             ];
-                        } catch (Exception $e) {
+                        } catch (Throwable $e) {
                             Log::warning('Error processing referral detail: ' . $e->getMessage());
                             continue;
                         }
@@ -486,7 +493,7 @@ class ReportController extends Controller
                             'referral' => $referralData,
                             'referral_histories' => []
                         ];
-                    } catch (Exception $e) {
+                    } catch (Throwable $e) {
                         Log::warning('Error processing referral data for ID ' . $rh->referral_id . ': ' . $e->getMessage());
                         // Continue with default structure
                         $groupedResults[$rh->referral_id] = [
@@ -501,7 +508,7 @@ class ReportController extends Controller
             }
 
             return $groupedResults;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Error processing referral histories: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Error occurred while processing referral data',
@@ -1123,7 +1130,7 @@ class ReportController extends Controller
                                 'form_name' => $form ? $form->label_name : null,
                                 'value' => $actualValue,
                             ];
-                        } catch (Exception $e) {
+                        } catch (Throwable $e) {
                             Log::warning('Error processing referral detail: ' . $e->getMessage());
                             continue;
                         }
@@ -1193,7 +1200,7 @@ class ReportController extends Controller
                             'referral' => $referralData,
                             'referral_histories' => []
                         ];
-                    } catch (Exception $e) {
+                    } catch (Throwable $e) {
                         Log::warning('Error processing referral data for ID ' . $rh->referral_id . ': ' . $e->getMessage());
                         // Continue with default structure
                         $groupedResults[$rh->referral_id] = [
@@ -1208,7 +1215,7 @@ class ReportController extends Controller
             }
 
             return $groupedResults;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Error processing referral histories: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Error occurred while processing referral data',
