@@ -68,9 +68,7 @@ class BusinessUnitController extends Controller
                 ], 404);
             }
 
-            return response()->json([
-                'data' => $bus
-            ], 200);
+            return response()->json($bus, 200);
         } catch (QueryException $e) {
             return response()->json([
                 'message' => 'Database error occurred while fetching business units.'

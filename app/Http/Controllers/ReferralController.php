@@ -453,280 +453,7 @@ class ReferralController extends Controller
 
                 $response = ['id' => $referral->id];
 
-                // Generate PDF base64 for ALL referrals (both internal and external)
-                $referralData = $referral->load([
-                    'referral_hierarchies.business_unit',
-                    'referral_hierarchies.external_referee.organization',
-                    'referral_hierarchies.referral_create_form'
-                ]);
-
-                // Prepare data for PDF
-                $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
-                $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
-
-                // Collect PDF data
-                $referralId = createRefId($referral->id);
-                $dateCreated = $referral->created_at->format('d F Y');
-
-                /************************************************** Assignee *****************************************/
-                // Get referral data from create form
-                $referralReason = null;
-                $referralCondition = null;
-                $medicalHistory = null;
-                $additionalRemarks = null;
-                if ($firstHierarchy && $firstHierarchy->referral_create_form) {
-                    $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
-                    $referralCondition = $firstHierarchy->referral_create_form->referral_condition ?? null;
-                    $medicalHistory = $firstHierarchy->referral_create_form->medical_history ?? null;
-                    $additionalRemarks = $firstHierarchy ? $firstHierarchy->additional_remarks : null;
-                }
-
-                // Get referral details (form data)
-                $referralDetailsList = [];
-                if ($firstHierarchy) {
-                    $details = ReferralDetails::where('referral_hierarchy_id', $firstHierarchy->id)
-                        ->with(['form'])
-                        ->get();
-
-                    foreach ($details as $detail) {
-                        $formName = $detail->form ? $detail->form->label_name : 'Detail';
-                        $formValue = $detail->value;
-
-                        // If value is a form_detail_id (FK), get the field_value
-                        if (is_numeric($formValue)) {
-                            $formDetail = FormDetails::find($formValue);
-                            if ($formDetail && $formDetail->field_value) {
-                                $formValue = $formDetail->field_value;
-                            }
-                        }
-
-                        $referralDetailsList[] = [
-                            'form_name' => $formName,
-                            'form_value' => $formValue
-                        ];
-                    }
-                }
-
-                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
-                // Get staff data from assignee
-                $staffId = $firstHierarchy->staff_id;
-                $assignee = $this->staffDetails($staffId);
-                $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
-
-                if (blank($assignee)) {
-                    Log::info('Staff not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'staff_id' => $staffId,
-                    ]);
-                } else {
-                    $staff = $assignee[0] ?? $assignee;
-                    $assigneeName = data_get($staff, 'nama_staff', null);
-                    $assigneeDesignation = data_get($staff, 'status_semasa', null);
-                    $assigneePhone = data_get($staff, 'hp', null);
-                    $assigneeEmail = data_get($staff, 'email', null);
-                }
-
-                $locationId = $firstHierarchy->location;
-                $outlet = $this->outletDetails($locationId);
-                if (blank($outlet)) {
-                    $assigneeOutletInfo = $assigneeOutletEmail = null;
-
-                    Log::info('Outlet not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'outlet_id' => $locationId,
-                    ]);
-                } else {
-                    $outlet = $outlet[0] ?? $outlet;
-                    $assigneeOutletInfo = $outlet['code'] . ', ' . $assigneeBusinessUnit;
-                    $assigneeOutletEmail = data_get($outlet, 'email', null);
-                    $assigneeOutletPhone = $outlet['office1'] . '/' . $outlet['office2'];
-                    $assigneeOutletAddr = data_get($outlet, 'addr', null);
-                }
-
-                /************************************************** End of Assignee *****************************************/
-                /************************************************** Recipient *****************************************/
-
-                $recipientName = $recipientPosition = $recipientPhone = $recipientEmail = null;
-                $recipientBusinessUnit = $lastHierarchy->business_unit->name;
-
-                if (!is_null($lastHierarchy->staff_id)) {
-
-                    // Get staff id from recipient
-                    $staffId = $lastHierarchy->staff_id;
-                    $recipient = $this->staffDetails($staffId);
-
-                    if (blank($recipient)) {
-                        Log::info('Staff not found in ODB', [
-                            'referral_id' => $referral->id,
-                            'staff_id' => $staffId,
-                        ]);
-                    } else {
-                        $staff = $recipient[0] ?? $recipient;
-                        $recipientName = data_get($staff, 'nama_staff', null);
-                        $recipientPosition = data_get($staff, 'status_semasa', null);
-                        $recipientBusinessUnit = $lastHierarchy->business_unit->name ?? null;
-                        $recipientPhone = data_get($staff, 'hp', null);
-                        $recipientEmail = data_get($staff, 'email', null);
-                    }
-                }
-
-                /************************************************** Location *****************************************/
-
-                // Get location id from recipient
-                $locationId = $lastHierarchy->location;
-                $outlet = $this->outletDetails($locationId);
-
-                if (blank($outlet)) {
-                    $recipientOutletInfo = $recipientOutletEmail = $recipientOutletPhone = $recipientOutletAddr = null;
-
-                    Log::info('Outlet not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'outlet_id' => $locationId,
-                    ]);
-                } else {
-                    $outlet = $outlet[0] ?? $outlet;
-                    $recipientOutletInfo = $outlet['code'] . ', ' . $recipientBusinessUnit;
-                    $recipientOutletEmail = data_get($outlet, 'email', null);
-                    $recipientOutletPhone = $outlet['office1'] . '/' . $outlet['office2'];
-                    $recipientOutletAddr = data_get($outlet, 'addr', null);
-                }
-
-
-                /************************************************** End of Location *****************************************/
-                /************************************************** End of Recipient *****************************************/
-
-                /************************************************** Customer *****************************************/
-
-                // Get customer_id
-                $customerId = $referral->customer_id;
-                $patient = $this->customerDetails($customerId);
-                $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
-
-                if (blank($patient)) {
-
-                    Log::info('Patient not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'customer_id' => $customerId,
-                    ]);
-                } else {
-                    $data = $patient[0] ?? $patient;
-                    $patientName = data_get($data, 'customer_name', null);
-                    $patientIcNo = data_get($data, 'ic', null);
-                    $patientPhone = data_get($data, 'phone', null);
-                    $patientAddress = data_get($data, 'c_addr', null);
-                    $patientEmail = data_get($data, 'email', null);
-                }
-
-                /************************************************** End of Customer *****************************************/
-
-                $data = [
-                    'is_external' => false,
-                    'referralId' => $referralId,
-                    'dateCreated' => $dateCreated,
-
-                    'assigneeName' => $assigneeName,
-                    'assigneeDesignation' => $assigneeDesignation,
-                    'assigneeBusinessUnit' => $assigneeBusinessUnit,
-                    'assigneePhone' => $assigneePhone,
-                    'assigneeEmail' => $assigneeEmail,
-
-                    'assigneeOutletInfo' => $assigneeOutletInfo,
-                    'assigneeOutletAddr' => $assigneeOutletAddr,
-                    'assigneeOutletPhone' => $assigneeOutletPhone,
-                    'assigneeOutletEmail' => $assigneeOutletEmail,
-
-                    'referralReason' => $referralReason,
-                    'referralCondition' => $referralCondition,
-                    'medicalHistory' => $medicalHistory,
-                    'additionalRemarks' => $additionalRemarks,
-
-                    'referralDetails' => $referralDetailsList,
-
-                    'recipientName' => $recipientName,
-                    'recipientPosition' => $recipientPosition,
-                    'recipientPhone' => $recipientPhone,
-                    'recipientEmail' => $recipientEmail,
-                    'recipientBusinessUnit' => $recipientBusinessUnit,
-
-                    'recipientOutletInfo' => $recipientOutletInfo,
-                    'recipientOutletEmail' => $recipientOutletEmail,
-                    'recipientOutletPhone' => $recipientOutletPhone,
-                    'recipientOutletAddr' => $recipientOutletAddr,
-
-                    'patientName' => $patientName,
-                    'patientIcNo' => $patientIcNo,
-                    'patientPhone' => $patientPhone,
-                    'patientAddress' => $patientAddress,
-                ];
-
-                // Generate PDF with QR code using helper function
-                $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
-                if ($pdfBase64) {
-                    $response['pdf_base64'] = $pdfBase64;
-
-                    // Store the PDF base64 in referral record
-                    $referral->encoded_base = $pdfBase64;
-                    $referral->save();
-                }
-
-                // Send email to recipient outlet if email exists and is valid
-                if ($recipientOutletEmail && filter_var($recipientOutletEmail, FILTER_VALIDATE_EMAIL)) {
-                    try {
-                        // Get referral attachments
-                        $referralAttachments = $firstHierarchy->referral_attachments->map(function ($attachment) {
-                            return [
-                                'file_name' => $attachment->file_name,
-                                'file_type' => $attachment->file_type,
-                                'encoded_base' => $attachment->encoded_base
-                            ];
-                        })->toArray();
-
-                        Mail::to($recipientOutletEmail)->send(
-                            new ExternalReferralNotification(
-                                $referralId,
-                                $dateCreated,
-                                $referralReason,
-                                $referralCondition,
-                                $medicalHistory,
-                                $additionalRemarks,
-                                $referralDetailsList,
-                                $recipientName,
-                                $recipientPosition,
-                                $recipientBusinessUnit, // organization name (business unit for internal)
-                                $recipientOutletAddr, // organization address (outlet address)
-                                $patientName,
-                                $patientIcNo,
-                                $patientPhone,
-                                $patientAddress,
-                                $patientEmail,
-                                $assigneeName, // referrer name
-                                $assigneeDesignation, // referrer designation
-                                $assigneeBusinessUnit, // referrer business unit
-                                $assigneePhone, // referrer phone
-                                $assigneeEmail, // referrer email
-                                $pdfBase64,
-                                $referralAttachments
-                            )
-                        );
-
-                        Log::info('Referral notification email sent', [
-                            'referral_id' => $referral->id,
-                            'recipient_email' => $recipientOutletEmail
-                        ]);
-                    } catch (Throwable $e) {
-                        Log::error('Failed to send referral notification email', [
-                            'referral_id' => $referral->id,
-                            'recipient_email' => $recipientOutletEmail,
-                            'error' => $e->getMessage()
-                        ]);
-                        // Don't fail the request if email fails
-                    }
-                } else {
-                    Log::info('Skipping email notification - no valid recipient email', [
-                        'referral_id' => $referral->id,
-                        'recipient_outlet_email' => $recipientOutletEmail
-                    ]);
-                }
+                $this->exportReferral($referral);
 
                 //return referral id if successfulD
                 DB::commit();
@@ -2065,5 +1792,297 @@ class ReferralController extends Controller
         return response($pdfContent)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="referral_' . createRefId($referral->id) . '.pdf"');
+    }
+
+    public function exportReferral(Referral $referral)
+    {
+
+        // Generate PDF base64 for ALL referrals (both internal and external)
+        $referralData = $referral->load([
+            'referral_hierarchies.business_unit',
+            'referral_hierarchies.external_referee.organization',
+            'referral_hierarchies.referral_create_form'
+        ]);
+
+        // Prepare data for PDF
+        $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+        $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
+
+        // Collect PDF data
+        $referralId = createRefId($referral->id);
+        $dateCreated = $referral->created_at->format('d F Y');
+
+        /************************************************** Assignee *****************************************/
+        // Get referral data from create form
+        $referralReason = null;
+        $referralCondition = null;
+        $medicalHistory = null;
+        $additionalRemarks = null;
+        if ($firstHierarchy && $firstHierarchy->referral_create_form) {
+            $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
+            $referralCondition = normalizeValue($firstHierarchy->referral_create_form->referral_condition ?? null);
+            $medicalHistory = normalizeValue($firstHierarchy->referral_create_form->medical_history ?? null);
+            $additionalRemarks = normalizeValue($firstHierarchy->additional_remarks ?? null);
+        }
+
+        // Get referral details (form data)
+        $referralDetailsList = [];
+        if ($firstHierarchy) {
+            $details = ReferralDetails::where('referral_hierarchy_id', $firstHierarchy->id)
+                ->with(['form'])
+                ->get();
+
+            foreach ($details as $detail) {
+                $formName = $detail->form ? $detail->form->label_name : 'Detail';
+                $formValue = $detail->value;
+
+                // If value is a form_detail_id (FK), get the field_value
+                if (is_numeric($formValue)) {
+                    $formDetail = FormDetails::find($formValue);
+                    if ($formDetail && $formDetail->field_value) {
+                        $formValue = $formDetail->field_value;
+                    }
+                }
+
+                $referralDetailsList[] = [
+                    'form_name' => $formName,
+                    'form_value' => $formValue
+                ];
+            }
+        }
+
+        $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+        // Get staff data from assignee
+        $staffId = $firstHierarchy->staff_id;
+        $assignee = $this->staffDetails($staffId);
+        $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+        if (blank($assignee)) {
+            Log::info('Staff not found in ODB', [
+                'referral_id' => $referral->id,
+                'staff_id' => $staffId,
+            ]);
+        } else {
+            $staff = $assignee[0] ?? $assignee;
+            $assigneeName = data_get($staff, 'nama_staff', null);
+            $assigneeDesignation = data_get($staff, 'status_semasa', null);
+            $assigneePhone = data_get($staff, 'hp', null);
+            $assigneeEmail = data_get($staff, 'email', null);
+        }
+
+        $locationId = $firstHierarchy->location;
+        $outlet = $this->outletDetails($locationId);
+        if (blank($outlet)) {
+            $assigneeOutletInfo = $assigneeOutletEmail = null;
+
+            Log::info('Outlet not found in ODB', [
+                'referral_id' => $referral->id,
+                'outlet_id' => $locationId,
+            ]);
+        } else {
+            $outlet = $outlet[0] ?? $outlet;
+            $assigneeOutletInfo = $outlet['code'] . ', ' . $assigneeBusinessUnit;
+            $assigneeOutletEmail = data_get($outlet, 'email', null);
+            $assigneeOutletPhone = implode('/', array_filter([
+                $outlet['office1'] ?? null,
+                $outlet['office2'] ?? null,
+            ]));
+            $assigneeOutletAddr = data_get($outlet, 'addr', null);
+        }
+
+        /************************************************** End of Assignee *****************************************/
+        /************************************************** Recipient *****************************************/
+
+        $recipientName = $recipientPosition = $recipientPhone = $recipientEmail = null;
+        $recipientBusinessUnit = $lastHierarchy->business_unit->name;
+
+        if (!is_null($lastHierarchy->staff_id)) {
+
+            // Get staff id from recipient
+            $staffId = $lastHierarchy->staff_id;
+            $recipient = $this->staffDetails($staffId);
+
+            if (blank($recipient)) {
+                Log::info('Staff not found in ODB', [
+                    'referral_id' => $referral->id,
+                    'staff_id' => $staffId,
+                ]);
+            } else {
+                $staff = $recipient[0] ?? $recipient;
+                $recipientName = data_get($staff, 'nama_staff', null);
+                $recipientPosition = data_get($staff, 'status_semasa', null);
+                $recipientBusinessUnit = $lastHierarchy->business_unit->name ?? null;
+                $recipientPhone = data_get($staff, 'hp', null);
+                $recipientEmail = data_get($staff, 'email', null);
+            }
+        }
+
+        /************************************************** Location *****************************************/
+
+        // Get location id from recipient
+        $locationId = $lastHierarchy->location;
+        $outlet = $this->outletDetails($locationId);
+
+        if (blank($outlet)) {
+            $recipientOutletInfo = $recipientOutletEmail = $recipientOutletPhone = $recipientOutletAddr = null;
+
+            Log::info('Outlet not found in ODB', [
+                'referral_id' => $referral->id,
+                'outlet_id' => $locationId,
+            ]);
+        } else {
+            $outlet = $outlet[0] ?? $outlet;
+            $recipientOutletInfo = $outlet['code'] . ', ' . $recipientBusinessUnit;
+            $recipientOutletEmail = data_get($outlet, 'email', null);
+            $recipientOutletPhone = implode('/', array_filter([
+                $outlet['office1'] ?? null,
+                $outlet['office2'] ?? null,
+            ]));
+            $recipientOutletAddr = data_get($outlet, 'addr', null);
+        }
+
+
+        /************************************************** End of Location *****************************************/
+        /************************************************** End of Recipient *****************************************/
+
+        /************************************************** Customer *****************************************/
+
+        // Get customer_id
+        $customerId = $referral->customer_id;
+        $patient = $this->customerDetails($customerId);
+        $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
+
+        if (blank($patient)) {
+
+            Log::info('Patient not found in ODB', [
+                'referral_id' => $referral->id,
+                'customer_id' => $customerId,
+            ]);
+        } else {
+            $data = $patient[0] ?? $patient;
+            $patientName = data_get($data, 'customer_name', null);
+            $patientIcNo = data_get($data, 'ic', null);
+            $patientPhone = data_get($data, 'phone', null);
+            $patientAddress = data_get($data, 'c_addr', null);
+            $patientEmail = data_get($data, 'email', null);
+        }
+
+        /************************************************** End of Customer *****************************************/
+
+        $data = [
+            'is_external' => false,
+            'referralId' => $referralId,
+            'dateCreated' => $dateCreated,
+
+            'assigneeName' => $assigneeName,
+            'assigneeDesignation' => $assigneeDesignation,
+            'assigneeBusinessUnit' => $assigneeBusinessUnit,
+            'assigneePhone' => $assigneePhone,
+            'assigneeEmail' => $assigneeEmail,
+
+            'assigneeOutletInfo' => $assigneeOutletInfo,
+            'assigneeOutletAddr' => $assigneeOutletAddr,
+            'assigneeOutletPhone' => $assigneeOutletPhone,
+            'assigneeOutletEmail' => $assigneeOutletEmail,
+
+            'referralReason' => $referralReason,
+            'referralCondition' => $referralCondition,
+            'medicalHistory' => $medicalHistory,
+            'additionalRemarks' => $additionalRemarks,
+
+            'referralDetails' => $referralDetailsList,
+
+            'recipientName' => $recipientName,
+            'recipientPosition' => $recipientPosition,
+            'recipientPhone' => $recipientPhone,
+            'recipientEmail' => $recipientEmail,
+            'recipientBusinessUnit' => $recipientBusinessUnit,
+
+            'recipientOutletInfo' => $recipientOutletInfo,
+            'recipientOutletEmail' => $recipientOutletEmail,
+            'recipientOutletPhone' => $recipientOutletPhone,
+            'recipientOutletAddr' => $recipientOutletAddr,
+
+            'patientName' => $patientName,
+            'patientIcNo' => $patientIcNo,
+            'patientPhone' => $patientPhone,
+            'patientAddress' => $patientAddress,
+            'patientEmail' => $patientEmail,
+        ];
+
+        // Generate PDF with QR code using helper function
+        $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
+        if ($pdfBase64) {
+            $response['pdf_base64'] = $pdfBase64;
+
+            // $pdfContent = base64_decode($pdfBase64);
+
+            // return response($pdfContent)
+            //     ->header('Content-Type', 'application/pdf')
+            //     ->header('Content-Disposition', 'inline; filename="referral.pdf"');
+
+            // Store the PDF base64 in referral record
+            $referral->encoded_base = $pdfBase64;
+            $referral->save();
+        }
+
+        // Send email to recipient outlet if email exists and is valid
+        if ($recipientOutletEmail && filter_var($recipientOutletEmail, FILTER_VALIDATE_EMAIL)) {
+            try {
+                // Get referral attachments
+                $referralAttachments = $firstHierarchy->referral_attachments->map(function ($attachment) {
+                    return [
+                        'file_name' => $attachment->file_name,
+                        'file_type' => $attachment->file_type,
+                        'encoded_base' => $attachment->encoded_base
+                    ];
+                })->toArray();
+
+                Mail::to($recipientOutletEmail)->send(
+                    new ExternalReferralNotification(
+                        $referralId,
+                        $dateCreated,
+                        $referralReason,
+                        $referralCondition,
+                        $medicalHistory,
+                        $additionalRemarks,
+                        $referralDetailsList,
+                        $recipientName,
+                        $recipientPosition,
+                        $recipientBusinessUnit, // organization name (business unit for internal)
+                        $recipientOutletAddr, // organization address (outlet address)
+                        $patientName,
+                        $patientIcNo,
+                        $patientPhone,
+                        $patientAddress,
+                        $patientEmail,
+                        $assigneeName, // referrer name
+                        $assigneeDesignation, // referrer designation
+                        $assigneeBusinessUnit, // referrer business unit
+                        $assigneePhone, // referrer phone
+                        $assigneeEmail, // referrer email
+                        $pdfBase64,
+                        $referralAttachments
+                    )
+                );
+
+                Log::info('Referral notification email sent', [
+                    'referral_id' => $referral->id,
+                    'recipient_email' => $recipientOutletEmail
+                ]);
+            } catch (Throwable $e) {
+                Log::error('Failed to send referral notification email', [
+                    'referral_id' => $referral->id,
+                    'recipient_email' => $recipientOutletEmail,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the request if email fails
+            }
+        } else {
+            Log::info('Skipping email notification - no valid recipient email', [
+                'referral_id' => $referral->id,
+                'recipient_outlet_email' => $recipientOutletEmail
+            ]);
+        }
     }
 }

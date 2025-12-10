@@ -343,159 +343,7 @@ class ExternalReferralController extends Controller
 
                 $response = ['id' => $referral->id];
 
-                // Generate PDF base64 for ALL referrals (both internal and external)
-                $referralData = $referral->load([
-                    'referral_hierarchies.business_unit',
-                    'referral_hierarchies.external_referee.organization',
-                    'referral_hierarchies.external_organization',
-                    'referral_hierarchies.referral_create_form'
-                ]);
-
-                // Prepare data for PDF
-                $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
-                $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
-
-                // Collect PDF data
-                $referralId = createRefId($referral->id);
-                $dateCreated = $referral->created_at->format('d F Y');
-
-                /************************************************** Customer *****************************************/
-                // Get customer_id
-                $customerId = $referral->customer_id;
-                $patient = $this->customerDetails($customerId);
-                $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
-
-                if (blank($patient)) {
-                    Log::info('Patient not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'customer_id' => $customerId,
-                    ]);
-                } else {
-                    $data = $patient[0] ?? $patient;
-                    $patientName = data_get($data, 'customer_name', null);
-                    $patientIcNo = data_get($data, 'ic', null);
-                    $patientPhone = data_get($data, 'phone', null);
-                    $patientAddress = data_get($data, 'c_addr', null);
-                    $patientEmail = data_get($data, 'email', null);
-                }
-
-                /************************************************** Assignee *****************************************/
-                $referralReason = null;
-                $referralCondition = null;
-                $medicalHistory = null;
-                if ($firstHierarchy && $firstHierarchy->referral_create_form) {
-                    $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
-                    $referralCondition = $firstHierarchy->referral_create_form->referral_condition ?? null;
-                    $medicalHistory = $firstHierarchy->referral_create_form->medical_history ?? null;
-                    $additionalRemarks = $firstHierarchy ? $firstHierarchy->additional_remarks : null;
-                }
-
-                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
-                // Get staff data from assignee
-                $staffId = $firstHierarchy->staff_id;
-                $assignee = $this->staffDetails($staffId);
-                $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
-
-                if (blank($assignee)) {
-                    Log::info('Staff not found in ODB', [
-                        'referral_id' => $referral->id,
-                        'staff_id' => $staffId,
-                    ]);
-                } else {
-                    $staff = $assignee[0] ?? $assignee;
-                    $assigneeName = data_get($staff, 'nama_staff', null);
-                    $assigneeDesignation = data_get($staff, 'status_semasa', null);
-                    $assigneePhone = data_get($staff, 'hp', null);
-                    $assigneeEmail = data_get($staff, 'email', null);
-                }
-
-                $locationId = $firstHierarchy->location ?? null;
-                $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
-                $assigneeOutletInfo = $assigneeOutletEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
-
-                if ($locationId) {
-                    $outlet = $this->outletDetails($locationId);
-                    if (blank($outlet)) {
-                        Log::info('Outlet not found in ODB', [
-                            'referral_id' => $referral->id,
-                            'outlet_id' => $locationId,
-                        ]);
-                    } else {
-                        $outletData = $outlet[0] ?? $outlet;
-                        $assigneeOutletInfo = $outletData['code'] . ', ' . $assigneeBusinessUnit;
-                        $assigneeOutletEmail = data_get($outletData, 'email', null);
-                        $assigneeOutletPhone = $outletData['office1'] . '/' . $outletData['office2'];
-                        $assigneeOutletAddr = data_get($outletData, 'addr', null);
-                    }
-                }
-                /************************************************** End of Assignee *****************************************/
-                /************************************************** Referee/Organization *****************************************/
-
-                $refereeName = $refereeEmail = $refereePhone = $refereePosition = $organizationName = $organizationAddr = null;
-
-                if (!is_null($lastHierarchy->external_referee_id)) {
-                    $refereeName = $lastHierarchy->external_referee->name;
-                    $refereeEmail = $lastHierarchy->external_referee->email;
-                    $refereePhone = $lastHierarchy->external_referee->phone;
-                    $refereePosition = $lastHierarchy->external_referee->position;
-                }
-
-                if (!is_null($lastHierarchy->external_organization_id)) {
-                    $addr = $lastHierarchy->external_organization->address . ', ' . $lastHierarchy->external_organization->postcode . ', ' . $lastHierarchy->external_organization->state . ', ' . $lastHierarchy->external_organization->country;
-
-                    $organizationName = $lastHierarchy->external_organization->name;
-                    $organizationAddr = $addr;
-                }
-
-
-                /************************************************** End of Referee/Organization *****************************************/
-                // Prepare data for PDF generation
-                $data = [
-                    'is_external' => true,
-                    'referralId' => $referralId,
-                    'dateCreated' => $dateCreated,
-
-                    'assigneeName' => $assigneeName,
-                    'assigneeDesignation' => $assigneeDesignation,
-                    'assigneeBusinessUnit' => $assigneeBusinessUnit,
-                    'assigneePhone' => $assigneePhone,
-                    'assigneeEmail' => $assigneeEmail,
-
-                    'assigneeOutletInfo' => $assigneeOutletInfo,
-                    'assigneeOutletAddr' => $assigneeOutletAddr,
-                    'assigneeOutletPhone' => $assigneeOutletPhone,
-                    'assigneeOutletEmail' => $assigneeOutletEmail,
-
-                    'referralReason' => $referralReason,
-                    'referralCondition' => $referralCondition,
-                    'medicalHistory' => $medicalHistory,
-                    'additionalRemarks' => $additionalRemarks,
-
-                    'refereeName' => $refereeName,
-                    'refereeEmail' => $refereeEmail,
-                    'refereePhone' => $refereePhone,
-                    'refereePosition' => $refereePosition,
-                    'organizationName' => $organizationName,
-                    'organizationAddr' => $organizationAddr,
-
-                    // Patient data from API
-                    'patientName' => $patientName,
-                    'patientIcNo' => $patientIcNo,
-                    'patientPhone' => $patientPhone,
-                    'patientAddress' => $patientAddress,
-
-                    'referralDetails' => [], // Form details if needed
-                ];
-
-                // Generate PDF with QR code using helper function
-                $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
-                if ($pdfBase64) {
-                    $response['pdf_base64'] = $pdfBase64;
-
-                    // Store the PDF base64 in referral record
-                    $referral->encoded_base = $pdfBase64;
-                    $referral->save();
-                }
+                $this->exportReferral($referral);
 
                 DB::commit();
                 return response()->json($response, 201);
@@ -514,6 +362,174 @@ class ExternalReferralController extends Controller
                 'line'    => $e->getLine(),
                 'file'    => $e->getFile(),
             ], 500);
+        }
+    }
+
+    public function exportReferral(Referral $referral)
+    {
+        // Generate PDF base64 for ALL referrals (both internal and external)
+        $referralData = $referral->load([
+            'referral_hierarchies.business_unit',
+            'referral_hierarchies.external_referee.organization',
+            'referral_hierarchies.external_organization',
+            'referral_hierarchies.referral_create_form'
+        ]);
+
+        // Prepare data for PDF
+        $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+        $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
+
+        // Collect PDF data
+        $referralId = createRefId($referral->id);
+        $dateCreated = $referral->created_at->format('d F Y');
+
+        /************************************************** Customer *****************************************/
+        // Get customer_id
+        $customerId = $referral->customer_id;
+        $patient = $this->customerDetails($customerId);
+        $patientName = $patientIcNo = $patientPhone = $patientAddress = $patientEmail = null;
+
+        if (blank($patient)) {
+            Log::info('Patient not found in ODB', [
+                'referral_id' => $referral->id,
+                'customer_id' => $customerId,
+            ]);
+        } else {
+            $data = $patient[0] ?? $patient;
+            $patientName = data_get($data, 'customer_name', null);
+            $patientIcNo = data_get($data, 'ic', null);
+            $patientPhone = data_get($data, 'phone', null);
+            $patientAddress = data_get($data, 'c_addr', null);
+            $patientEmail = data_get($data, 'email', null);
+        }
+
+        /************************************************** Assignee *****************************************/
+        $referralReason = null;
+        $referralCondition = null;
+        $medicalHistory = null;
+        if ($firstHierarchy && $firstHierarchy->referral_create_form) {
+            $referralReason = normalizeValue($firstHierarchy->referral_create_form->referral_reason ?? null);
+            $referralCondition = normalizeValue($firstHierarchy->referral_create_form->referral_condition ?? null);
+            $medicalHistory = normalizeValue($firstHierarchy->referral_create_form->medical_history ?? null);
+            $additionalRemarks = normalizeValue($firstHierarchy ? $firstHierarchy->additional_remarks : null);
+        }
+
+        $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+        // Get staff data from assignee
+        $staffId = $firstHierarchy->staff_id;
+        $assignee = $this->staffDetails($staffId);
+        $assigneeName = $assigneeDesignation = $assigneePhone = $assigneeEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+        if (blank($assignee)) {
+            Log::info('Staff not found in ODB', [
+                'referral_id' => $referral->id,
+                'staff_id' => $staffId,
+            ]);
+        } else {
+            $staff = $assignee[0] ?? $assignee;
+            $assigneeName = data_get($staff, 'nama_staff', null);
+            $assigneeDesignation = data_get($staff, 'status_semasa', null);
+            $assigneePhone = data_get($staff, 'hp', null);
+            $assigneeEmail = data_get($staff, 'email', null);
+        }
+
+        $locationId = $firstHierarchy->location ?? null;
+        $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
+        $assigneeOutletInfo = $assigneeOutletEmail = $assigneeOutletPhone = $assigneeOutletAddr = null;
+
+        if ($locationId) {
+            $outlet = $this->outletDetails($locationId);
+            if (blank($outlet)) {
+                Log::info('Outlet not found in ODB', [
+                    'referral_id' => $referral->id,
+                    'outlet_id' => $locationId,
+                ]);
+            } else {
+                $outletData = $outlet[0] ?? $outlet;
+                $assigneeOutletInfo = $outletData['code'] . ', ' . $assigneeBusinessUnit;
+                $assigneeOutletEmail = data_get($outletData, 'email', null);
+                $assigneeOutletPhone = implode('/', array_filter([
+                    $outletData['office1'] ?? null,
+                    $outletData['office2'] ?? null,
+                ]));
+                $assigneeOutletAddr = data_get($outletData, 'addr', null);
+            }
+        }
+        /************************************************** End of Assignee *****************************************/
+        /************************************************** Referee/Organization *****************************************/
+
+        $refereeName = $refereeEmail = $refereePhone = $refereePosition = $organizationName = $organizationAddr = null;
+
+        if (!is_null($lastHierarchy->external_referee_id)) {
+            $refereeName = normalizeValue($lastHierarchy->external_referee->name);
+            $refereeEmail = $lastHierarchy->external_referee->email;
+            $refereePhone = normalizeValue($lastHierarchy->external_referee->phone);
+            $refereePosition = normalizeValue($lastHierarchy->external_referee->position);
+        }
+
+        if (!is_null($lastHierarchy->external_organization_id)) {
+            $addr = $lastHierarchy->external_organization->address . ', ' . $lastHierarchy->external_organization->postcode . ', ' . $lastHierarchy->external_organization->state . ', ' . $lastHierarchy->external_organization->country;
+
+            $organizationName = $lastHierarchy->external_organization->name;
+            $organizationAddr = $addr;
+        }
+
+
+        /************************************************** End of Referee/Organization *****************************************/
+        // Prepare data for PDF generation
+        $data = [
+            'is_external' => true,
+            'referralId' => $referralId,
+            'dateCreated' => $dateCreated,
+
+            'assigneeName' => $assigneeName,
+            'assigneeDesignation' => $assigneeDesignation,
+            'assigneeBusinessUnit' => $assigneeBusinessUnit,
+            'assigneePhone' => $assigneePhone,
+            'assigneeEmail' => $assigneeEmail,
+
+            'assigneeOutletInfo' => $assigneeOutletInfo,
+            'assigneeOutletAddr' => $assigneeOutletAddr,
+            'assigneeOutletPhone' => $assigneeOutletPhone,
+            'assigneeOutletEmail' => $assigneeOutletEmail,
+
+            'referralReason' => $referralReason,
+            'referralCondition' => $referralCondition,
+            'medicalHistory' => $medicalHistory,
+            'additionalRemarks' => $additionalRemarks,
+
+            'refereeName' => $refereeName,
+            'refereeEmail' => $refereeEmail,
+            'refereePhone' => $refereePhone,
+            'refereePosition' => $refereePosition,
+
+            'organizationName' => $organizationName,
+            'organizationAddr' => $organizationAddr,
+
+            // Patient data from API
+            'patientName' => $patientName,
+            'patientIcNo' => $patientIcNo,
+            'patientPhone' => $patientPhone,
+            'patientAddress' => $patientAddress,
+            'patientEmail' => $patientEmail,
+
+            'referralDetails' => [], // Form details if needed
+        ];
+
+        // Generate PDF with QR code using helper function
+        $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
+        if ($pdfBase64) {
+            $response['pdf_base64'] = $pdfBase64;
+
+            // $pdfContent = base64_decode($pdfBase64);
+
+            // return response($pdfContent)
+            //     ->header('Content-Type', 'application/pdf')
+            //     ->header('Content-Disposition', 'inline; filename="referral.pdf"');
+
+            // Store the PDF base64 in referral record
+            $referral->encoded_base = $pdfBase64;
+            $referral->save();
         }
     }
 }

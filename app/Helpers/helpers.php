@@ -76,17 +76,17 @@ if (!function_exists('generateReferralPdfWithQr')) {
     function generateReferralPdfWithQr($referralId, $data)
     {
         try {
-            // Generate QR code URL
-            $qrCodeUrl = 'http://octopusdb.info:8080/odb/referral/view.php?id=' . $referralId;
+            // Generate QR code text only
+            $qrCodeText = createRefId($referralId);
 
-            // Try to generate QR code using BaconQrCode
             try {
                 $renderer = new ImageRenderer(
                     new RendererStyle(150, 1),
                     new SvgImageBackEnd()
                 );
+
                 $writer = new Writer($renderer);
-                $qrCodeSvg = $writer->writeString($qrCodeUrl);
+                $qrCodeSvg = $writer->writeString($qrCodeText);
 
                 // Convert SVG to base64 data URL
                 $data['qrCodeBase64'] = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
@@ -99,12 +99,12 @@ if (!function_exists('generateReferralPdfWithQr')) {
                     'line' => $e->getLine(),
                     'file' => $e->getFile()
                 ]);
-                // Generate PDF without QR code
+
                 $data['qrCodeBase64'] = '';
             }
 
             // Generate PDF
-            $pdf = Pdf::loadView('pdf.report', $data);
+            $pdf = Pdf::loadView('pdf.referral', $data);
             $pdf->setPaper('A4', 'portrait');
 
             // Convert PDF to base64
@@ -223,5 +223,19 @@ if (!function_exists('formatMalaysianPhone')) {
 
         // Valid Malaysian mobile number, prepend "60"
         return '60' . $cleaned;
+    }
+}
+
+if (!function_exists('normalizeValue')) {
+    function normalizeValue($value)
+    {
+        // Values that should be converted to null
+        $nullValues = ['n/a', 'na', 'nil'];
+
+        if (is_string($value) && in_array(strtolower(trim($value)), $nullValues, true)) {
+            return null;
+        }
+
+        return $value;
     }
 }
