@@ -1595,17 +1595,17 @@ class ReferralController extends Controller
     }
 
     /**
-     * @OA\Get(
+     * @OA\Post(
      *     path="/api/referral/search",
-     *     summary="Search referrals by customer ID",
+     *     summary="Search referrals by customer ID or ref ID (Public search - cross business unit)",
      *     tags={"Referrals"},
      *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="customer_id",
-     *         in="query",
+     *     @OA\RequestBody(
      *         required=true,
-     *         description="Customer ID to search for",
-     *         @OA\Schema(type="integer", example=10)
+     *         @OA\JsonContent(
+     *             @OA\Property(property="customer_id", type="integer", example=10, description="Customer ID to search for (optional if ref_id is provided)"),
+     *             @OA\Property(property="ref_id", type="string", example="#REF0001", description="Referral ID to search for (optional if customer_id is provided, takes priority if both provided)")
+     *         )
      *     ),
      *     @OA\Response(
      *         response=200,
@@ -1636,7 +1636,7 @@ class ReferralController extends Controller
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="Customer not found.",
+     *         description="Customer or referral not found.",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Customer not found."),
      *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
@@ -1644,9 +1644,9 @@ class ReferralController extends Controller
      *     ),
      *     @OA\Response(
      *         response=422,
-     *         description="Customer ID is required.",
+     *         description="At least one search parameter is required.",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Customer ID is required."),
+     *             @OA\Property(property="message", type="string", example="At least one search parameter (customer_id or ref_id) is required."),
      *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
      *     ),
@@ -1666,7 +1666,7 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            // Only validate for non-superadmin users
+            // Only validate for non-superadmin users (basic JWT validation)
             if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
@@ -1675,23 +1675,35 @@ class ReferralController extends Controller
             }
 
             $customerId = $request->input('customer_id', '');
+            $refId = $request->input('ref_id', '');
 
-            if (empty($customerId)) {
+            // Validate that at least one parameter is provided
+            if (empty($customerId) && empty($refId)) {
                 return response()->json([
-                    'message' => 'Customer ID is required.',
+                    'message' => 'At least one search parameter (customer_id or ref_id) is required.',
                     'data' => [],
                 ], 422);
             }
 
-            $referrals = Referral::with([
+            // Build query based on priority: ref_id takes precedence
+            // PUBLIC SEARCH - No business unit filtering
+            $query = Referral::with([
                 'referral_hierarchies.business_unit',
                 'referral_hierarchies.external_referee',
                 'referral_hierarchies.external_organization',
                 'referral_hierarchies.referral_create_form'
-            ])
-                ->where('customer_id', $customerId)
-                ->orderByDesc('created_at')
-                ->get();
+            ]);
+
+            if (!empty($refId)) {
+                // Search by ref_id (convert to integer ID)
+                $parsedId = parseRefId($refId);
+                $query->where('id', $parsedId);
+            } else {
+                // Search by customer_id
+                $query->where('customer_id', $customerId);
+            }
+
+            $referrals = $query->orderByDesc('created_at')->get();
 
             if ($referrals->isEmpty()) {
                 return response()->json([

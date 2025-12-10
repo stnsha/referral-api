@@ -124,6 +124,36 @@ if (!function_exists('generateReferralPdfWithQr')) {
     }
 }
 
+if (!function_exists('parseRefId')) {
+    /**
+     * Parse referral ID from ref_id format back to integer ID
+     *
+     * Reverses the createRefId() function which formats IDs as "#REF0001"
+     *
+     * Examples:
+     * - "#REF0001" => 1
+     * - "#REF0123" => 123
+     * - "REF0001" => 1
+     * - "1" => 1
+     *
+     * @param string|int $refId The reference ID to parse
+     * @return int The parsed integer ID
+     */
+    function parseRefId($refId)
+    {
+        // If already an integer, return it
+        if (is_int($refId)) {
+            return $refId;
+        }
+
+        // Remove '#REF' prefix if present (case-insensitive)
+        $cleaned = str_replace(['#REF', '#ref', 'REF', 'ref'], '', $refId);
+
+        // Convert to integer (this will strip leading zeros)
+        return (int) $cleaned;
+    }
+}
+
 if (!function_exists('formatMalaysianPhone')) {
     /**
      * Format Malaysian phone number to international format (60XXXXXXXXXX)
