@@ -136,10 +136,16 @@ class ReferralController extends Controller
             $secondToLastReferralHierarchy = $ref->referral_hierarchies->where('sequence', $secondToLastSequence)->first();
 
             // Check if current business unit is involved in this referral
-            $currentBusinessUnitHierarchy = $ref->referral_hierarchies->where('business_unit_id', $businessUnitId)->first();
+            // Superadmin bypasses this check and sees ALL referrals
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $currentBusinessUnitHierarchy = $ref->referral_hierarchies->where('business_unit_id', $businessUnitId)->first();
 
-            if (!$currentBusinessUnitHierarchy) {
-                continue;
+                if (!$currentBusinessUnitHierarchy) {
+                    continue;
+                }
+            } else {
+                // For superadmin, just get the first hierarchy to avoid null errors
+                $currentBusinessUnitHierarchy = $ref->referral_hierarchies->first();
             }
 
             $is_external = $latestReferralHierarchy->external_organization_id != null ? true : false;
