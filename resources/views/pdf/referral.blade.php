@@ -61,54 +61,60 @@
             @endif
         </div>
         @if (isset($qrCodeBase64) && !empty($qrCodeBase64) && !$is_external)
-            <div style="width:30%;display:inline-block;vertical-align:top;text-align:right;position:absolute;right:0;top:0;">
+            <div
+                style="width:30%;display:inline-block;vertical-align:top;text-align:right;position:absolute;right:0;top:0;">
                 <img src="{{ $qrCodeBase64 }}" style="width: 120px; height: 120px;">
             </div>
         @endif
     </div>
     <div>
         <span>Dear Sir/Madam, </span>
-        <span>Thank you for seeing this patient. I would like to refer this patient to {{ $is_external ? $organizationName : $recipientBusinessUnit }} for
+        <span>Thank you for seeing this patient. I would like to refer this patient to
+            {{ $is_external ? $organizationName : $recipientBusinessUnit }} for
             further assistance with his/her health condition. The following is a summary of the patient's
             information.</span>
     </div>
-   <div style="margin: 15px 0px;">
+    <div style="margin: 15px 0px;">
         <span style="font-weight: bold;">Patient's Name: <span class="patient"
                 style="text-transform: uppercase;">{{ $patientName }}</span></span>
         <span style="font-weight: bold;">Patient's Identification Number: <span
                 class="patient">{{ $patientIcNo }}</span></span>
     </div>
-     <div style="margin: 15px 0px;">
+    <div style="margin: 15px 0px;">
         <span style="font-weight: bold;">Purpose of Referral</span>
         <span>{{ $referralReason }}</span>
         @if ($referralCondition)
             <span style="font-weight: bold;">Details of Patient's Condition</span>
             <span>{{ $referralCondition }}</span>
         @endif
-        
+
         @if ($medicalHistory)
-        <span style="font-weight: bold;">Relevant Medical History</span>
-        <span>{{ $medicalHistory }}</span>
+            <span style="font-weight: bold;">Relevant Medical History</span>
+            <span>{{ $medicalHistory }}</span>
         @endif
-        
+
         @if ($additionalRemarks)
-        <span style="font-weight: bold;">Additional Remarks</span>
-        <span>{{ $additionalRemarks }}</span>
+            <span style="font-weight: bold;">Additional Remarks</span>
+            <span>{{ $additionalRemarks }}</span>
         @endif
     </div>
-   <div style="margin: 10px 0px;">
-        <span>Should you require further information, do not hesitate to contact us at {{$assigneeOutletPhone}} or
-            {{$assigneeOutletEmail}}. </span>
+    <div style="margin: 10px 0px;">
+        <span>
+            Should you require further information, do not hesitate to contact us at
+            {{ $assigneeOutletPhone }}@if ($assigneeOutletPhone && $assigneeOutletEmail)
+                or
+            @endif{{ $assigneeOutletEmail }}.
+        </span>
         <span style="margin-top: 10px;">Thank you for your attention to this matter. </span>
     </div>
-    <div style="margin-top: 120px;">
+    <div>
         <span>Best Regards,</span>
-        <span style="font-weight: bold;">{{$assigneeName}} ({{$assigneeDesignation}})</span>
-        <span style="font-weight: bold;">{{$assigneeOutletInfo}}</span>
-        <span class="fixed">{{$assigneeOutletAddr}}</span>
+        <span style="font-weight: bold;">{{ $assigneeName }} ({{ $assigneeDesignation }})</span>
+        <span style="font-weight: bold;">{{ $assigneeOutletInfo }}</span>
+        <span class="fixed">{{ $assigneeOutletAddr }}</span>
         {{-- <span>Tel: {{$assigneeOutletPhone}}</span>
         <span>Email: {{$assigneeOutletEmail}}</span> --}}
-    </div> 
+    </div>
 </body>
 
 </html>
