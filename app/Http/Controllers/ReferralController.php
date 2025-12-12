@@ -1201,7 +1201,8 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            // Only validate business_unit_id for non-superadmin users
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1236,6 +1237,14 @@ class ReferralController extends Controller
                         'error' => $e->getMessage()
                     ], 500);
                 }
+            }
+
+            // Log superadmin access for audit trail
+            if ($this->isSuperadmin($jwtPayload)) {
+                Log::info('Superadmin downloaded referral PDF', [
+                    'referral_id' => $referral->id,
+                    'staff_id' => $jwtPayload['staff_id'] ?? null
+                ]);
             }
 
             // Return the stored PDF base64
