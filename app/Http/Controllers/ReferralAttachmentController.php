@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ReferralAttachment;
+use App\Traits\AccessControl;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Throwable;
 
 class ReferralAttachmentController extends Controller
 {
+    use AccessControl;
+
     /**
      * Get attachment file as base64
      *
@@ -60,7 +63,8 @@ class ReferralAttachmentController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            // Only validate business_unit_id for non-superadmin users
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -76,13 +80,24 @@ class ReferralAttachmentController extends Controller
                 ], 404);
             }
 
-            // Check if current business unit is involved in this referral
-            $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
+            // Check if current business unit is involved in this referral (skip for superadmin)
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
 
-            if (!$exists) {
-                return response()->json([
-                    'message' => 'Unauthorized: Cannot access attachment from different business unit.',
-                ], 403);
+                if (!$exists) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot access attachment from different business unit.',
+                    ], 403);
+                }
+            }
+
+            // Log superadmin access for audit trail
+            if ($this->isSuperadmin($jwtPayload)) {
+                Log::info('Superadmin accessed attachment', [
+                    'attachment_id' => $attachment->id,
+                    'staff_id' => $jwtPayload['staff_id'] ?? null,
+                    'referral_id' => $referral->id ?? null
+                ]);
             }
 
             // Calculate file size from base64 data

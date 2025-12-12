@@ -36,7 +36,7 @@ Route::prefix('auth')->controller(ODBController::class)->group(function () {
 });
 
 Route::middleware('token.auth')->group(function () {
-    Route::resource('business-units', BusinessUnitController::class);
+    Route::resource('business-units', BusinessUnitController::class)->only(['index', 'store']);
 
     Route::resource('form', FormController::class)->only(['store', 'update']);
 
@@ -72,7 +72,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::apiResource('external-referees', ExternalRefereeController::class);
     Route::apiResource('external-organizations', ExternalOrganizationController::class);
-    Route::apiResource('external-referral', ExternalReferralController::class);
+    Route::apiResource('external-referral', ExternalReferralController::class)->only(['store']);
 
     Route::prefix('report')->controller(ReportController::class)->group(function () {
         Route::post('/', 'index')->name('report.index');
