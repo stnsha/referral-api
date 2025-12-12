@@ -71,8 +71,8 @@ class ReferralAttachmentController extends Controller
             }
 
             // Check if user's business unit is involved in this referral
-            $referralHistory = $attachment->referralHistory;
-            $referral = $referralHistory ? $referralHistory->referral : null;
+            $referralHierarchy = $attachment->referralHierarchy;
+            $referral = $referralHierarchy ? $referralHierarchy->referral : null;
 
             if (!$referral) {
                 return response()->json([
@@ -82,7 +82,7 @@ class ReferralAttachmentController extends Controller
 
             // Check if current business unit is involved in this referral (skip for superadmin)
             if (!$this->isSuperadmin($jwtPayload)) {
-                $exists = $referral->referral_histories->contains('business_unit_id', $businessUnitId);
+                $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
 
                 if (!$exists) {
                     return response()->json([
