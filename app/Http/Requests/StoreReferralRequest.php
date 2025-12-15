@@ -62,7 +62,7 @@ class StoreReferralRequest extends FormRequest
             'business_units.recipient.new_recipient.specialty' => 'nullable|string',
 
             // customer_id required only for internal referrals
-            'referral.customer_id' => 'required|integer',
+            'referral.customer_id' => 'required|integer|gt:0',
             'referral.priority' => 'required|integer',
 
             'attachments' => 'nullable|array',
