@@ -239,3 +239,16 @@ if (!function_exists('normalizeValue')) {
         return $value;
     }
 }
+
+if (!function_exists('setPriorityReferral')) {
+    function setPriorityReferral($value)
+    {
+        $data = [
+            1 => 'Low (3 days and above)',
+            2 => 'Medium (1 - 3 days)',
+            3 => 'High (3 hours)',
+        ];
+
+        return $data[$value] ?? $data[2];
+    }
+}

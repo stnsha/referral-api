@@ -58,9 +58,17 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');
+        // Download referral PDF - supports optional ?sequence={number} query parameter
+        // Example: /api/referral/download/123 (default: seq 1 to last)
+        //          /api/referral/download/123?sequence=1 (seq 1 to 2)
+        //          /api/referral/download/123?sequence=3 (seq 3 to 4)
         Route::get('download/{id}', 'download')->name('referral.download');
         Route::get('notification', 'notification')->name('referral.notification');
         Route::post('search', 'search')->name('referral.search');
+        // Get successful referral PDF with phone numbers - supports optional ?sequence={number} query parameter
+        // Example: /api/referral/successful/123 (default: seq 1 to last)
+        //          /api/referral/successful/123?sequence=1 (seq 1 to 2)
+        //          /api/referral/successful/123?sequence=3 (seq 3 to 4)
         Route::get('successful/{id}', 'successful')->name('referral.successful');
     });
 

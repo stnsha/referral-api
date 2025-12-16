@@ -98,16 +98,32 @@ class ReferralController extends Controller
             'referral_hierarchies.external_referee',
             'referral_hierarchies.external_organization',
             'referral_hierarchies.referral_create_form'
-        ])
-            ->whereHas('referral_hierarchies', function ($query) use ($jwtPayload, $businessUnitId, $listOutlets) {
-                // Superadmin sees all referrals
-                if (!$this->isSuperadmin($jwtPayload)) {
-                    $query->where('business_unit_id', $businessUnitId)
-                    ->whereIn('location', $listOutlets);
-                }
-            })
-            ->orderByDesc('created_at')
-            ->get();
+        ]);
+
+        // Filter to only referrals where business unit is in the latest 2 sequences
+        if (!$this->isSuperadmin($jwtPayload)) {
+            $referrals->whereIn('id', function ($subquery) use ($businessUnitId, $listOutlets) {
+                $subquery->select('rh1.referral_id')
+                    ->from('referral_hierarchies as rh1')
+                    ->where('rh1.business_unit_id', $businessUnitId)
+                    ->whereIn('rh1.location', $listOutlets)
+                    ->whereRaw('rh1.sequence >= (
+                        SELECT MAX(rh2.sequence) - 1
+                        FROM referral_hierarchies as rh2
+                        WHERE rh2.referral_id = rh1.referral_id
+                    )')
+                    ->whereRaw('rh1.sequence > 0');
+            });
+        }
+
+        $referrals = $referrals->orderByDesc('created_at')->get();
+
+        Log::info('Referral index query executed', [
+            'user_business_unit_id' => $businessUnitId,
+            'is_superadmin' => $this->isSuperadmin($jwtPayload),
+            'referrals_count' => $referrals->count(),
+            'outlets' => $listOutlets
+        ]);
 
         if ($referrals->isEmpty()) {
             return response()->json([
@@ -138,9 +154,20 @@ class ReferralController extends Controller
             // Check if current business unit is involved in this referral
             // Superadmin bypasses this check and sees ALL referrals
             if (!$this->isSuperadmin($jwtPayload)) {
-                $currentBusinessUnitHierarchy = $ref->referral_hierarchies->where('business_unit_id', $businessUnitId)->first();
+                $maxSequence = $ref->referral_hierarchies->max('sequence');
+                $minAllowedSequence = max(1, $maxSequence - 1);
+
+                $currentBusinessUnitHierarchy = $ref->referral_hierarchies
+                    ->where('business_unit_id', $businessUnitId)
+                    ->where('sequence', '>=', $minAllowedSequence)
+                    ->first();
 
                 if (!$currentBusinessUnitHierarchy) {
+                    Log::warning('Referral passed query filter but failed in-memory check', [
+                        'referral_id' => $ref->id,
+                        'business_unit_id' => $businessUnitId,
+                        'max_sequence' => $maxSequence
+                    ]);
                     continue;
                 }
             } else {
@@ -163,11 +190,12 @@ class ReferralController extends Controller
                     'ref_id' => createRefId($ref->id),
                     'reason' => $referralReason,
                     'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
+                    'from_sequence' => $secondToLastReferralHierarchy->sequence,
                     'to_business_unit' => $latestReferralHierarchy->business_unit->name,
-                    'priority' => $ref->priority,
+                    'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
-                    'ori_created_at' => $ref->created_at,
+                    'created_at' => Carbon::parse($latestReferralHierarchy->created_at)->format('j F Y, l'),
+                    'ori_created_at' => $latestReferralHierarchy->created_at,
                     'is_external' => $is_external
                 ];
             } else {
@@ -176,11 +204,12 @@ class ReferralController extends Controller
                     'ref_id' => createRefId($ref->id),
                     'reason' => $referralReason,
                     'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
+                    'from_sequence' => $secondToLastReferralHierarchy->sequence,
                     'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
-                    'priority' => $ref->priority,
+                    'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
-                    'ori_created_at' => $ref->created_at,
+                    'created_at' => Carbon::parse($latestReferralHierarchy->created_at)->format('j F Y, l'),
+                    'ori_created_at' => $latestReferralHierarchy->created_at,
                     'is_external' => $is_external
                 ];
             }
@@ -188,16 +217,16 @@ class ReferralController extends Controller
             // Add to all category (any referral that has business unit included)
             $all[] = $referralData;
 
-            // Received: business unit is the LAST sequence (latest in the chain) AND matches the current business unit
-            if ($currentBusinessUnitHierarchy->sequence == $latestSequence && $latestReferralHierarchy->business_unit_id == $businessUnitId) {
+            // Received: business unit is at the LATEST sequence
+            if (
+                $latestReferralHierarchy->business_unit_id == $businessUnitId &&
+                $currentBusinessUnitHierarchy->sequence == $latestSequence
+            ) {
                 $received[] = $referralData;
             }
 
-            // Sent: sequence = 1 OR when business unit refers to another (not the last one)
-            if (
-                $currentBusinessUnitHierarchy->sequence == 1 ||
-                ($currentBusinessUnitHierarchy->sequence < $latestSequence)
-            ) {
+            // Sent: business unit is at the SECOND-TO-LAST sequence (from position)
+            if ($currentBusinessUnitHierarchy->sequence == $secondToLastSequence) {
                 $sent[] = $referralData;
             }
         }
@@ -333,6 +362,7 @@ class ReferralController extends Controller
 
                 // Determine customer_id based on external referral
                 $customerId = $validated['referral']['customer_id'];
+                // $customerId = 267862;
 
                 //create referral
                 $referral = Referral::create([
@@ -386,6 +416,7 @@ class ReferralController extends Controller
                                 'referral_reason' => $value['referral_reason'] ?? null,
                                 'referral_condition' => $value['referral_condition'] ?? null,
                                 'medical_history' => $value['medical_history'] ?? null,
+                                'priority' => $sequence === 1 ? $validated['referral']['priority'] : null,
                             ]);
                         }
                     }
@@ -453,7 +484,7 @@ class ReferralController extends Controller
 
                 $response = ['id' => $referral->id];
 
-                $this->exportReferral($referral);
+                $this->exportReferral($referral, 1);
 
                 //return referral id if successfulD
                 DB::commit();
@@ -619,6 +650,11 @@ class ReferralController extends Controller
                 'referral_hierarchies.referral_attachments'
             ]);
 
+            // Get latest hierarchy for PDF storage
+            $latestHierarchy = $referral->referral_hierarchies
+                ->sortByDesc('sequence')
+                ->first();
+
             // Check view_only parameter
             $viewOnly = $request->query('view_only', false);
 
@@ -774,7 +810,7 @@ class ReferralController extends Controller
                 // Get form data from CreateForm and ReplyForm if they exist
                 $createForm = [];
                 $replyForm = [];
-
+                $priority = null;
                 // Get Create Form data if exists
                 if ($rh->referral_create_form) {
                     $createForm = [
@@ -782,6 +818,7 @@ class ReferralController extends Controller
                         'referral_condition' => $rh->referral_create_form->referral_condition,
                         'medical_history' => $rh->referral_create_form->medical_history,
                     ];
+                    $priority = $rh->referral_create_form->priority;
                 }
 
                 // Get Reply Form data if exists
@@ -791,16 +828,16 @@ class ReferralController extends Controller
                         'outcome' => $rh->referral_reply_form->outcome,
                         'feedback' => $rh->referral_reply_form->feedback,
                     ];
-                    }
-
+                }
                     //return histories data with attachments
                     return [
                         'sequence' => $rh->sequence,
+                    'priority' => $priority,
                         'staff_id' => $rh->staff_id,
                         'location' => $rh->location,
                         'business_unit_id' => $rh->business_unit_id,
-                    'created_at' => Carbon::parse($rh->created_at)->format('d F Y'),
-                        'additional_remarks' => $rh->additional_remarks,
+                    'created_at' => Carbon::parse($rh->created_at)->format('d F Y h:i A'),
+                    'additional_remarks' => $rh->additional_remarks,
                     'is_filled' => $rh->is_filled,
                     'createForm' => $createForm,
                     'replyForm' => $replyForm,
@@ -816,22 +853,14 @@ class ReferralController extends Controller
                 'status' => $referral->status,
                 'status_note' => $referral->status_note,
                 'customer_id' => $referral->customer_id,
-                'priority' => $referral->priority,
                 'referralDetails' => $referralHierarchies,
             ];
 
             // Generate PDF base64 for ALL referrals (both internal and external)
-            // Use stored PDF if available, otherwise generate new one
-            if ($referral->encoded_base && !empty($referral->encoded_base)) {
-                $data['pdf_base64'] = $referral->encoded_base;
-            } else {
-                $pdf = $this->exportPdf($data);
-                if ($pdf) {
-                    $data['pdf_base64'] = $pdf;
-                    // Store for future use
-                    $referral->encoded_base = $pdf;
-                    $referral->save();
-                }
+            // Always generate PDF on-the-fly
+            $pdf = $this->exportPdf($data);
+            if ($pdf) {
+                $data['pdf_base64'] = $pdf;
             }
 
             return response()->json($data, 200);
@@ -990,6 +1019,7 @@ class ReferralController extends Controller
                                     'referral_reason' => $validated['refer_another']['referral_reason'] ?? null,
                                     'referral_condition' => $validated['refer_another']['referral_condition'] ?? null,
                                     'medical_history' => $validated['refer_another']['medical_history'] ?? null,
+                                    'priority' => $validated['refer_another']['priority'] ?? null,
                                 ]
                             );
                         }
@@ -1131,6 +1161,22 @@ class ReferralController extends Controller
                         'external_referee_id' => $externalRefereeId,
                         'external_organization_id' => $externalOrganizationId,
                     ]);
+
+                    // Generate PDF for the new hierarchy
+                    try {
+                        $this->exportReferral($referral);
+                        Log::info('Generated PDF for new hierarchy', [
+                            'referral_id' => $referral->id,
+                            'hierarchy_id' => $newReferralHierarchy->id,
+                            'sequence' => $newReferralHierarchy->sequence
+                        ]);
+                    } catch (Throwable $e) {
+                        Log::error('Failed to generate PDF for new hierarchy', [
+                            'referral_id' => $referral->id,
+                            'hierarchy_id' => $newReferralHierarchy->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
 
                 $referral->save();
@@ -1216,39 +1262,99 @@ class ReferralController extends Controller
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
 
-            // Check if PDF exists in the database
-            if (!$referral->encoded_base || empty($referral->encoded_base)) {
-                // Generate PDF using exportReferral
+            // Get optional sequence parameter
+            $sequence = $request->query('sequence', null);
+
+            // Determine which hierarchy to retrieve PDF from
+            if ($sequence !== null) {
+                // Validate sequence is a positive integer
+                if (!is_numeric($sequence) || $sequence <= 0) {
+                    return response()->json([
+                        'message' => 'Invalid sequence parameter. Must be a positive integer.'
+                    ], 400);
+                }
+
+                $sequence = (int) $sequence;
+
+                // Determine TO sequence (where PDF is stored)
+                $toSequence = $sequence + 1;
+
+                // Get hierarchy for this sequence
+                $targetHierarchy = $referral->referral_hierarchies()
+                    ->where('sequence', $toSequence)
+                    ->first();
+
+                if (!$targetHierarchy) {
+                    $maxSequence = $referral->referral_hierarchies()->max('sequence');
+                    return response()->json([
+                        'message' => "Sequence {$sequence} not found. Maximum available sequence is {$maxSequence}."
+                    ], 404);
+                }
+
+                // Always generate PDF on-the-fly for this specific sequence
                 try {
-                    $this->exportReferral($referral);
+                    $pdfBase64 = $this->exportReferral($referral, $sequence, true);
 
-                    // Reload referral to get fresh data
-                    $referral->refresh();
+                    if (!$pdfBase64) {
+                        return response()->json([
+                            'message' => "Failed to generate PDF for sequence {$sequence}."
+                        ], 500);
+                    }
 
-                    // Verify PDF was generated successfully
-                    if (!$referral->encoded_base || empty($referral->encoded_base)) {
+                    // Log superadmin access for audit trail
+                    if ($this->isSuperadmin($jwtPayload)) {
+                        Log::info('Superadmin downloaded referral PDF', [
+                            'referral_id' => $referral->id,
+                            'sequence' => $sequence,
+                            'staff_id' => $jwtPayload['staff_id'] ?? null
+                        ]);
+                    }
+
+                    // Return the freshly generated PDF
+                    return response()->json(['pdfBase64' => $pdfBase64], 200);
+                } catch (Throwable $e) {
+                    Log::error('PDF generation failed for sequence', [
+                        'referral_id' => $referral->id,
+                        'sequence' => $sequence,
+                        'error' => $e->getMessage()
+                    ]);
+                    return response()->json([
+                        'message' => "Failed to generate PDF for sequence {$sequence}.",
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+            } else {
+                // Default behavior: generate PDF for latest hierarchy
+                try {
+                    $pdfBase64 = $this->exportReferral($referral, null, true);
+
+                    if (!$pdfBase64) {
                         return response()->json([
                             'message' => 'Failed to generate PDF for this referral.'
                         ], 500);
                     }
+
+                    // Log superadmin access for audit trail
+                    if ($this->isSuperadmin($jwtPayload)) {
+                        Log::info('Superadmin downloaded referral PDF', [
+                            'referral_id' => $referral->id,
+                            'staff_id' => $jwtPayload['staff_id'] ?? null
+                        ]);
+                    }
+
+                    // Return the freshly generated PDF
+                    return response()->json(['pdfBase64' => $pdfBase64], 200);
                 } catch (Throwable $e) {
+                    Log::error('PDF generation failed in download', [
+                        'referral_id' => $referral->id,
+                        'error' => $e->getMessage()
+                    ]);
                     return response()->json([
                         'message' => 'Failed to generate PDF for this referral.',
                         'error' => $e->getMessage()
                     ], 500);
                 }
             }
-
-            // Log superadmin access for audit trail
-            if ($this->isSuperadmin($jwtPayload)) {
-                Log::info('Superadmin downloaded referral PDF', [
-                    'referral_id' => $referral->id,
-                    'staff_id' => $jwtPayload['staff_id'] ?? null
-                ]);
-            }
-
-            // Return the stored PDF base64
-            return response()->json(['pdfBase64' => $referral->encoded_base], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => $e->getMessage()
@@ -1503,7 +1609,7 @@ class ReferralController extends Controller
                         'reason' => $referralReason,
                         'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
                         'to_business_unit' => $latestReferralHierarchy->business_unit->name,
-                        'priority' => $ref->priority,
+                        'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
                         'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                         'ori_created_at' => $ref->created_at,
@@ -1523,7 +1629,7 @@ class ReferralController extends Controller
                         'reason' => $referralReason,
                         'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
                         'to_business_unit' => $toBusinessUnit,
-                        'priority' => $ref->priority,
+                        'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
                         'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
                         'ori_created_at' => $ref->created_at,
@@ -1565,11 +1671,86 @@ class ReferralController extends Controller
                 return response()->json(['message' => 'Referral not found.'], 404);
             }
 
-            // Check if PDF exists in the database
-            if (!$referral->encoded_base || empty($referral->encoded_base)) {
-                return response()->json([
-                    'message' => 'PDF not found for this referral.'
-                ], 404);
+            // Get optional sequence parameter
+            $sequence = $request->query('sequence', null);
+
+            // Determine which hierarchy to retrieve PDF from
+            if ($sequence !== null) {
+                // Validate sequence is a positive integer
+                if (!is_numeric($sequence) || $sequence <= 0) {
+                    return response()->json([
+                        'message' => 'Invalid sequence parameter. Must be a positive integer.'
+                    ], 400);
+                }
+
+                $sequence = (int) $sequence;
+
+                // Determine TO sequence (where PDF is stored)
+                $toSequence = $sequence + 1;
+
+                // Get hierarchy for this sequence
+                $targetHierarchy = $referral->referral_hierarchies()
+                    ->where('sequence', $toSequence)
+                    ->first();
+
+                if (!$targetHierarchy) {
+                    $maxSequence = $referral->referral_hierarchies()->max('sequence');
+                    return response()->json([
+                        'message' => "Sequence {$sequence} not found. Maximum available sequence is {$maxSequence}."
+                    ], 404);
+                }
+
+                // Always generate PDF on-the-fly for this specific sequence
+                try {
+                    $pdfBase64 = $this->exportReferral($referral, $sequence, true);
+
+                    if (!$pdfBase64) {
+                        return response()->json([
+                            'message' => "Failed to generate PDF for sequence {$sequence}."
+                        ], 500);
+                    }
+                } catch (Throwable $e) {
+                    Log::error('PDF generation failed for sequence in successful', [
+                        'referral_id' => $referral->id,
+                        'sequence' => $sequence,
+                        'error' => $e->getMessage()
+                    ]);
+                    return response()->json([
+                        'message' => "Failed to generate PDF for sequence {$sequence}.",
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+
+                $lastHierarchy = $targetHierarchy;
+            } else {
+                // Default behavior: get latest hierarchy and generate PDF
+                $lastHierarchy = $referral->referral_hierarchies->sortByDesc('sequence')->first();
+
+                if (!$lastHierarchy) {
+                    return response()->json([
+                        'message' => 'No hierarchy found for this referral.'
+                    ], 404);
+                }
+
+                // Always generate PDF on-the-fly
+                try {
+                    $pdfBase64 = $this->exportReferral($referral, null, true);
+
+                    if (!$pdfBase64) {
+                        return response()->json([
+                            'message' => 'Failed to generate PDF for this referral.'
+                        ], 500);
+                    }
+                } catch (Throwable $e) {
+                    Log::error('PDF generation failed in successful', [
+                        'referral_id' => $referral->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    return response()->json([
+                        'message' => 'Failed to generate PDF for this referral.',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
             }
 
             $customerId = $referral->customer_id;
@@ -1586,8 +1767,6 @@ class ReferralController extends Controller
                 $rawPatientPhone = data_get($data, 'phone', null);
                 $patientPhone = formatMalaysianPhone($rawPatientPhone);
             }
-
-            $lastHierarchy = $referral->referral_hierarchies->sortByDesc('sequence')->first();
             $outletPhone = $organizationPhone = $refereePhone = null;
 
             if (!is_null($lastHierarchy->external_organization_id)) {
@@ -1616,9 +1795,9 @@ class ReferralController extends Controller
                 }
             }
 
-            // Return the stored PDF base64 with formatted phone numbers
+            // Return the freshly generated PDF base64 with formatted phone numbers
             return response()->json([
-                'pdfBase64' => $referral->encoded_base,
+                'pdfBase64' => $pdfBase64,
                 'patientPhone' => $patientPhone,
                 'outletPhone' => $outletPhone,
                 'organizationPhone' => $organizationPhone,
@@ -1819,7 +1998,7 @@ class ReferralController extends Controller
             ->header('Content-Disposition', 'inline; filename="referral_' . createRefId($referral->id) . '.pdf"');
     }
 
-    public function exportReferral(Referral $referral)
+    public function exportReferral(Referral $referral, ?int $sequence = null, bool $returnPdf = false)
     {
 
         // Generate PDF base64 for ALL referrals (both internal and external)
@@ -1829,13 +2008,78 @@ class ReferralController extends Controller
             'referral_hierarchies.referral_create_form'
         ]);
 
+        // Determine FROM and TO hierarchies based on sequence parameter
+        if ($sequence !== null && $sequence > 0) {
+            // Determine if odd (create form) or even (reply form)
+            $fromSequence = $sequence;
+            $toSequence = $sequence + 1;
+
+            $firstHierarchy = $referralData->referral_hierarchies
+                ->where('sequence', $fromSequence)->first();
+            $lastHierarchy = $referralData->referral_hierarchies
+                ->where('sequence', $toSequence)->first();
+
+            // Validate that FROM hierarchy exists
+            if (!$firstHierarchy) {
+                Log::warning('FROM hierarchy not found for sequence', [
+                    'referral_id' => $referral->id,
+                    'requested_sequence' => $sequence,
+                    'from_sequence' => $fromSequence
+                ]);
+                return;
+            }
+
+            // Handle incomplete pair (TO hierarchy doesn't exist yet)
+            if (!$lastHierarchy) {
+                Log::info('TO hierarchy not found, using FROM only (incomplete pair)', [
+                    'referral_id' => $referral->id,
+                    'requested_sequence' => $sequence,
+                    'to_sequence' => $toSequence
+                ]);
+                // Use FROM hierarchy for partial PDF
+                $lastHierarchy = $firstHierarchy;
+            }
+
+            // Store PDF in TO hierarchy
+            $storageHierarchy = $lastHierarchy;
+
+            Log::info('Generating PDF for specific sequence', [
+                'referral_id' => $referral->id,
+                'requested_sequence' => $sequence,
+                'from_sequence' => $fromSequence,
+                'to_sequence' => $toSequence
+            ]);
+        } else {
+            // Default behavior: FROM = sequence 1, TO = last sequence
+            $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+            $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
+            $storageHierarchy = $lastHierarchy;
+
+            Log::info('Generating PDF with default behavior (seq 1 to last)', [
+                'referral_id' => $referral->id
+            ]);
+        }
+
+        // Validate that hierarchies exist
+        if (!$firstHierarchy || !$lastHierarchy) {
+            Log::error('Required hierarchies not found', [
+                'referral_id' => $referral->id,
+                'sequence' => $sequence,
+                'has_first' => !is_null($firstHierarchy),
+                'has_last' => !is_null($lastHierarchy)
+            ]);
+            return;
+        }
+
         // Prepare data for PDF
-        $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
-        $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
 
         // Collect PDF data
         $referralId = createRefId($referral->id);
-        $dateCreated = $referral->created_at->format('d F Y');
+        $dateCreated = $referral->created_at->format('d M Y');
+
+        // Get priority from first hierarchy's create form if available, otherwise use referral's priority
+        // $priorityValue = $referral->getEffectivePriority();
+        // $priority = setPriorityReferral($priorityValue);
 
         /************************************************** Assignee *****************************************/
         // Get referral data from create form
@@ -1843,11 +2087,25 @@ class ReferralController extends Controller
         $referralCondition = null;
         $medicalHistory = null;
         $additionalRemarks = null;
+        $priority = null;
+
+        // Try to get create_form from current sequence first
         if ($firstHierarchy && $firstHierarchy->referral_create_form) {
             $referralReason = $firstHierarchy->referral_create_form->referral_reason ?? null;
             $referralCondition = normalizeValue($firstHierarchy->referral_create_form->referral_condition ?? null);
             $medicalHistory = normalizeValue($firstHierarchy->referral_create_form->medical_history ?? null);
             $additionalRemarks = normalizeValue($firstHierarchy->additional_remarks ?? null);
+            $priority = setPriorityReferral($firstHierarchy->referral_create_form->priority);
+        } else {
+            // Fallback to sequence 1's create_form if current sequence doesn't have one
+            $originalHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+            if ($originalHierarchy && $originalHierarchy->referral_create_form) {
+                $referralReason = $originalHierarchy->referral_create_form->referral_reason ?? null;
+                $referralCondition = normalizeValue($originalHierarchy->referral_create_form->referral_condition ?? null);
+                $medicalHistory = normalizeValue($originalHierarchy->referral_create_form->medical_history ?? null);
+                $additionalRemarks = normalizeValue($originalHierarchy->additional_remarks ?? null);
+                $priority = setPriorityReferral($originalHierarchy->referral_create_form->priority);
+            }
         }
 
         // Get referral details (form data)
@@ -1998,6 +2256,7 @@ class ReferralController extends Controller
             'is_external' => false,
             'referralId' => $referralId,
             'dateCreated' => $dateCreated,
+            'priority' => $priority,
 
             'assigneeName' => $assigneeName,
             'assigneeDesignation' => $assigneeDesignation,
@@ -2038,17 +2297,27 @@ class ReferralController extends Controller
         // Generate PDF with QR code using helper function
         $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
         if ($pdfBase64) {
+            Log::info('PDF generated', [
+                'referral_id' => $referral->id,
+                'hierarchy_id' => $storageHierarchy->id,
+                'sequence' => $storageHierarchy->sequence,
+                'from_sequence' => $firstHierarchy->sequence,
+                'to_sequence' => $lastHierarchy->sequence
+            ]);
+
+            // If $returnPdf is true, return the base64 string directly
+            if ($returnPdf) {
+                return $pdfBase64;
+            }
+
+            // Otherwise, return as HTTP response (original behavior)
             $response['pdf_base64'] = $pdfBase64;
 
-            // $pdfContent = base64_decode($pdfBase64);
+            $pdfContent = base64_decode($pdfBase64);
 
-            // return response($pdfContent)
-            //     ->header('Content-Type', 'application/pdf')
-            //     ->header('Content-Disposition', 'inline; filename="referral.pdf"');
-
-            // Store the PDF base64 in referral record
-            $referral->encoded_base = $pdfBase64;
-            $referral->save();
+            return response($pdfContent)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="referral.pdf"');
         }
 
         // Send email to recipient outlet if email exists and is valid
@@ -2063,7 +2332,20 @@ class ReferralController extends Controller
                     ];
                 })->toArray();
 
-                Mail::to($recipientOutletEmail)->send(
+                // CC email (TODO: Replace with actual email)
+                $ccEmail = 'anasuharosli.alphac@gmail.com';
+
+                // Validate CC email
+                $validCcEmail = filter_var($ccEmail, FILTER_VALIDATE_EMAIL) ? $ccEmail : null;
+
+                // Build and send email
+                $mail = Mail::to($recipientOutletEmail);
+
+                if ($validCcEmail) {
+                    $mail->cc($validCcEmail);
+                }
+
+                $mail->send(
                     new ExternalReferralNotification(
                         $referralId,
                         $dateCreated,
@@ -2093,7 +2375,8 @@ class ReferralController extends Controller
 
                 Log::info('Referral notification email sent', [
                     'referral_id' => $referral->id,
-                    'recipient_email' => $recipientOutletEmail
+                    'recipient_email' => $recipientOutletEmail,
+                    'cc_email' => $validCcEmail
                 ]);
             } catch (Throwable $e) {
                 Log::error('Failed to send referral notification email', [

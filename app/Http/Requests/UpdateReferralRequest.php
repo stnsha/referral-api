@@ -46,6 +46,7 @@ class UpdateReferralRequest extends FormRequest
             'refer_another.referral_reason' => 'nullable|string',
             'refer_another.referral_condition' => 'nullable|string',
             'refer_another.medical_history' => 'nullable|string',
+            'refer_another.priority' => 'nullable|integer|in:1,2,3',
             'refer_another.additional_remarks_refer' => 'nullable|string',
             'refer_another.new_organization.name' => 'nullable|string',
             'refer_another.new_organization.address' => 'nullable|string',

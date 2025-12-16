@@ -35,7 +35,8 @@
 <body>
     <header>
         <img style="width:100%;" src="{{ public_path('logo/letterhead.png') }}" />
-        <p style="text-align:right;margin-right:60px;">Date: {{ $dateCreated }}</span>
+        <span style="text-align:right;margin-right:0px;">Referral ID: {{ $referralId }}</span>
+        <span style="text-align:right;margin-right:0px;">Date: {{ $dateCreated }}</span>
         <h3 style="text-align: center;">REFERRAL LETTER</h3>
     </header>
     <div style="border-bottom: 1px solid black;margin-bottom:10px;position:relative;min-height:130px;">
@@ -96,6 +97,11 @@
         @if ($additionalRemarks)
             <span style="font-weight: bold;">Additional Remarks</span>
             <span>{{ $additionalRemarks }}</span>
+        @endif
+
+        @if ($priority)
+            <span style="font-weight: bold;">Priority</span>
+            <span>{{ $priority }}</span>
         @endif
     </div>
     <div style="margin: 10px 0px;">

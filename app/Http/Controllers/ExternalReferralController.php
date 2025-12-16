@@ -365,7 +365,7 @@ class ExternalReferralController extends Controller
         }
     }
 
-    public function exportReferral(Referral $referral)
+    public function exportReferral(Referral $referral, ?int $sequence = null)
     {
         // Generate PDF base64 for ALL referrals (both internal and external)
         $referralData = $referral->load([
@@ -375,13 +375,83 @@ class ExternalReferralController extends Controller
             'referral_hierarchies.referral_create_form'
         ]);
 
+        // Determine FROM and TO hierarchies based on sequence parameter
+        if ($sequence !== null && $sequence > 0) {
+            // Determine if odd (create form) or even (reply form)
+            if ($sequence % 2 === 1) {
+                // Odd sequence (create form): FROM = N, TO = N+1
+                $fromSequence = $sequence;
+                $toSequence = $sequence + 1;
+            } else {
+                // Even sequence (reply form): FROM = N-1, TO = N
+                $fromSequence = $sequence - 1;
+                $toSequence = $sequence;
+            }
+
+            $firstHierarchy = $referralData->referral_hierarchies
+                ->where('sequence', $fromSequence)->first();
+            $lastHierarchy = $referralData->referral_hierarchies
+                ->where('sequence', $toSequence)->first();
+
+            // Validate that FROM hierarchy exists
+            if (!$firstHierarchy) {
+                Log::warning('FROM hierarchy not found for sequence', [
+                    'referral_id' => $referral->id,
+                    'requested_sequence' => $sequence,
+                    'from_sequence' => $fromSequence
+                ]);
+                return;
+            }
+
+            // Handle incomplete pair (TO hierarchy doesn't exist yet)
+            if (!$lastHierarchy) {
+                Log::info('TO hierarchy not found, using FROM only (incomplete pair)', [
+                    'referral_id' => $referral->id,
+                    'requested_sequence' => $sequence,
+                    'to_sequence' => $toSequence
+                ]);
+                // Use FROM hierarchy for partial PDF
+                $lastHierarchy = $firstHierarchy;
+            }
+
+            // Store PDF in TO hierarchy
+            $storageHierarchy = $lastHierarchy;
+
+            Log::info('Generating external referral PDF for specific sequence', [
+                'referral_id' => $referral->id,
+                'requested_sequence' => $sequence,
+                'from_sequence' => $fromSequence,
+                'to_sequence' => $toSequence
+            ]);
+
+        } else {
+            // Default behavior: FROM = sequence 1, TO = last sequence
+            $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+            $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
+            $storageHierarchy = $lastHierarchy;
+
+            Log::info('Generating external referral PDF with default behavior (seq 1 to last)', [
+                'referral_id' => $referral->id
+            ]);
+        }
+
+        // Validate that hierarchies exist
+        if (!$firstHierarchy || !$lastHierarchy) {
+            Log::error('Required hierarchies not found', [
+                'referral_id' => $referral->id,
+                'sequence' => $sequence,
+                'has_first' => !is_null($firstHierarchy),
+                'has_last' => !is_null($lastHierarchy)
+            ]);
+            return;
+        }
+
         // Prepare data for PDF
-        $firstHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
-        $lastHierarchy = $referralData->referral_hierarchies->sortByDesc('sequence')->first();
 
         // Collect PDF data
         $referralId = createRefId($referral->id);
-        $dateCreated = $referral->created_at->format('d F Y');
+        $dateCreated = $referral->created_at->format('d M Y');
+        $priority = setPriorityReferral($referral->priority);
 
         /************************************************** Customer *****************************************/
         // Get customer_id
@@ -407,11 +477,23 @@ class ExternalReferralController extends Controller
         $referralReason = null;
         $referralCondition = null;
         $medicalHistory = null;
+        $additionalRemarks = null;
+
+        // Try to get create_form from current sequence first
         if ($firstHierarchy && $firstHierarchy->referral_create_form) {
             $referralReason = normalizeValue($firstHierarchy->referral_create_form->referral_reason ?? null);
             $referralCondition = normalizeValue($firstHierarchy->referral_create_form->referral_condition ?? null);
             $medicalHistory = normalizeValue($firstHierarchy->referral_create_form->medical_history ?? null);
-            $additionalRemarks = normalizeValue($firstHierarchy ? $firstHierarchy->additional_remarks : null);
+            $additionalRemarks = normalizeValue($firstHierarchy->additional_remarks ?? null);
+        } else {
+            // Fallback to sequence 1's create_form if current sequence doesn't have one
+            $originalHierarchy = $referralData->referral_hierarchies->where('sequence', 1)->first();
+            if ($originalHierarchy && $originalHierarchy->referral_create_form) {
+                $referralReason = normalizeValue($originalHierarchy->referral_create_form->referral_reason ?? null);
+                $referralCondition = normalizeValue($originalHierarchy->referral_create_form->referral_condition ?? null);
+                $medicalHistory = normalizeValue($originalHierarchy->referral_create_form->medical_history ?? null);
+                $additionalRemarks = normalizeValue($originalHierarchy->additional_remarks ?? null);
+            }
         }
 
         $assigneeBusinessUnit = $firstHierarchy->business_unit->name;
@@ -481,6 +563,7 @@ class ExternalReferralController extends Controller
             'is_external' => true,
             'referralId' => $referralId,
             'dateCreated' => $dateCreated,
+            'priority' => $priority,
 
             'assigneeName' => $assigneeName,
             'assigneeDesignation' => $assigneeDesignation,
@@ -519,6 +602,14 @@ class ExternalReferralController extends Controller
         // Generate PDF with QR code using helper function
         $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
         if ($pdfBase64) {
+            Log::info('External referral PDF generated', [
+                'referral_id' => $referral->id,
+                'hierarchy_id' => $storageHierarchy->id,
+                'sequence' => $storageHierarchy->sequence,
+                'from_sequence' => $firstHierarchy->sequence,
+                'to_sequence' => $lastHierarchy->sequence
+            ]);
+
             $response['pdf_base64'] = $pdfBase64;
 
             // $pdfContent = base64_decode($pdfBase64);
@@ -526,10 +617,6 @@ class ExternalReferralController extends Controller
             // return response($pdfContent)
             //     ->header('Content-Type', 'application/pdf')
             //     ->header('Content-Disposition', 'inline; filename="referral.pdf"');
-
-            // Store the PDF base64 in referral record
-            $referral->encoded_base = $pdfBase64;
-            $referral->save();
         }
     }
 }

@@ -20,14 +20,6 @@ class Referral extends Model
         'encoded_base'
     ];
 
-    /**
-     * Status
-     * 1 = Open
-     * 2 = In Progress
-     * 3 = Forwarded
-     * 4 = Closed
-     */
-
     public function referral_details(): HasMany
     {
         return $this->hasMany(ReferralDetails::class, 'referral_id', 'id');
@@ -57,5 +49,50 @@ class Referral extends Model
     public function referral_attachments(): HasMany
     {
         return $this->hasMany(ReferralAttachment::class, 'referral_id', 'id');
+    }
+
+    /**
+     * Get the effective priority for this referral
+     * Uses the first create form's priority if available, otherwise uses referral's priority
+     */
+    public function getEffectivePriority()
+    {
+        // Get the first hierarchy's create form
+        $firstHierarchy = $this->referral_hierarchies()
+            ->where('sequence', 1)
+            ->first();
+
+        if ($firstHierarchy && $firstHierarchy->referral_create_form) {
+            $formPriority = $firstHierarchy->referral_create_form->priority;
+            if (!is_null($formPriority)) {
+                return $formPriority;
+            }
+        }
+
+        // Fallback to referral's own priority
+        return $this->priority;
+    }
+
+    /**
+     * Get priority for a specific hierarchy sequence
+     */
+    public function getPriorityForSequence($sequence)
+    {
+        $hierarchy = $this->referral_hierarchies()
+            ->where('sequence', $sequence)
+            ->first();
+
+        // For odd sequences (create forms)
+        if ($hierarchy && $hierarchy->sequence % 2 === 1) {
+            if ($hierarchy->referral_create_form) {
+                $formPriority = $hierarchy->referral_create_form->priority;
+                if (!is_null($formPriority)) {
+                    return $formPriority;
+                }
+            }
+        }
+
+        // Fallback to referral's priority
+        return $this->priority;
     }
 }
