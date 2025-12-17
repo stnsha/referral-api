@@ -365,7 +365,7 @@ class ExternalReferralController extends Controller
         }
     }
 
-    public function exportReferral(Referral $referral, ?int $sequence = null)
+    public function exportReferral(Referral $referral, ?int $sequence = null, bool $returnPdf = false)
     {
         // Generate PDF base64 for ALL referrals (both internal and external)
         $referralData = $referral->load([
@@ -602,7 +602,7 @@ class ExternalReferralController extends Controller
         // Generate PDF with QR code using helper function
         $pdfBase64 = generateReferralPdfWithQr($referral->id, $data);
         if ($pdfBase64) {
-            Log::info('External referral PDF generated', [
+            Log::info('External Referral PDF generated', [
                 'referral_id' => $referral->id,
                 'hierarchy_id' => $storageHierarchy->id,
                 'sequence' => $storageHierarchy->sequence,
@@ -610,13 +610,19 @@ class ExternalReferralController extends Controller
                 'to_sequence' => $lastHierarchy->sequence
             ]);
 
+            // If $returnPdf is true, return the base64 string directly
+            if ($returnPdf) {
+                return $pdfBase64;
+            }
+
+            // Otherwise, return as HTTP response (original behavior)
             $response['pdf_base64'] = $pdfBase64;
 
-            // $pdfContent = base64_decode($pdfBase64);
+            $pdfContent = base64_decode($pdfBase64);
 
-            // return response($pdfContent)
-            //     ->header('Content-Type', 'application/pdf')
-            //     ->header('Content-Disposition', 'inline; filename="referral.pdf"');
+            return response($pdfContent)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="referral.pdf"');
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\ExternalReferralController;
 use App\Http\Requests\StoreReferralRequest;
 use App\Http\Requests\UpdateReferralRequest;
 use App\Mail\ExternalReferralNotification;
@@ -1279,6 +1280,7 @@ class ReferralController extends Controller
                 // Determine TO sequence (where PDF is stored)
                 $toSequence = $sequence + 1;
 
+
                 // Get hierarchy for this sequence
                 $targetHierarchy = $referral->referral_hierarchies()
                     ->where('sequence', $toSequence)
@@ -1293,7 +1295,14 @@ class ReferralController extends Controller
 
                 // Always generate PDF on-the-fly for this specific sequence
                 try {
-                    $pdfBase64 = $this->exportReferral($referral, $sequence, true);
+                    if (!is_null($targetHierarchy->external_organization_id)) {
+                        // Go to exportReferral in ExternalReferralController
+                        $externalController = new ExternalReferralController();
+                        $pdfBase64 = $externalController->exportReferral($referral, $sequence, true);
+                    } else {
+
+                        $pdfBase64 = $this->exportReferral($referral, $sequence, true);
+                    }
 
                     if (!$pdfBase64) {
                         return response()->json([
@@ -2077,9 +2086,9 @@ class ReferralController extends Controller
         $referralId = createRefId($referral->id);
         $dateCreated = $referral->created_at->format('d M Y');
 
-        // Get priority from first hierarchy's create form if available, otherwise use referral's priority
-        // $priorityValue = $referral->getEffectivePriority();
-        // $priority = setPriorityReferral($priorityValue);
+            // Get priority from first hierarchy's create form if available, otherwise use referral's priority
+            // $priorityValue = $referral->getEffectivePriority();
+            // $priority = setPriorityReferral($priorityValue);
 
         /************************************************** Assignee *****************************************/
         // Get referral data from create form
