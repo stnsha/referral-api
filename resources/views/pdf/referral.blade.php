@@ -35,7 +35,7 @@
 <body>
     <header>
         <img style="width:100%;" src="{{ public_path('logo/letterhead.png') }}" />
-        <span style="text-align:right;margin-right:0px;">Referral ID: {{ $referralId }}</span>
+        <span style="text-align:right;margin-right:0px;">MyReferral ID: {{ $referralId }}</span>
         <span style="text-align:right;margin-right:0px;">Date: {{ $dateCreated }}</span>
         <h3 style="text-align: center;">REFERRAL LETTER</h3>
     </header>

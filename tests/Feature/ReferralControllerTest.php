@@ -279,8 +279,12 @@ class ReferralControllerTest extends TestCase
         $this->assertEquals($referee->id, $recipientHierarchy->external_referee_id);
         $this->assertEquals($organization->id, $recipientHierarchy->external_organization_id);
 
-        // Verify PDF was generated and stored
-        $this->assertNotNull($referral->encoded_base);
+        // PDFs are now generated on-the-fly when requested, not stored in database
+        // Verify hierarchy exists
+        $latestHierarchy = $referral->referral_hierarchies()
+            ->orderBy('sequence', 'desc')
+            ->first();
+        $this->assertNotNull($latestHierarchy);
     }
 
     /**
