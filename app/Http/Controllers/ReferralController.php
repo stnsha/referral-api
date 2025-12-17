@@ -195,8 +195,8 @@ class ReferralController extends Controller
                     'to_business_unit' => $latestReferralHierarchy->business_unit->name,
                     'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => Carbon::parse($latestReferralHierarchy->created_at)->format('j F Y, l'),
-                    'ori_created_at' => $latestReferralHierarchy->created_at,
+                    'created_at' => $latestReferralHierarchy->created_at->format('j F Y, l'),
+                    'ori_created_at' => $latestReferralHierarchy->created_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
                     'is_external' => $is_external
                 ];
             } else {
@@ -209,8 +209,8 @@ class ReferralController extends Controller
                     'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
                     'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => Carbon::parse($latestReferralHierarchy->created_at)->format('j F Y, l'),
-                    'ori_created_at' => $latestReferralHierarchy->created_at,
+                    'created_at' => $latestReferralHierarchy->created_at->format('j F Y, l'),
+                    'ori_created_at' => $latestReferralHierarchy->created_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
                     'is_external' => $is_external
                 ];
             }
@@ -837,7 +837,7 @@ class ReferralController extends Controller
                         'staff_id' => $rh->staff_id,
                         'location' => $rh->location,
                         'business_unit_id' => $rh->business_unit_id,
-                    'created_at' => Carbon::parse($rh->created_at)->format('d F Y h:i A'),
+                    'created_at' => $rh->created_at->format('d F Y h:i A'),
                     'additional_remarks' => $rh->additional_remarks,
                     'is_filled' => $rh->is_filled,
                     'createForm' => $createForm,
@@ -1620,7 +1620,7 @@ class ReferralController extends Controller
                         'to_business_unit' => $latestReferralHierarchy->business_unit->name,
                         'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
-                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                        'created_at' => $ref->created_at->format('j F Y, l'),
                         'ori_created_at' => $ref->created_at,
                         'is_external' => $is_external
                     ];
@@ -1640,7 +1640,7 @@ class ReferralController extends Controller
                         'to_business_unit' => $toBusinessUnit,
                         'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
-                        'created_at' => Carbon::parse($ref->created_at)->format('j F Y, l'),
+                        'created_at' => $ref->created_at->format('j F Y, l'),
                         'ori_created_at' => $ref->created_at,
                         'is_external' => $is_external
                     ];
@@ -1711,7 +1711,14 @@ class ReferralController extends Controller
 
                 // Always generate PDF on-the-fly for this specific sequence
                 try {
-                    $pdfBase64 = $this->exportReferral($referral, $sequence, true);
+                    if (!is_null($targetHierarchy->external_organization_id)) {
+                        // Go to exportReferral in ExternalReferralController
+                        $externalController = new ExternalReferralController();
+                        $pdfBase64 = $externalController->exportReferral($referral, $sequence, true);
+                    } else {
+
+                        $pdfBase64 = $this->exportReferral($referral, $sequence, true);
+                    }
 
                     if (!$pdfBase64) {
                         return response()->json([

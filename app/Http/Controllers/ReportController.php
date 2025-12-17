@@ -482,11 +482,21 @@ class ReportController extends Controller
 
                         // Convert created_at and updated_at to formatted datetime strings
                         if ($referralData && isset($referralData['created_at'])) {
-                            $referralData['created_at'] = Carbon::parse($referralData['created_at'])->format('l, d M Y');
+                            $referralData['created_at'] = Carbon::parse(
+                                $referralData['created_at'],
+                                'UTC'
+                            )->setTimezone('Asia/Kuala_Lumpur')
+                                ->format('l, d M Y');
                         }
+
                         if ($referralData && isset($referralData['updated_at'])) {
-                            $referralData['updated_at'] = Carbon::parse($referralData['updated_at'])->format('l, d M Y');
+                            $referralData['updated_at'] = Carbon::parse(
+                                $referralData['updated_at'],
+                                'UTC'
+                            )->setTimezone('Asia/Kuala_Lumpur')
+                                ->format('l, d M Y');
                         }
+
 
                         $groupedResults[$rh->referral_id] = [
                             'referral_id' => createRefId($rh->referral_id),
@@ -751,13 +761,44 @@ class ReportController extends Controller
         // Get business unit from JWT payload
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
+        $listOutlets = $jwtPayload['outlet'] ?? null;
+
+        // Return empty results if user has no outlets (non-superadmin)
+        if ((!$listOutlets || !is_array($listOutlets)) && !$this->isSuperadmin($jwtPayload)) {
+            return response()->json([
+                'message' => 'No results.',
+                'data' => [],
+            ], 204);
+        }
 
         $referrals = Referral::with(['referral_hierarchies.business_unit'])
-            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId) {
-                $query->where('business_unit_id', $userBusinessUnitId);
+            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId, $listOutlets, $jwtPayload) {
+                // Apply business unit filter only for non-superadmin users
+                if (!$this->isSuperadmin($jwtPayload)) {
+                    $query->where('business_unit_id', $userBusinessUnitId);
+
+                    // Apply outlet filter only for non-superadmin users
+                    if ($listOutlets && is_array($listOutlets)) {
+                        $query->whereIn('location', $listOutlets);
+                    }
+                }
+                // Superadmin sees ALL referrals (no filters applied)
             })
             ->get();
-        $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
+
+        // Get all business units for superadmin, or specific business unit for others
+        if ($this->isSuperadmin($jwtPayload)) {
+            $businessUnits = BusinessUnit::all();
+        } else {
+            $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
+        }
+
+        Log::info('Dashboard query executed', [
+            'user_business_unit_id' => $userBusinessUnitId,
+            'is_superadmin' => $this->isSuperadmin($jwtPayload),
+            'referrals_count' => $referrals->count(),
+            'outlets' => $listOutlets
+        ]);
 
         if ($referrals->isEmpty()) {
             return response()->json([
@@ -825,10 +866,14 @@ class ReportController extends Controller
                     break;
             }
 
-            // Count referrals per business unit (only for user's business unit)
+            // Count referrals per business unit
             foreach ($referral->referral_hierarchies as $rh) {
-                if ($rh->business_unit_id && $rh->business_unit_id == $userBusinessUnitId && isset($businessUnitCounts[$rh->business_unit_id])) {
-                    $businessUnitCounts[$rh->business_unit_id]['count']++;
+                if ($rh->business_unit_id && isset($businessUnitCounts[$rh->business_unit_id])) {
+                    // Superadmin: count all business units
+                    // Non-superadmin: only count their business unit
+                    if ($this->isSuperadmin($jwtPayload) || $rh->business_unit_id == $userBusinessUnitId) {
+                        $businessUnitCounts[$rh->business_unit_id]['count']++;
+                    }
                 }
             }
         }
@@ -1189,11 +1234,21 @@ class ReportController extends Controller
 
                         // Convert created_at and updated_at to formatted datetime strings
                         if ($referralData && isset($referralData['created_at'])) {
-                            $referralData['created_at'] = Carbon::parse($referralData['created_at'])->format('l, d M Y');
+                            $referralData['created_at'] = Carbon::parse(
+                                $referralData['created_at'],
+                                'UTC'
+                            )->setTimezone('Asia/Kuala_Lumpur')
+                                ->format('l, d M Y');
                         }
+
                         if ($referralData && isset($referralData['updated_at'])) {
-                            $referralData['updated_at'] = Carbon::parse($referralData['updated_at'])->format('l, d M Y');
+                            $referralData['updated_at'] = Carbon::parse(
+                                $referralData['updated_at'],
+                                'UTC'
+                            )->setTimezone('Asia/Kuala_Lumpur')
+                                ->format('l, d M Y');
                         }
+
 
                         $groupedResults[$rh->referral_id] = [
                             'referral_id' => createRefId($rh->referral_id),
