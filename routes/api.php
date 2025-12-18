@@ -36,7 +36,7 @@ Route::prefix('auth')->controller(ODBController::class)->group(function () {
 });
 
 Route::middleware('token.auth')->group(function () {
-    Route::resource('business-units', BusinessUnitController::class)->only(['index', 'store']);
+    Route::resource('business-units', BusinessUnitController::class)->only(['index', 'store', 'update']);
 
     Route::resource('form', FormController::class)->only(['store', 'update']);
 
