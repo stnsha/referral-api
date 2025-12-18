@@ -589,11 +589,21 @@ class ReportController extends Controller
         $userBusinessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
         $referrals = Referral::with(['referral_hierarchies.business_unit'])
-            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId) {
-                $query->where('business_unit_id', $userBusinessUnitId);
+            ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId, $jwtPayload) {
+                // Apply business unit filter only for non-superadmin users
+                if (!$this->isSuperadmin($jwtPayload)) {
+                    $query->where('business_unit_id', $userBusinessUnitId);
+                }
+                // Superadmin sees ALL business units (no filter applied)
             })
             ->get();
-        $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
+
+        // Superadmin sees all business units, others see only their own
+        if ($this->isSuperadmin($jwtPayload)) {
+            $businessUnits = BusinessUnit::all();
+        } else {
+            $businessUnits = BusinessUnit::where('id', $userBusinessUnitId)->get();
+        }
 
         // Initialize all business units with zero counts
         $results = [];
@@ -612,14 +622,17 @@ class ReportController extends Controller
 
         foreach ($referrals as $referral) {
             foreach ($referral->referral_hierarchies as $rh) {
-                if ($rh->business_unit != null && $rh->business_unit_id == $userBusinessUnitId) {
-                    $businessUnit = $rh->business_unit->name;
+                // Superadmin sees all business units, others see only theirs
+                if ($rh->business_unit != null) {
+                    if ($this->isSuperadmin($jwtPayload) || $rh->business_unit_id == $userBusinessUnitId) {
+                        $businessUnit = $rh->business_unit->name;
 
-                    // Count sent (sequence == 1) or received (sequence != 1)
-                    if ($rh->sequence == 1) {
-                        $results[$businessUnit][0]['sent']++;
-                    } else {
-                        $results[$businessUnit][0]['received']++;
+                        // Count sent (sequence == 1) or received (sequence != 1)
+                        if ($rh->sequence == 1) {
+                            $results[$businessUnit][0]['sent']++;
+                        } else {
+                            $results[$businessUnit][0]['received']++;
+                        }
                     }
                 }
             }
@@ -893,7 +906,8 @@ class ReportController extends Controller
         $jwtPayload = $request->get('jwt_payload');
         $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-        if (!$businessUnitId) {
+        // Allow superadmin to bypass business unit validation
+        if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
             return response()->json([
                 'message' => 'Business unit ID not found in session.',
             ], 401);
@@ -904,8 +918,15 @@ class ReportController extends Controller
             'referral',
             'business_unit',
             'external_referee'
-        ])
-            ->where('business_unit_id', $businessUnitId)
+        ]);
+
+        // Apply business unit filter only for non-superadmin users
+        if (!$this->isSuperadmin($jwtPayload)) {
+            $referralHistories->where('business_unit_id', $businessUnitId);
+        }
+        // Superadmin sees ALL business units (no filter applied)
+
+        $referralHistories = $referralHistories
             ->whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->get();
