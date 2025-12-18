@@ -173,4 +173,36 @@ class BusinessUnitController extends Controller
             ], 500);
         }
     }
+
+    public function update(BusinessUnitRequest $request, BusinessUnit $businessUnit)
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+
+            // Check if user is superadmin (referral 1 only)
+            if (!$this->isSuperadmin($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Only superadmin can create business units.',
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            $validated = $request->validated();
+            $businessUnit->update($validated);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Business unit updated successfully.',
+                'data' => $businessUnit->fresh()
+            ], 200);
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to update business unit.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
