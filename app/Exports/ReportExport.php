@@ -153,9 +153,9 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
             $history['business_unit'] ?? '',
             $history['location'] ?? '',
             $history['sequence'] ?? '',
-            $history['referral_reason'] ?? '',
-            $history['referral_condition'] ?? '',
-            $history['medical_history'] ?? '',
+            $history['create_form']['referral_reason'] ?? '',
+            $history['create_form']['referral_condition'] ?? '',
+            $history['create_form']['medical_history'] ?? '',
             $history['additional_remarks'] ?? '',
             $formCompleted,
             $formDetails
