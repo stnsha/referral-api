@@ -1660,6 +1660,38 @@ class ReferralController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/referral/successful/{id}",
+     *     summary="Download successful referral PDF with contact details",
+     *     tags={"Referrals"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Referral ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sequence",
+     *         in="query",
+     *         required=false,
+     *         description="Sequence number (odd: N to N+1, even: N-1 to N). Default: 1 to last.",
+     *         @OA\Schema(type="integer", minimum=1, example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="PDF with contact details as base64",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="pdf_base64", type="string", format="byte")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Referral not found"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
+     */
     public function successful(Request $request, $id)
     {
         try {

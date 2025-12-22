@@ -6,6 +6,19 @@ use Illuminate\Http\Request;
 
 class LibraryController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/library/status",
+     *     summary="Get referral status library",
+     *     tags={"Library"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Status definitions",
+     *         @OA\JsonContent(ref="#/components/schemas/LibraryStatus")
+     *     )
+     * )
+     */
     public function displayStatus()
     {
         $data = [
@@ -19,6 +32,19 @@ class LibraryController extends Controller
         return response()->json($data, 200);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/library/priority",
+     *     summary="Get referral priority library",
+     *     tags={"Library"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Priority definitions",
+     *         @OA\JsonContent(ref="#/components/schemas/LibraryPriority")
+     *     )
+     * )
+     */
     public function displayPriority()
     {
         $data = [

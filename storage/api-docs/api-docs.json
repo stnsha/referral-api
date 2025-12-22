@@ -1227,6 +1227,102 @@
                 ]
             }
         },
+        "/api/form/list": {
+            "post": {
+                "tags": [
+                    "Forms"
+                ],
+                "summary": "Get forms for a business unit",
+                "operationId": "f22d0baec117de84e810629d555a5f06",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "recipientBuId"
+                                ],
+                                "properties": {
+                                    "recipientBuId": {
+                                        "type": "integer",
+                                        "example": 3
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of forms",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FormListItem"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Business unit ID not found in session."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No forms found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No forms found for the specified business unit."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Database error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Database error occurred while fetching forms."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/form": {
             "post": {
                 "tags": [
@@ -1479,13 +1575,24 @@
                 ]
             }
         },
-        "/api/form/show": {
+        "/api/form/show/{business_unit_id}": {
             "get": {
                 "tags": [
                     "Forms"
                 ],
                 "summary": "Get forms by business unit id from JWT token",
-                "operationId": "1114638e3b0805ac69504dbeb41ba42e",
+                "operationId": "a71711e6ea19e42237c9d4bd8552ccc3",
+                "parameters": [
+                    {
+                        "name": "business_unit_id",
+                        "in": "path",
+                        "description": "Business unit ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -1830,14 +1937,14 @@
                 ]
             }
         },
-        "/api/form/{form}/unhide": {
+        "/api/form/unhide/{form}": {
             "put": {
                 "tags": [
                     "Forms"
                 ],
                 "summary": "Unhide a form of a business unit",
                 "description": "Unhide a specific form by its ID by setting is_hidden to false.",
-                "operationId": "99e431532dae514f856464dddec4412d",
+                "operationId": "f5447320144d4fb20f243d33df2a5871",
                 "parameters": [
                     {
                         "name": "form",
@@ -2092,69 +2199,6 @@
                     }
                 ]
             },
-            "delete": {
-                "tags": [
-                    "Form Details"
-                ],
-                "summary": "Delete a specific form detail",
-                "operationId": "308106e20f364073ac47e28b184ede2c",
-                "parameters": [
-                    {
-                        "name": "form",
-                        "in": "path",
-                        "description": "Form detail ID to delete",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Form deleted successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Form deleted successfully!"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to delete form",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Failed to delete form."
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Exception message"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/formDetails/{id}": {
             "put": {
                 "tags": [
                     "Form Details"
@@ -2164,7 +2208,7 @@
                 "operationId": "updateFormDetails",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "formDetail",
                         "in": "path",
                         "description": "ID of the form detail",
                         "required": true,
@@ -2246,6 +2290,119 @@
                                         }
                                     },
                                     "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Form Details"
+                ],
+                "summary": "Delete a specific form detail",
+                "operationId": "308106e20f364073ac47e28b184ede2c",
+                "parameters": [
+                    {
+                        "name": "formDetail",
+                        "in": "path",
+                        "description": "Form detail ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Form deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Form deleted successfully!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete form",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to delete form."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Exception message"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/library/status": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Get referral status library",
+                "operationId": "3d8a07de482c042d1c876d3e1201e6d1",
+                "responses": {
+                    "200": {
+                        "description": "Status definitions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LibraryStatus"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/library/priority": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Get referral priority library",
+                "operationId": "4366f250da91a1e74edcd72d4f3f1db2",
+                "responses": {
+                    "200": {
+                        "description": "Priority definitions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LibraryPriority"
                                 }
                             }
                         }
@@ -3764,6 +3921,69 @@
                 ]
             }
         },
+        "/api/referral/successful/{id}": {
+            "get": {
+                "tags": [
+                    "Referrals"
+                ],
+                "summary": "Download successful referral PDF with contact details",
+                "operationId": "92eb9e3e24bda53a5648cc29b6ce881d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Referral ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "sequence",
+                        "in": "query",
+                        "description": "Sequence number (odd: N to N+1, even: N-1 to N). Default: 1 to last.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF with contact details as base64",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "pdf_base64": {
+                                            "type": "string",
+                                            "format": "byte"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Referral not found"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/report": {
             "post": {
                 "tags": [
@@ -4149,6 +4369,49 @@
                     }
                 ]
             }
+        },
+        "/api/report/summary": {
+            "get": {
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Get referral summary breakdown",
+                "operationId": "7dae3561d93023ed8f0c4b6f66b524d6",
+                "responses": {
+                    "200": {
+                        "description": "Summary data breakdown",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "by_priority": {
+                                            "type": "object"
+                                        },
+                                        "by_status": {
+                                            "type": "object"
+                                        },
+                                        "by_business_unit": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -4441,6 +4704,134 @@
                 },
                 "type": "object"
             },
+            "FormListItem": {
+                "properties": {
+                    "form_id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "label_name": {
+                        "type": "string",
+                        "example": "Assessment Form"
+                    },
+                    "is_required": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                },
+                "type": "object"
+            },
+            "LibraryStatus": {
+                "properties": {
+                    "1": {
+                        "type": "string",
+                        "example": "Open"
+                    },
+                    "2": {
+                        "type": "string",
+                        "example": "In Progress"
+                    },
+                    "3": {
+                        "type": "string",
+                        "example": "Referred"
+                    },
+                    "4": {
+                        "type": "string",
+                        "example": "Closed"
+                    },
+                    "5": {
+                        "type": "string",
+                        "example": "Not Present"
+                    }
+                },
+                "type": "object"
+            },
+            "LibraryPriority": {
+                "properties": {
+                    "1": {
+                        "type": "string",
+                        "example": "Low (3 days and above)"
+                    },
+                    "2": {
+                        "type": "string",
+                        "example": "Medium (1 - 3 days)"
+                    },
+                    "3": {
+                        "type": "string",
+                        "example": "High (3 hours)"
+                    }
+                },
+                "type": "object"
+            },
+            "ReferralListItem": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "ref_id": {
+                        "type": "string",
+                        "example": "#REF0001"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "example": "Vestibular-Related Balance Issue"
+                    },
+                    "from_business_unit": {
+                        "type": "string",
+                        "example": "Alpro Physio"
+                    },
+                    "to_business_unit": {
+                        "type": "string",
+                        "example": "Alpro Audiology"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "status": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "example": "1 July 2025, Sunday"
+                    },
+                    "is_external": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                },
+                "type": "object"
+            },
+            "ReferralIndexResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "all": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ReferralListItem"
+                                }
+                            },
+                            "sent": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ReferralListItem"
+                                }
+                            },
+                            "received": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ReferralListItem"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
             "ExternalRefereeDetails": {
                 "required": [
                     "external_organization_id",
@@ -4450,7 +4841,7 @@
                 "type": "object",
                 "allOf": [
                     {
-                        "$ref": "#/components/schemas/FormDetail"
+                        "$ref": "#/components/schemas/ReferralIndexResponse"
                     },
                     {
                         "properties": {
@@ -4518,7 +4909,7 @@
                 "type": "object",
                 "allOf": [
                     {
-                        "$ref": "#/components/schemas/FormDetail"
+                        "$ref": "#/components/schemas/ReferralIndexResponse"
                     },
                     {
                         "properties": {
@@ -4602,6 +4993,10 @@
         {
             "name": "Form Details",
             "description": "Form Details"
+        },
+        {
+            "name": "Library",
+            "description": "Library"
         },
         {
             "name": "Authentication",

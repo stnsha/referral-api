@@ -891,6 +891,26 @@ class ReportController extends Controller
         ], 200);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/report/summary",
+     *     summary="Get referral summary breakdown",
+     *     tags={"Reports"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Summary data breakdown",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="by_priority", type="object"),
+     *             @OA\Property(property="by_status", type="object"),
+     *             @OA\Property(property="by_business_unit", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
+     */
     public function summary(Request $request)
     {
         $jwtPayload = $request->get('jwt_payload');

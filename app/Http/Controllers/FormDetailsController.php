@@ -209,7 +209,7 @@ class FormDetailsController extends Controller
      *     tags={"Form Details"},
      *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
-     *         name="form",
+     *         name="formDetail",
      *         in="path",
      *         required=true,
      *         description="Form detail ID to delete",
@@ -283,14 +283,14 @@ class FormDetailsController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/formDetails/{id}",
+     *     path="/api/formDetails/{formDetail}",
      *     operationId="updateFormDetails",
      *     tags={"Form Details"},
      *     summary="Update form details",
      *     security={{"bearerAuth": {}}},
      *     description="Updates a specific form detail entry with new values.",
      *     @OA\Parameter(
-     *         name="id",
+     *         name="formDetail",
      *         in="path",
      *         description="ID of the form detail",
      *         required=true,

@@ -535,18 +535,6 @@ Filters are automatically applied based on the `referral` field in the JWT token
 - **Issues**: Report bugs and request features via the project's issue tracker
 - **Logs**: Check `storage/logs/laravel.log` for error details
 
-### Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature-name`)
-3. Follow PSR-12 coding standards
-4. Write meaningful commit messages
-5. Add tests for new features
-6. Run `./vendor/bin/pint` to format code
-7. Submit a pull request with a clear description
-
 ### Code Review Checklist
 
 - All database writes wrapped in transactions

@@ -67,7 +67,7 @@ use Illuminate\Routing\Controller as BaseController;
  * 
  * @OA\Schema(
  *     schema="FormDetail",
- *     type="object", 
+ *     type="object",
  *     required={"form_detail_id", "field_name", "field_type", "is_required"},
  *     @OA\Property(property="form_detail_id", type="integer", example=101),
  *     @OA\Property(property="field_name", type="string", example="Blood Pressure"),
@@ -85,10 +85,59 @@ use Illuminate\Routing\Controller as BaseController;
  *                     @OA\Property(property="field_value", type="string", example="Option A")
  *                 )
  *             )
- *         }  
+ *         }
  *     ),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="FormListItem",
+ *     @OA\Property(property="form_id", type="integer", example=12),
+ *     @OA\Property(property="label_name", type="string", example="Assessment Form"),
+ *     @OA\Property(property="is_required", type="boolean", example=false)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="LibraryStatus",
+ *     type="object",
+ *     @OA\Property(property="1", type="string", example="Open"),
+ *     @OA\Property(property="2", type="string", example="In Progress"),
+ *     @OA\Property(property="3", type="string", example="Referred"),
+ *     @OA\Property(property="4", type="string", example="Closed"),
+ *     @OA\Property(property="5", type="string", example="Not Present")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="LibraryPriority",
+ *     type="object",
+ *     @OA\Property(property="1", type="string", example="Low (3 days and above)"),
+ *     @OA\Property(property="2", type="string", example="Medium (1 - 3 days)"),
+ *     @OA\Property(property="3", type="string", example="High (3 hours)")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ReferralListItem",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="ref_id", type="string", example="#REF0001"),
+ *     @OA\Property(property="reason", type="string", example="Vestibular-Related Balance Issue"),
+ *     @OA\Property(property="from_business_unit", type="string", example="Alpro Physio"),
+ *     @OA\Property(property="to_business_unit", type="string", example="Alpro Audiology"),
+ *     @OA\Property(property="priority", type="integer", example=2),
+ *     @OA\Property(property="status", type="integer", example=1),
+ *     @OA\Property(property="created_at", type="string", example="1 July 2025, Sunday"),
+ *     @OA\Property(property="is_external", type="boolean", example=false)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ReferralIndexResponse",
+ *     @OA\Property(
+ *         property="data",
+ *         type="object",
+ *         @OA\Property(property="all", type="array", @OA\Items(ref="#/components/schemas/ReferralListItem")),
+ *         @OA\Property(property="sent", type="array", @OA\Items(ref="#/components/schemas/ReferralListItem")),
+ *         @OA\Property(property="received", type="array", @OA\Items(ref="#/components/schemas/ReferralListItem"))
+ *     )
  * )
  */
 class Controller extends BaseController

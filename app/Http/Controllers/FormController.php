@@ -18,6 +18,50 @@ class FormController extends Controller
 {
     use AccessControl;
 
+    /**
+     * @OA\Post(
+     *     path="/api/form/list",
+     *     summary="Get forms for a business unit",
+     *     tags={"Forms"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"recipientBuId"},
+     *             @OA\Property(property="recipientBuId", type="integer", example=3)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of forms",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/FormListItem")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Business unit ID not found in session.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No forms found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="No forms found for the specified business unit.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Database error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Database error occurred while fetching forms.")
+     *         )
+     *     )
+     * )
+     */
     public function index(Request $request)
     {
         try {
@@ -314,10 +358,17 @@ class FormController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/form/show",
+     *     path="/api/form/show/{business_unit_id}",
      *     summary="Get forms by business unit id from JWT token",
      *     tags={"Forms"},
      *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="business_unit_id",
+     *         in="path",
+     *         required=true,
+     *         description="Business unit ID",
+     *         @OA\Schema(type="integer")
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Successful operation",
@@ -664,7 +715,7 @@ class FormController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/form/{form}/unhide",
+     *     path="/api/form/unhide/{form}",
      *     tags={"Forms"},
      *     summary="Unhide a form of a business unit",
      *     description="Unhide a specific form by its ID by setting is_hidden to false.",
