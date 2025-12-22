@@ -207,10 +207,7 @@ class ReportController extends Controller
                 ], 403);
             }
 
-            // Superadmin can see all data, others filtered by their business unit
-            $userBusinessUnitId = $this->getBusinessUnitIdForFilter($jwtPayload);
-
-            $groupedResults = $this->getFilterResults($request->all(), $userBusinessUnitId);
+            $groupedResults = $this->getFilterResults($request);
 
             if ($groupedResults != null) {
                 // Convert to indexed array
@@ -267,33 +264,26 @@ class ReportController extends Controller
         }
     }
 
-    private function getFilterResults($request, $userBusinessUnitId = null)
+    private function getFilterResults(Request $request)
     {
-        $businessUnitId = !empty($request[0]['business_unit_id']) ? $request[0]['business_unit_id'] : null;
-        $locationId = !empty($request[0]['location']) ? $request[0]['location'] : null;
-        $isExternal = filter_var($request[0]['is_external'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $priority = !empty($request[0]['priority']) ? $request[0]['priority'] : null;
-        $isReferred = filter_var($request[0]['is_referred'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $status = !empty($request[0]['status']) ? $request[0]['status'] : null;
-        $month = !empty($request[0]['month']) ? $request[0]['month'] : null;
-        $year = !empty($request[0]['year']) ? $request[0]['year'] : null;
+        $businessUnitId = $request->input('business_unit_id');
+        $locationId = $request->input('location');
+        $isExternal = filter_var($request->input('is_external', false), FILTER_VALIDATE_BOOLEAN);
+        $priority = $request->input('priority');
+        $isReferred = filter_var($request->input('is_referred', false), FILTER_VALIDATE_BOOLEAN);
+        $status = $request->input('status');
+        $month = $request->input('month');
+        $year = $request->input('year');
+
+        // Get business unit from JWT payload
+        $jwtPayload = $request->get('jwt_payload');
+        $userBusinessUnitId = $this->getBusinessUnitIdForFilter($jwtPayload);
 
         // If userBusinessUnitId is provided (not null), force filter by that business unit
         // Note: null means superadmin, should see all
         if ($userBusinessUnitId !== null) {
             $businessUnitId = $userBusinessUnitId;
         }
-
-        $arr = [
-            'businessUnitId' => $businessUnitId,
-            'locationId' => $locationId,
-            'isExternal' => $isExternal,
-            'priority' => $priority,
-            'isReferred' => $isReferred,
-            'status' => $status,
-            'month' => $month,
-            'year' => $year,
-        ];
 
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
