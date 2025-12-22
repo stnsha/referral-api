@@ -20,6 +20,5 @@ yarn-error.log
 .htaccess
 index.php
 /public
-vite.config.js
 /public/report
 settings.local.json
