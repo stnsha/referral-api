@@ -1,66 +1,576 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MyReferral API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Healthcare Referral Management System
 
-## About Laravel
+![Laravel](https://img.shields.io/badge/Laravel-10.10%2B-red?logo=laravel)
+![PHP](https://img.shields.io/badge/PHP-8.1%2B-blue?logo=php)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**MyReferral API** is a comprehensive healthcare referral management system designed to streamline patient referrals between healthcare providers and external medical organizations. The system enables healthcare facilities to efficiently track, manage, and coordinate multi-level referral workflows from initial patient consultation through specialist referrals and beyond.
 
-## Learning Laravel
+### Key Capabilities
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Multi-level Referral Workflow**: Support cascading referrals (patient → specialist 1 → specialist 2), enabling complex care coordination
+- **Role-based Access Control**: Three-tier permission system (Superadmin, Admin, Normal User) with granular data access based on business units and outlets
+- **Dynamic Form-based Data Collection**: Customizable forms per business unit for capturing referral details, medical history, conditions, and outcomes
+- **External Organization Management**: Comprehensive directory of external healthcare facilities and specialist contacts
+- **Reporting & Analytics**: Excel-based exports with advanced filtering and dashboard analytics for management insights
+- **Document Management**: Automated PDF generation, QR codes, and secure attachment handling
+- **Email Notifications**: Automated communication with external referees and stakeholders
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Target Users
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Healthcare facilities, medical clinics, physiotherapy centers, and medical referral coordinators who need to manage complex patient referral workflows across multiple organizations and specialists.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Tech Stack
 
-### Premium Partners
+- **Backend Framework**: Laravel 10.10+
+- **Language**: PHP 8.1+
+- **Database**: MySQL 8.0+ (default), PostgreSQL 12+, SQLite, SQL Server
+- **Authentication**: Custom JWT implementation with HS256 algorithm
+- **API Documentation**: L5-Swagger (OpenAPI 3.0)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### Key Dependencies
 
-## Contributing
+- **PDF Generation**: barryvdh/laravel-dompdf (^3.1)
+- **Excel Exports**: maatwebsite/excel (^3.1)
+- **QR Code Generation**: simplesoftwareio/simple-qrcode (4.2)
+- **HTTP Client**: guzzlehttp/guzzle (^7.2)
+- **Email**: Laravel Mail with Mailpit (local development)
+- **Frontend Build**: Vite with Tailwind CSS
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## System Requirements
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Ensure your development environment meets the following prerequisites:
 
-## Security Vulnerabilities
+- **PHP** >= 8.1 with extensions:
+  - OpenSSL, PDO, Mbstring, Tokenizer, JSON, Ctype, Filter, Hash, BCMath, XML
+- **Composer** >= 2.0
+- **Node.js** >= 16.x and npm (for frontend assets)
+- **Database**: MySQL >= 8.0 OR PostgreSQL >= 12
+- **Web Server**: Apache 2.4+ or Nginx 1.18+
+- **Git** (for cloning repository)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
+
+## Installation
+
+Follow these steps to set up the MyReferral API on your local development environment.
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd referral-api
+```
+
+### 2. Install PHP Dependencies
+
+```bash
+composer install
+```
+
+### 3. Install Frontend Dependencies
+
+```bash
+npm install
+```
+
+### 4. Environment Configuration
+
+Copy the example environment file and configure it:
+
+```bash
+cp .env.example .env
+```
+
+**Important**: Edit the `.env` file with your database credentials and required API keys. See [Environment Configuration](#environment-configuration) section below.
+
+### 5. Generate Application Key
+
+```bash
+php artisan key:generate
+```
+
+### 6. Database Setup
+
+**Create the database:**
+
+```sql
+CREATE DATABASE referral_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+**Configure database credentials in `.env`**, then run migrations:
+
+```bash
+php artisan migrate
+```
+
+**Optional: Seed database with sample data**
+
+```bash
+php artisan db:seed
+```
+
+### 7. Build Frontend Assets
+
+For production build:
+
+```bash
+npm run build
+```
+
+For development with hot reload:
+
+```bash
+npm run dev
+```
+
+### 8. Generate API Documentation
+
+```bash
+php artisan l5-swagger:generate
+```
+
+### 9. Start Development Server
+
+```bash
+php artisan serve
+```
+
+The API will be available at: `http://localhost:8000`
+
+API Documentation: `http://localhost:8000/api/documentation`
+
+---
+
+## Environment Configuration
+
+Configure the following variables in your `.env` file:
+
+### Application Settings
+
+```env
+APP_NAME="MyReferral API"
+APP_ENV=local                    # Options: local, staging, production
+APP_DEBUG=true                   # MUST be false in production
+APP_URL=http://localhost:8000
+APP_KEY=                         # Auto-generated by php artisan key:generate
+APP_TIMEZONE=Asia/Kuala_Lumpur   # Default timezone (Malaysia)
+```
+
+### Database Configuration
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=referral_api
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### ODB Integration (Required)
+
+```env
+ODB_API_USERNAME=                # Your ODB credentials
+ODB_API_PASSWORD=                # Your ODB credentials
+ODB_API_URL=                     # ODB API endpoint URL
+```
+
+**Note**: ODB credentials are required for authentication integration with the Octopus Database system.
+
+### Mail Configuration (Optional for Development)
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025                   # Mailpit for local testing
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="noreply@myreferral.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+For production, configure your preferred mail service (Mailgun, AWS SES, Postmark).
+
+### Logging
+
+```env
+LOG_CHANNEL=stack
+LOG_LEVEL=debug                  # Use 'error' in production
+```
+
+### CORS Configuration
+
+```env
+SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1:8000
+```
+
+**Production Note**: Additional environment variables for caching (Redis), queue drivers, session management, and third-party services should be configured based on your deployment infrastructure.
+
+---
+
+## Authentication
+
+This API uses a **custom JWT (JSON Web Token)** authentication system with HS256 algorithm.
+
+### Authentication Flow
+
+#### Step 1: Obtain Access Token
+
+Send a POST request to the authentication endpoint with your staff credentials:
+
+```http
+POST /api/auth
+Content-Type: application/json
+
+{
+  "username": "your-staff-id",
+  "password": "your-password"
+}
+```
+
+**Success Response:**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+  "expires_in": 86400
+}
+```
+
+#### Step 2: Use Token in Requests
+
+Include the JWT token in the `Authorization` header for all subsequent API requests:
+
+```http
+GET /api/referral
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+### Token Lifecycle
+
+- **Expiration**: 24 hours (86400 seconds) from issuance
+- **Refresh**: Token refresh is not implemented - obtain a new token after expiry
+- **Verification**: Use `POST /api/auth/verify` to validate token integrity
+
+### User Roles & Permissions
+
+The JWT token payload contains a `referral` field that determines access levels:
+
+| Role | Value | Permissions |
+|------|-------|-------------|
+| **Superadmin** | `referral: 1` | Full access to all features, all business units, all outlets. Typically assigned to `staff_department_id = 16`. |
+| **Admin** | `referral: 2` | Access to all features within their assigned business unit. Can view and manage all outlets under their business unit. |
+| **Normal User** | `referral: 0` | Limited to their specific outlet. Can create and update referrals. Read-only access to external referees, external organizations, forms, and exports. |
+
+---
+
+## API Documentation
+
+The MyReferral API uses **L5-Swagger** for interactive API documentation based on OpenAPI 3.0 specification.
+
+### Accessing API Documentation
+
+After completing installation, access the Swagger UI at:
+
+```
+http://localhost:8000/api/documentation
+```
+
+The Swagger interface provides:
+- Complete endpoint reference
+- Request/response schemas
+- Interactive API testing
+- Authentication integration
+
+### Generating Documentation
+
+Whenever you modify API endpoints or update Swagger annotations in the codebase:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+This command scans the `app/` directory for OpenAPI annotations and regenerates the documentation files in `storage/api-docs/`.
+
+### Authentication in Swagger UI
+
+To test authenticated endpoints in Swagger UI:
+
+1. Click the **Authorize** button in the top-right corner
+2. Enter your JWT token in the format: `Bearer <your-token>`
+3. Click **Authorize** to save
+4. All subsequent test requests will automatically include the authentication header
+
+### Postman Collection Generation
+
+Generate Postman collections for API testing:
+
+```bash
+php artisan postman:generate
+```
+
+Generated collections are stored in `storage/postman/` and can be imported directly into Postman.
+
+---
+
+## Common Commands
+
+Quick reference for frequently used commands:
+
+| Command | Description |
+|---------|-------------|
+| `php artisan serve` | Start development server at http://localhost:8000 |
+| `php artisan migrate` | Run pending database migrations |
+| `php artisan migrate:fresh --seed` | Reset database and seed with test data |
+| `php artisan l5-swagger:generate` | Regenerate API documentation |
+| `php artisan cache:clear` | Clear application cache |
+| `php artisan config:clear` | Clear configuration cache |
+| `php artisan route:list` | Display all registered API routes |
+| `php artisan test` | Run PHPUnit test suite |
+| `composer install` | Install/update PHP dependencies |
+| `composer dump-autoload` | Regenerate autoload files |
+| `npm install` | Install Node.js dependencies |
+| `npm run dev` | Start Vite development server (hot reload) |
+| `npm run build` | Build optimized frontend assets for production |
+| `./vendor/bin/pint` | Format code using Laravel Pint (PSR-12) |
+
+---
+
+## Production Deployment
+
+### Pre-deployment Checklist
+
+Before deploying to production, ensure you complete the following steps:
+
+#### 1. Environment Settings
+
+Update `.env` for production:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-production-domain.com
+LOG_LEVEL=error
+```
+
+#### 2. Optimize Application
+
+Run optimization commands to improve performance:
+
+```bash
+composer install --optimize-autoloader --no-dev
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+#### 3. Build Frontend Assets
+
+```bash
+npm run build
+```
+
+#### 4. Database Migration
+
+Run migrations in production (do NOT seed):
+
+```bash
+php artisan migrate --force
+```
+
+**Warning**: Never run `php artisan db:seed` in production as it will populate test data.
+
+#### 5. File Permissions
+
+Set correct permissions for storage and cache directories:
+
+```bash
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+```
+
+Adjust `www-data` to match your web server user (e.g., `nginx`, `apache`).
+
+#### 6. Security Hardening
+
+- **APP_KEY**: Ensure `APP_KEY` is set to a secure, random 32-character string
+- **HTTPS/SSL**: Configure SSL certificate and enforce HTTPS
+- **CORS Policies**: Review and restrict `config/cors.php` to allowed origins only
+- **Rate Limiting**: Configure appropriate rate limits in `app/Http/Kernel.php`
+- **Credentials Review**: Audit all `.env` credentials and API keys
+- **Remove Debug Tools**: Ensure Laravel Telescope, Debugbar, and similar packages are disabled
+
+#### 7. Logging & Monitoring
+
+- Configure external logging services (e.g., Papertrail, Loggly, Sentry)
+- Set up application performance monitoring (APM)
+- Configure error tracking and alerting
+- Monitor disk space for `storage/logs/`
+
+#### 8. Backup Strategy
+
+- Implement automated database backups
+- Configure backup retention policies
+- Test restore procedures regularly
+
+### Web Server Configuration
+
+For production deployments, configure your web server to point to the `public/` directory. Refer to [Laravel Deployment Documentation](https://laravel.com/docs/10.x/deployment) for detailed Nginx and Apache configurations.
+
+---
+
+## Project Structure
+
+Understanding the codebase organization:
+
+```
+referral-api/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/      # API endpoint controllers (thin, delegate to services)
+│   │   ├── Middleware/       # Custom middleware (TokenMiddleware for JWT validation)
+│   │   └── Requests/         # Form request validation classes
+│   ├── Models/               # Eloquent ORM models
+│   ├── Exports/              # Excel export classes (Maatwebsite)
+│   ├── Traits/               # Reusable traits (e.g., AccessControl for role filtering)
+│   ├── Swagger/              # OpenAPI/Swagger annotation classes
+│   ├── Services/             # Business logic service classes
+│   └── Helpers/              # Helper functions (helpers.php)
+├── config/                   # Configuration files
+│   ├── app.php              # Application settings
+│   ├── database.php         # Database connections
+│   ├── l5-swagger.php       # API documentation config
+│   └── ...
+├── database/
+│   ├── migrations/          # Database schema migrations
+│   └── seeders/             # Database seeders (development only)
+├── routes/
+│   └── api.php             # API route definitions (all routes prefixed with /api)
+├── storage/
+│   ├── api-docs/           # Generated Swagger documentation
+│   ├── logs/               # Application logs
+│   └── postman/            # Generated Postman collections
+├── resources/              # Frontend assets (Vite, Tailwind CSS)
+├── tests/                  # PHPUnit tests
+├── public/                 # Publicly accessible files (web server document root)
+├── composer.json           # PHP dependencies
+├── package.json            # Node.js dependencies
+└── phpunit.xml             # PHPUnit configuration
+```
+
+---
+
+## Coding Standards & Conventions
+
+This project adheres to Laravel best practices and PSR-12 coding standards.
+
+### Style Guide
+
+- **Coding Standard**: PSR-12
+- **Code Formatter**: Laravel Pint - run `./vendor/bin/pint` before committing
+
+### Development Principles
+
+1. **Import Statements**: Always use proper `use` statements at the top of files. Never use inline class paths.
+   ```php
+   // Good
+   use App\Models\Referral;
+
+   // Bad
+   $referral = new \App\Models\Referral();
+   ```
+
+2. **Database Transactions**: Wrap all database write operations in try/catch blocks with transactions:
+   ```php
+   DB::beginTransaction();
+   try {
+       // Your database operations
+       DB::commit();
+   } catch (\Exception $e) {
+       DB::rollBack();
+       Log::error('Error message', ['exception' => $e]);
+       // Handle error
+   }
+   ```
+
+3. **Logging**: Use Laravel's logging facade for all important actions:
+   - `Log::info()` - General information and successful operations
+   - `Log::warning()` - Warning conditions
+   - `Log::error()` - Error conditions with context
+
+4. **Controllers**: Keep controllers thin. Delegate complex business logic to service classes.
+
+5. **Exception Handling**: Never use generic `\Exception`. Import specific exception classes or use Laravel's exception types.
+
+### Access Control Pattern
+
+All controllers use the `AccessControl` trait to automatically filter data based on user roles:
+
+- **Superadmin**: Bypasses all filters, accesses all data
+- **Admin**: Data filtered to their business unit and associated outlets
+- **Normal User**: Data filtered to their specific outlet only
+
+Filters are automatically applied based on the `referral` field in the JWT token payload.
+
+---
+
+## Support & Contributing
+
+### Getting Help
+
+- **Documentation**: Access API documentation at `/api/documentation`
+- **Issues**: Report bugs and request features via the project's issue tracker
+- **Logs**: Check `storage/logs/laravel.log` for error details
+
+### Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature-name`)
+3. Follow PSR-12 coding standards
+4. Write meaningful commit messages
+5. Add tests for new features
+6. Run `./vendor/bin/pint` to format code
+7. Submit a pull request with a clear description
+
+### Code Review Checklist
+
+- All database writes wrapped in transactions
+- Proper logging implemented
+- Import statements used (no inline class paths)
+- Access control properly applied
+- API endpoints documented with Swagger annotations
+- Tests added for new functionality
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
+
+## Additional Resources
+
+- [Laravel 10 Documentation](https://laravel.com/docs/10.x)
+- [L5-Swagger Documentation](https://github.com/DarkaOnLine/L5-Swagger)
+- [OpenAPI 3.0 Specification](https://swagger.io/specification/)
+- [PSR-12 Coding Standard](https://www.php-fig.org/psr/psr-12/)
+
+---
+
+**Built with Laravel 10 • PHP 8.1 • MySQL**
