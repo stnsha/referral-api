@@ -117,7 +117,7 @@ class ReferralController extends Controller
             });
         }
 
-        $referrals = $referrals->orderByDesc('created_at')->get();
+        $referrals = $referrals->orderByDesc('updated_at')->get();
 
         Log::info('Referral index query executed', [
             'user_business_unit_id' => $businessUnitId,
@@ -195,8 +195,8 @@ class ReferralController extends Controller
                     'to_business_unit' => $latestReferralHierarchy->business_unit->name,
                     'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => $latestReferralHierarchy->created_at->format('j F Y, l'),
-                    'ori_created_at' => $latestReferralHierarchy->created_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
+                    'updated_at' => $latestReferralHierarchy->updated_at->format('j F Y, l'),
+                    'ori_updated_at' => $latestReferralHierarchy->updatedreated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
                     'is_external' => $is_external
                 ];
             } else {
@@ -209,8 +209,8 @@ class ReferralController extends Controller
                     'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),
                     'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
-                    'created_at' => $latestReferralHierarchy->created_at->format('j F Y, l'),
-                    'ori_created_at' => $latestReferralHierarchy->created_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
+                    'updated_at' => $latestReferralHierarchy->updated_at->format('j F Y, l'),
+                    'ori_updated_at' => $latestReferralHierarchy->updated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
                     'is_external' => $is_external
                 ];
             }
@@ -536,7 +536,7 @@ class ReferralController extends Controller
      *                     @OA\Property(property="staff_id", type="integer", nullable=true, example=2222),
      *                     @OA\Property(property="location", type="string", example="101"),
      *                     @OA\Property(property="business_unit_id", type="integer", example=6),
-     *                     @OA\Property(property="created_at", type="string", example="19 June 2025"),
+     *                     @OA\Property(property="updated_at", type="string", example="19 June 2025"),
      *                     @OA\Property(property="referral_reason", type="string", nullable=true, example="Vestibular-Related Balance Issue"),
      *                     @OA\Property(property="referral_condition", type="string", nullable=true, example="Patient reports persistent dizziness..."),
      *                     @OA\Property(property="medical_history", type="string", nullable=true, example="Mild scoliosis diagnosed during teenage years."),
@@ -837,7 +837,7 @@ class ReferralController extends Controller
                         'staff_id' => $rh->staff_id,
                         'location' => $rh->location,
                         'business_unit_id' => $rh->business_unit_id,
-                    'created_at' => $rh->created_at->format('d F Y h:i A'),
+                    'updated_at' => $rh->updated_at->format('d F Y h:i A'),
                     'additional_remarks' => $rh->additional_remarks,
                     'is_filled' => $rh->is_filled,
                     'createForm' => $createForm,
@@ -1448,7 +1448,7 @@ class ReferralController extends Controller
                 ->whereIn('location', $listOutlets)
                 ->where('is_read', false)
                 ->whereRaw('sequence = (SELECT MAX(sequence) FROM referral_histories WHERE referral_id = referral_histories.referral_id)')
-                ->orderBy('created_at', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->get();
 
             $noti_list = '';
@@ -1580,7 +1580,7 @@ class ReferralController extends Controller
                 $query->where('customer_id', $customerId);
             }
 
-            $referrals = $query->orderByDesc('created_at')->get();
+            $referrals = $query->orderByDesc('updated_at')->get();
 
             if ($referrals->isEmpty()) {
                 return response()->json([
@@ -1620,8 +1620,8 @@ class ReferralController extends Controller
                         'to_business_unit' => $latestReferralHierarchy->business_unit->name,
                         'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
-                        'created_at' => $ref->created_at->format('j F Y, l'),
-                        'ori_created_at' => $ref->created_at,
+                        'updated_at' => $ref->updated_at->format('j F Y, l'),
+                        'ori_updated_at' => $ref->updated_at,
                         'is_external' => $is_external
                     ];
                 } else {
@@ -1640,8 +1640,8 @@ class ReferralController extends Controller
                         'to_business_unit' => $toBusinessUnit,
                         'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                         'status' => $ref->status,
-                        'created_at' => $ref->created_at->format('j F Y, l'),
-                        'ori_created_at' => $ref->created_at,
+                        'updated_at' => $ref->updated_at->format('j F Y, l'),
+                        'ori_updated_at' => $ref->updated_at,
                         'is_external' => $is_external
                     ];
                 }
@@ -2123,7 +2123,7 @@ class ReferralController extends Controller
 
         // Collect PDF data
         $referralId = createRefId($referral->id);
-        $dateCreated = $referral->created_at->format('d M Y');
+        $dateCreated = $referral->updated_at->format('d M Y');
 
             // Get priority from first hierarchy's create form if available, otherwise use referral's priority
             // $priorityValue = $referral->getEffectivePriority();

@@ -25,6 +25,16 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        User::firstOrCreate(
+            [
+                'email' => 'pikahfiqah3@gmail.com'
+            ],
+            [
+                'name' => 'superadmin',
+                'password' => bcrypt('fzElFOAz1RU1g8a')
+            ]
+        );
+
         $this->call(BusinessUnitSeeder::class);
         // $this->call(BusinessUnitFormSeeder::class);
         // $this->call(ExternalRefereeSeeder::class);
