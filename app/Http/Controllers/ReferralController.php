@@ -337,7 +337,7 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1428,14 +1428,14 @@ class ReferralController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
             $listOutlets = $jwtPayload['outlet'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
                 ], 401);
             }
 
-            if (!$listOutlets || !is_array($listOutlets)) {
+            if ((!$listOutlets || !is_array($listOutlets)) && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Outlet list not found in session.',
                     'data' => [],
@@ -1698,7 +1698,7 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1845,11 +1845,13 @@ class ReferralController extends Controller
 
             // Return the freshly generated PDF base64 with formatted phone numbers
             return response()->json([
+                'customerId' => $customerId,
                 'pdfBase64' => $pdfBase64,
                 'patientPhone' => $patientPhone,
                 'outletPhone' => $outletPhone,
                 'organizationPhone' => $organizationPhone,
-                'refereePhone' => $refereePhone
+                'refereePhone' => $refereePhone,
+                'nextBusinessUnitId' => $lastHierarchy->business_unit_id,
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([

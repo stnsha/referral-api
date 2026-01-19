@@ -68,7 +68,7 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
 
@@ -155,7 +155,7 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -572,7 +572,7 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -666,7 +666,7 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -680,7 +680,7 @@ class FormController extends Controller
             }
 
             // Check if user can access this form
-            if ($form->business_unit_id != $businessUnitId) {
+            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot hide form from different business unit.',
                 ], 403);
@@ -760,7 +760,7 @@ class FormController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -774,7 +774,7 @@ class FormController extends Controller
             }
 
             // Check if user can access this form
-            if ($form->business_unit_id != $businessUnitId) {
+            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot unhide form from different business unit.',
                 ], 403);

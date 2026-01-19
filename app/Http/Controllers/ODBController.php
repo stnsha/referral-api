@@ -218,7 +218,7 @@ class ODBController extends Controller
                 'business_unit_id' => $businessUnitId,
                 'status_semasa' => $validated['status_semasa'],
                 'outlet' => $validated['outlet'],
-                'referral' => $validated['referral'] ?? 2
+                'referral' => $validated['staff_department_id'] == 16 ? 1 : ($validated['referral'] ?? 2)
             ];
 
             $token = $this->generateJWT($payload);

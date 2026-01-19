@@ -68,7 +68,7 @@ class FormDetailsController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -165,7 +165,7 @@ class FormDetailsController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -173,7 +173,7 @@ class FormDetailsController extends Controller
 
             // Check if form detail belongs to user's business unit
             $form = $formDetail->form;
-            if (!$form || $form->business_unit_id != $businessUnitId) {
+            if (!$form || !$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot access form details from different business unit.',
                 ], 403);
@@ -239,7 +239,7 @@ class FormDetailsController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -254,7 +254,7 @@ class FormDetailsController extends Controller
 
             // Check if form detail belongs to user's business unit
             $form = $formDetail->form;
-            if (!$form || $form->business_unit_id != $businessUnitId) {
+            if (!$form || !$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot delete form details from different business unit.',
                 ], 403);
@@ -332,7 +332,7 @@ class FormDetailsController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -347,7 +347,7 @@ class FormDetailsController extends Controller
 
             // Check if form detail belongs to user's business unit
             $form = $formDetail->form;
-            if (!$form || $form->business_unit_id != $businessUnitId) {
+            if (!$form || !$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot update form details from different business unit.',
                 ], 403);

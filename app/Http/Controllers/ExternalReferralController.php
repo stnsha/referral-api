@@ -132,7 +132,7 @@ class ExternalReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId) {
+            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
