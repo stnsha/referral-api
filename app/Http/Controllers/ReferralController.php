@@ -196,7 +196,7 @@ class ReferralController extends Controller
                     'priority' => $secondToLastReferralHierarchy->referral_create_form->priority,
                     'status' => $ref->status,
                     'updated_at' => $latestReferralHierarchy->updated_at->format('j F Y, l'),
-                    'ori_updated_at' => $latestReferralHierarchy->updatedreated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
+                    'ori_updated_at' => $latestReferralHierarchy->updated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
                     'is_external' => $is_external
                 ];
             } else {
