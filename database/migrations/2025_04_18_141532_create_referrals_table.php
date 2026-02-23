@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('customer_id');
             $table->integer('priority');
             $table->integer('status')->default(1); //open
-            $table->string('remarks')->nullable();
+            $table->string('status_note')->nullable();
             $table->longText('encoded_base')->nullable();
             $table->softDeletes();
             $table->timestamps();
