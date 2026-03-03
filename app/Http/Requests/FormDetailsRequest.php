@@ -21,11 +21,22 @@ class FormDetailsRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->isMethod('put')) {
+            return [
+                'field_name'  => 'sometimes|string|max:255',
+                'field_type'  => 'sometimes|string|max:255',
+                'is_required' => 'sometimes|boolean',
+                'field_value' => 'nullable|string|max:255',
+            ];
+        }
+
         return [
-            'form_id' => 'required|exists:forms,id,deleted_at,NULL', // Ensure form_id exists and is not deleted
-            'field_name' => 'required|string|max:255', // Validate field_name
-            'field_type' => 'required|string', // Validate field_type
-            'is_required' => 'required|boolean', // Validate is_required
+            'form_id'                    => 'required|exists:forms,id,deleted_at,NULL',
+            'form_details'               => 'required|array|min:1',
+            'form_details.*.field_name'  => 'required|string|max:255',
+            'form_details.*.field_type'  => 'required|string|max:255',
+            'form_details.*.is_required' => 'required|boolean',
+            'form_details.*.field_value' => 'nullable|string|max:255',
         ];
     }
 

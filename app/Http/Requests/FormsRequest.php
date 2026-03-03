@@ -22,13 +22,15 @@ class FormsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_unit_id' => 'required|exists:business_units,id',
+            'business_unit_ids' => $this->isMethod('post') ? 'required|array|min:1' : 'nullable|array',
+            'business_unit_ids.*' => 'exists:business_units,id',
             'label_name' => 'required|string|max:255',
             'is_hidden' => 'required|boolean',
             'is_required' => 'required|boolean',
             'field_name' => 'required|string|max:255',
             'field_type' => 'required|string|max:255',
-            'value_fields' => 'nullable|array'
+            'value_fields' => 'nullable|array',
+            'display_on' => 'nullable|in:creation,reply,both',
         ]; 
     }
 
@@ -40,8 +42,9 @@ class FormsRequest extends FormRequest
     public function messages()
     {
         return [
-            'business_unit_id.required' => 'Business unit ID is required.',
-            'business_unit_id.exists' => 'Selected business unit ID does not exist.',
+            'business_unit_ids.required' => 'At least one business unit is required.',
+            'business_unit_ids.array' => 'Business unit IDs must be an array.',
+            'business_unit_ids.*.exists' => 'One or more selected business units do not exist.',
             'label_name.required' => 'Label name is required.',
             'label_name.string' => 'Label name must be a string.',
             'label_name.max' => 'Label name may not be greater than 255 characters.',

@@ -102,7 +102,9 @@ class StoreReferralRequest extends FormRequest
 
         // Only apply dynamic rules if form_data for this business unit is not empty
         if (!empty($formData) && is_array($formData)) {
-            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
+                $q->where('business_units.id', $buId);
+            })->with('form_details')->get();
 
             foreach ($forms as $form) {
                 foreach ($form->form_details as $detail) {
@@ -154,7 +156,9 @@ class StoreReferralRequest extends FormRequest
 
         // Only generate messages if form_data for this business unit is not empty
         if (!empty($formData) && is_array($formData)) {
-            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
+                $q->where('business_units.id', $buId);
+            })->with('form_details')->get();
 
             foreach ($forms as $form) {
                 foreach ($form->form_details as $detail) {

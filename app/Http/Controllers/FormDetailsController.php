@@ -87,7 +87,13 @@ class FormDetailsController extends Controller
 
             // Check if form belongs to user's business unit
             $form = Form::find($form_id);
-            if (!$form || $form->business_unit_id != $businessUnitId) {
+            if (!$form) {
+                return response()->json([
+                    'message' => 'Form not found.',
+                ], 404);
+            }
+            $form->load('business_units');
+            if (!$this->isSuperadmin($jwtPayload) && !$form->business_units->contains('id', $businessUnitId)) {
                 return response()->json([
                     'message' => 'Unauthorized: Cannot create form details for different business unit.',
                 ], 403);
@@ -96,10 +102,11 @@ class FormDetailsController extends Controller
 
             foreach ($formDetails as $detail) {
                 FormDetails::create([
-                    'form_id' => $form_id,
-                    'field_name' => $detail['field_name'],
-                    'field_type' => $detail['field_type'],
+                    'form_id'     => $form_id,
+                    'field_name'  => $detail['field_name'],
+                    'field_type'  => $detail['field_type'],
                     'is_required' => $detail['is_required'],
+                    'field_value' => $detail['field_value'] ?? null,
                 ]);
             }
             DB::commit();

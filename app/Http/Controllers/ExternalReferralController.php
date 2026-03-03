@@ -292,7 +292,9 @@ class ExternalReferralController extends Controller
                                 //get data from form details
                                 $form_detail = FormDetails::where('field_name', $field)
                                     ->whereHas('form', function ($query) use ($business_unit_id) {
-                                        $query->where('business_unit_id', $business_unit_id);
+                                        $query->whereHas('business_units', function ($q) use ($business_unit_id) {
+                                            $q->where('business_units.id', $business_unit_id);
+                                        });
                                     })
                                     ->first();
 

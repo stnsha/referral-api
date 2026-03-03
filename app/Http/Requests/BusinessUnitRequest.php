@@ -23,7 +23,8 @@ class BusinessUnitRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'staff_department_id' => 'required|integer',
+            'staff_department_id' => 'nullable|integer',
+            'outlet_id' => 'nullable|integer',
             'is_active' => 'nullable|boolean',
         ];
     }
@@ -39,8 +40,8 @@ class BusinessUnitRequest extends FormRequest
             'name.required' => 'Business unit name is required.',
             'name.string' => 'Business unit name must be a string.',
             'name.max' => 'Business unit name cannot exceed 255 characters.',
-            'staff_department_id.required' => 'Staff department ID is required.',
             'staff_department_id.integer' => 'Staff department ID must be an integer.',
+            'outlet_id.integer' => 'Outlet ID must be an integer.',
             'is_active.boolean' => 'Is active must be a boolean value.',
         ];
     }

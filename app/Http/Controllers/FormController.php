@@ -9,6 +9,7 @@ use App\Models\Form;
 use App\Models\FormDetails;
 use App\Traits\AccessControl;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -74,7 +75,12 @@ class FormController extends Controller
 
             $recipientBuId = $request->input('recipientBuId');
 
-            $forms = Form::with('form_details')->where('business_unit_id', $recipientBuId)->where('is_hidden', false)->get();
+            $forms = Form::with('form_details')
+                ->whereHas('business_units', function ($q) use ($recipientBuId) {
+                    $q->where('business_units.id', $recipientBuId);
+                })
+                ->where('is_hidden', false)
+                ->get();
 
             if ($forms->isEmpty()) {
                 return response()->json(['message' => 'No forms found for the specified business unit.'], 404);
@@ -170,19 +176,28 @@ class FormController extends Controller
 
             DB::beginTransaction();
             $validated = $request->validated();
-            $bu = BusinessUnit::where('id', $validated['business_unit_id'])->first();
+            $requestedBuIds = $validated['business_unit_ids'];
 
-            // Validate that the requested business unit matches JWT business unit (skip for superadmin)
-            if (!$bu || !$this->canAccessBusinessUnit($jwtPayload, $bu->id)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Cannot create form for different business unit.',
-                ], 403);
+            // Non-superadmin can only assign their own business unit
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $userBuId = $jwtPayload['business_unit_id'] ?? null;
+                if (!in_array($userBuId, $requestedBuIds)) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot create form for a different business unit.',
+                    ], 403);
+                }
+                $requestedBuIds = [$userBuId];
+            }
+
+            $validBuIds = BusinessUnit::whereIn('id', $requestedBuIds)->pluck('id')->toArray();
+            if (empty($validBuIds)) {
+                return response()->json(['message' => 'No valid business units provided.'], 422);
             }
 
             $form = Form::create([
-                'business_unit_id' => $bu->id,
                 'label_name' => $validated['label_name'],
-                'is_hidden' => $validated['is_hidden']
+                'is_hidden' => $validated['is_hidden'],
+                'display_on' => $validated['display_on'] ?? 'creation',
             ]);
 
             if (!empty($validated['value_fields'])) {
@@ -204,6 +219,8 @@ class FormController extends Controller
                     'field_value' => null
                 ]);
             }
+
+            $form->business_units()->attach($validBuIds);
 
             DB::commit();
             return response()->json(['message' => 'Form created successfully!', 'form_id' => $form->id], 201);
@@ -288,11 +305,13 @@ class FormController extends Controller
                 return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
 
-            $query = Form::with(['form_details']);
+            $query = Form::with(['form_details', 'conditions.triggerFormDetail', 'business_units']);
 
             // Apply business unit filter only for non-superadmin
             if (!$this->isSuperadmin($jwtPayload)) {
-                $query->where('business_unit_id', $businessUnitId);
+                $query->whereHas('business_units', function ($q) use ($businessUnitId) {
+                    $q->where('business_units.id', $businessUnitId);
+                });
             }
 
             $forms = $query->get();
@@ -337,7 +356,16 @@ class FormController extends Controller
                     'form_id' => $form->id,
                     'label_name' => $form->label_name,
                     'is_hidden' => $form->is_hidden != 0 ? True : False,
-                    'form_details' => $form_details
+                    'display_on' => $form->display_on,
+                    'business_unit_ids' => $form->business_units->pluck('id')->toArray(),
+                    'conditions' => $form->conditions->map(function ($c) {
+                        return [
+                            'condition_id' => $c->id,
+                            'trigger_form_detail_id' => $c->trigger_form_detail_id,
+                            'trigger_form_id' => $c->triggerFormDetail ? $c->triggerFormDetail->form_id : null,
+                        ];
+                    })->values()->toArray(),
+                    'form_details' => $form_details,
                 ];
             }
 
@@ -359,6 +387,7 @@ class FormController extends Controller
     /**
      * @OA\Get(
      *     path="/api/form/show/{business_unit_id}",
+
      *     summary="Get forms by business unit id from JWT token",
      *     tags={"Forms"},
      *     security={{"bearerAuth":{}}},
@@ -430,22 +459,25 @@ class FormController extends Controller
      *       )
      *  )
      */
-    public function show(Request $request)
+    public function show(Request $request, $business_unit_id = null)
     {
         try {
             $jwtPayload = $request->get('jwt_payload');
-            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+            $userBuId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$userBuId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json(['message' => 'Business unit ID not found in session.'], 401);
             }
 
-            $query = Form::with(['form_details']);
+            // Use the route parameter as the recipient BU filter; fall back to the user's own BU
+            $recipientBuId = $business_unit_id ?? $userBuId;
 
-            // Apply business unit filter only for non-superadmin
-            if (!$this->isSuperadmin($jwtPayload)) {
-                $query->where('business_unit_id', $businessUnitId);
-            }
+            $query = Form::with(['form_details', 'conditions.triggerFormDetail', 'business_units']);
+
+            // Filter by the recipient business unit
+            $query->whereHas('business_units', function ($q) use ($recipientBuId) {
+                $q->where('business_units.id', $recipientBuId);
+            });
 
             $forms = $query->get();
             $data = [];
@@ -489,19 +521,28 @@ class FormController extends Controller
                     'form_id' => $form->id,
                     'label_name' => $form->label_name,
                     'is_hidden' => $form->is_hidden != 0 ? True : False,
-                    'form_details' => $form_details
+                    'display_on' => $form->display_on,
+                    'business_unit_ids' => $form->business_units->pluck('id')->toArray(),
+                    'conditions' => $form->conditions->map(function ($c) {
+                        return [
+                            'condition_id' => $c->id,
+                            'trigger_form_detail_id' => $c->trigger_form_detail_id,
+                            'trigger_form_id' => $c->triggerFormDetail ? $c->triggerFormDetail->form_id : null,
+                        ];
+                    })->values()->toArray(),
+                    'form_details' => $form_details,
                 ];
             }
 
             $data = [
-                'business_unit_id' => $businessUnitId,
+                'business_unit_id' => $recipientBuId,
                 'forms' => $arr
             ];
 
             return response()->json($data, 200);
         } catch (QueryException $e) {
             return response()->json([
-                'message' => 'Database error occurred while fetching forms.'
+                'message' => 'Database error occurred while fetching forms.',
             ], 500);
         } catch (Throwable $e) {
             return response()->json($e->getMessage(), 500);
@@ -585,11 +626,16 @@ class FormController extends Controller
                 ], 403);
             }
 
+            $form->load('business_units');
+
             // Check if user can access this form (skip for superadmin)
-            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Cannot update form from different business unit.',
-                ], 403);
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $userBuId = $jwtPayload['business_unit_id'] ?? null;
+                if (!$form->business_units->contains('id', $userBuId)) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot update form from different business unit.',
+                    ], 403);
+                }
             }
 
             DB::beginTransaction();
@@ -597,7 +643,7 @@ class FormController extends Controller
 
             $updates = [];
 
-            foreach (['business_unit_id', 'label_name', 'is_hidden'] as $key) {
+            foreach (['label_name', 'is_hidden', 'display_on'] as $key) {
                 $newValue = $validated[$key] ?? ($key === 'is_hidden' ? false : null);
                 if ($form->$key !== $newValue) {
                     $updates[$key] = $newValue;
@@ -679,11 +725,16 @@ class FormController extends Controller
                 ], 403);
             }
 
+            $form->load('business_units');
+
             // Check if user can access this form
-            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Cannot hide form from different business unit.',
-                ], 403);
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $userBuId = $jwtPayload['business_unit_id'] ?? null;
+                if (!$form->business_units->contains('id', $userBuId)) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot hide form from different business unit.',
+                    ], 403);
+                }
             }
 
             DB::beginTransaction();
@@ -773,11 +824,16 @@ class FormController extends Controller
                 ], 403);
             }
 
+            $form->load('business_units');
+
             // Check if user can access this form
-            if (!$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Cannot unhide form from different business unit.',
-                ], 403);
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $userBuId = $jwtPayload['business_unit_id'] ?? null;
+                if (!$form->business_units->contains('id', $userBuId)) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Cannot unhide form from different business unit.',
+                    ], 403);
+                }
             }
 
             DB::beginTransaction();
@@ -796,6 +852,68 @@ class FormController extends Controller
             DB::rollBack();
             return response()->json([
                 'message' => 'Failed to unhide form.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function attachBusinessUnit(Request $request, Form $form): JsonResponse
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+
+            if (!$this->isSuperadmin($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Only superadmin can modify form business units.',
+                ], 403);
+            }
+
+            $businessUnitId = $request->input('business_unit_id');
+            if (!$businessUnitId) {
+                return response()->json(['message' => 'business_unit_id is required.'], 422);
+            }
+
+            $bu = BusinessUnit::find($businessUnitId);
+            if (!$bu) {
+                return response()->json(['message' => 'Business unit not found.'], 404);
+            }
+
+            if ($form->business_units()->where('business_units.id', $businessUnitId)->exists()) {
+                return response()->json(['message' => 'Business unit is already attached to this form.'], 422);
+            }
+
+            $form->business_units()->attach($businessUnitId);
+
+            return response()->json(['message' => 'Business unit added to form successfully.'], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to attach business unit.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function detachBusinessUnit(Request $request, Form $form, BusinessUnit $businessUnit): JsonResponse
+    {
+        try {
+            $jwtPayload = $request->get('jwt_payload');
+
+            if (!$this->isSuperadmin($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Only superadmin can modify form business units.',
+                ], 403);
+            }
+
+            if (!$form->business_units()->where('business_units.id', $businessUnit->id)->exists()) {
+                return response()->json(['message' => 'Business unit is not attached to this form.'], 422);
+            }
+
+            $form->business_units()->detach($businessUnit->id);
+
+            return response()->json(['message' => 'Business unit removed from form successfully.'], 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to detach business unit.',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -93,13 +93,21 @@ class UpdateReferralRequest extends FormRequest
         if ($status != 5) {
             $buId = $this->input('referral.business_unit_id_reply');
 
-            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
+                $q->where('business_units.id', $buId);
+            })->where('display_on', '!=', 'creation')
+              ->with(['form_details', 'conditions'])
+              ->get();
 
             foreach ($forms as $form) {
+                $hasConditions = $form->conditions->isNotEmpty();
+
                 foreach ($form->form_details as $detail) {
                     $field = $detail->field_name;
                     $type = $detail->field_type;
-                    $isRequired = $detail->is_required;
+                    // Conditioned forms may not be shown depending on creation answers;
+                    // their required fields are enforced client-side only.
+                    $isRequired = !$hasConditions && $detail->is_required;
 
                     $rules = [];
                     $rules[] = $isRequired ? 'required' : 'nullable';
@@ -144,14 +152,18 @@ class UpdateReferralRequest extends FormRequest
         if ($status != 5) {
             $buId = $this->input('referral.business_unit_id_reply');
 
-            $forms = Form::where('business_unit_id', $buId)->with('form_details')->get();
+            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
+                $q->where('business_units.id', $buId);
+            })->where('display_on', '!=', 'creation')
+              ->with('form_details')
+              ->get();
 
             foreach ($forms as $form) {
                 foreach ($form->form_details as $detail) {
                     $field = $detail->field_name;
                     $label = ucwords(str_replace('_', ' ', $field));
                     $type = $detail->field_type;
-                    $path = "form_data.{$form->id}.$field";
+                    $path = "form_data.$buId.$field";
 
                     if ($detail->is_required) {
                         $messages["$path.required"] = "$label is required.";

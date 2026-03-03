@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -26,11 +26,12 @@ class BusinessUnit extends Model
     protected $fillable = [
         'name',
         'staff_department_id',
+        'outlet_id',
         'is_active',
     ];
 
-    public function forms(): HasMany
+    public function forms(): BelongsToMany
     {
-        return $this->hasMany(Form::class, 'business_unit_id', 'id');
+        return $this->belongsToMany(Form::class, 'form_business_units');
     }
 }

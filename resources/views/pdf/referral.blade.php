@@ -82,26 +82,26 @@
                 class="patient">{{ $patientIcNo }}</span></span>
     </div>
     <div style="margin: 15px 0px;">
-        <span style="font-weight: bold;">Purpose of Referral</span>
-        <span>{{ $referralReason }}</span>
+        <div><span style="font-weight: bold;">Purpose of Referral</span></div>
+        <div>{!! nl2br(e($referralReason)) !!}</div>
         @if ($referralCondition)
-            <span style="font-weight: bold;">Details of Patient's Condition</span>
-            <span>{{ $referralCondition }}</span>
+            <div><span style="font-weight: bold;">Details of Patient's Condition</span></div>
+            <div>{!! nl2br(e($referralCondition)) !!}</div>
         @endif
 
         @if ($medicalHistory)
-            <span style="font-weight: bold;">Relevant Medical History</span>
-            <span>{{ $medicalHistory }}</span>
+            <div><span style="font-weight: bold;">Relevant Medical History</span></div>
+            <div>{!! nl2br(e($medicalHistory)) !!}</div>
         @endif
 
         @if ($additionalRemarks)
-            <span style="font-weight: bold;">Additional Remarks</span>
-            <span>{{ $additionalRemarks }}</span>
+            <div><span style="font-weight: bold;">Additional Remarks</span></div>
+            <div>{!! nl2br(e($additionalRemarks)) !!}</div>
         @endif
 
         @if ($priority)
-            <span style="font-weight: bold;">Priority</span>
-            <span>{{ $priority }}</span>
+            <div><span style="font-weight: bold;">Priority</span></div>
+            <div>{{ $priority }}</div>
         @endif
     </div>
     <div style="margin: 10px 0px;">

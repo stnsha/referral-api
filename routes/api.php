@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BusinessUnitController;
 use App\Http\Controllers\ExternalOrganizationController;
+use App\Http\Controllers\FormConditionController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\FormDetailsController;
 use App\Http\Controllers\ReferenceController;
@@ -52,9 +53,15 @@ Route::middleware('token.auth')->group(function () {
     Route::prefix('form')->controller(FormController::class)->group(function () {
         Route::get('show/{business_unit_id}', 'show');
         Route::get('all', 'allForms');
+        Route::post('{form}/business-units', 'attachBusinessUnit');
+        Route::delete('{form}/business-units/{businessUnit}', 'detachBusinessUnit');
     });
 
-    Route::resource('formDetails', FormDetailsController::class)->only(['create', 'update', 'show', 'destroy']);
+    Route::post('formDetails/create', [FormDetailsController::class, 'create']);
+    Route::resource('formDetails', FormDetailsController::class)->only(['update', 'show', 'destroy']);
+
+    Route::post('formCondition', [FormConditionController::class, 'store']);
+    Route::delete('formCondition/{condition}', [FormConditionController::class, 'destroy']);
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');

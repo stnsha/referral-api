@@ -432,7 +432,9 @@ class ReferralController extends Controller
                                 //get data from form details
                                 $form_detail = FormDetails::where('field_name', $field)
                                     ->whereHas('form', function ($query) use ($business_unit_id) {
-                                        $query->where('business_unit_id', $business_unit_id);
+                                        $query->whereHas('business_units', function ($q) use ($business_unit_id) {
+                                            $q->where('business_units.id', $business_unit_id);
+                                        });
                                     })
                                     ->first();
 
@@ -1034,7 +1036,9 @@ class ReferralController extends Controller
                                 foreach ($formFields as $field => $value) {
                                     $form_detail = FormDetails::where('field_name', $field)
                                         ->whereHas('form', function ($query) use ($business_unit_id) {
-                                            $query->where('business_unit_id', $business_unit_id);
+                                            $query->whereHas('business_units', function ($q) use ($business_unit_id) {
+                                                $q->where('business_units.id', $business_unit_id);
+                                            });
                                         })
                                         ->first();
 
@@ -1277,13 +1281,9 @@ class ReferralController extends Controller
 
                 $sequence = (int) $sequence;
 
-                // Determine TO sequence (where PDF is stored)
-                $toSequence = $sequence + 1;
-
-
                 // Get hierarchy for this sequence
                 $targetHierarchy = $referral->referral_hierarchies()
-                    ->where('sequence', $toSequence)
+                    ->where('sequence', $sequence)
                     ->first();
 
                 if (!$targetHierarchy) {
