@@ -859,13 +859,6 @@ class ReferralController extends Controller
                 'referralDetails' => $referralHierarchies,
             ];
 
-            // Generate PDF base64 for ALL referrals (both internal and external)
-            // Always generate PDF on-the-fly
-            $pdf = $this->exportPdf($data);
-            if ($pdf) {
-                $data['pdf_base64'] = $pdf;
-            }
-
             return response()->json($data, 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -1375,23 +1368,7 @@ class ReferralController extends Controller
         }
     }
 
-    public function exportPdf($data, $returnPdf = false)
-    {
-        try {
-            $pdf = Pdf::loadView('pdf.report', $data);
-            $pdf->setPaper('A4', 'portrait');
-
-            // Convert PDF to base64 for JSON response (commented out)
-            $pdfContent = $pdf->output();
-            $base64Pdf = base64_encode($pdfContent);
-            return $base64Pdf;
-        } catch (Throwable $e) {
-            Log::error('PDF generation failed: ' . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
+/**
      * @OA\Get(
      *     path="/api/referral/notification",
      *     summary="Get unread referral notifications",

@@ -205,6 +205,14 @@ class ODBController extends Controller
             } else {
                 $businessUnitId = $this->mapToBusinessUnitId($validated['staff_department_id'], $validated['status_semasa']);
 
+                // Fallback: match by outlet_id for HQ-type business units where staff_department_id has no mapping
+                if (!$businessUnitId && !empty($validated['outlet'])) {
+                    $businessUnit = BusinessUnit::whereIn('outlet_id', $validated['outlet'])
+                        ->where('is_active', 1)
+                        ->first();
+                    $businessUnitId = $businessUnit ? $businessUnit->id : null;
+                }
+
                 if (!$businessUnitId) {
                     return response()->json(['message' => 'Invalid department or status combination.'], 422);
                 }
