@@ -6,6 +6,8 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use setasign\Fpdi\Fpdi;
+use setasign\Fpdi\PdfParser\StreamReader;
 
 if (! function_exists('createRefId')) {
     function createRefId($id)
@@ -107,11 +109,17 @@ if (!function_exists('generateReferralPdfWithQr')) {
             $pdf = Pdf::loadView('pdf.referral', $data);
             $pdf->setPaper('A4', 'portrait');
 
-            // Convert PDF to base64
             $pdfContent = $pdf->output();
-            $base64Pdf = base64_encode($pdfContent);
 
-            return $base64Pdf;
+            // If a stationery image exists, stamp it behind every page using FPDI.
+            // This is the only reliable way to get a background that repeats on
+            // all pages: dompdf fixed/background elements cannot render behind content.
+            $letterheadPath = $data['letterheadPath'] ?? null;
+            if (!empty($letterheadPath) && file_exists(public_path($letterheadPath))) {
+                $pdfContent = applyStationeryBackground($pdfContent, public_path($letterheadPath));
+            }
+
+            return base64_encode($pdfContent);
         } catch (Exception $e) {
             Log::error('PDF generation failed: ' . $e->getMessage(), [
                 'referral_id' => $referralId,
@@ -121,6 +129,42 @@ if (!function_exists('generateReferralPdfWithQr')) {
             ]);
             return null;
         }
+    }
+}
+
+if (!function_exists('applyStationeryBackground')) {
+    /**
+     * Stamp a stationery image behind every page of a PDF using FPDI.
+     *
+     * Strategy: for each page, draw the stationery image first (bottom layer),
+     * then overlay the original dompdf content page (top layer). Because dompdf
+     * produces pages without an explicit white fill, the content is transparent
+     * and the stationery shows through on every page.
+     *
+     * @param string $pdfContent  Raw PDF bytes from dompdf
+     * @param string $imagePath   Absolute filesystem path to the stationery image
+     * @return string             Raw PDF bytes with stationery applied
+     */
+    function applyStationeryBackground(string $pdfContent, string $imagePath): string
+    {
+        $fpdi = new Fpdi('P', 'mm', [210, 297]);
+        $fpdi->SetAutoPageBreak(false);
+        $fpdi->SetMargins(0, 0, 0);
+
+        $pageCount = $fpdi->setSourceFile(StreamReader::createByString($pdfContent));
+
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $fpdi->AddPage('P', [210, 297]);
+
+            // Draw stationery first so it is behind the content layer.
+            $fpdi->Image($imagePath, 0, 0, 210, 297);
+
+            // Overlay the original content page (transparent background).
+            $tplId = $fpdi->importPage($i);
+            $fpdi->useTemplate($tplId, 0, 0, 210, 297);
+        }
+
+        return $fpdi->Output('S');
     }
 }
 

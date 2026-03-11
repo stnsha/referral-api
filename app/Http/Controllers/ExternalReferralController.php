@@ -560,6 +560,8 @@ class ExternalReferralController extends Controller
 
 
         /************************************************** End of Referee/Organization *****************************************/
+        $assigneeBusinessUnitModel = $firstHierarchy->business_unit;
+
         // Prepare data for PDF generation
         $data = [
             'is_external' => true,
@@ -599,6 +601,9 @@ class ExternalReferralController extends Controller
             'patientEmail' => $patientEmail,
 
             'referralDetails' => [], // Form details if needed
+
+            'letterheadPath' => $assigneeBusinessUnitModel->letterhead ?? null,
+            'footerPath' => $assigneeBusinessUnitModel->footer ?? null,
         ];
 
         // Generate PDF with QR code using helper function

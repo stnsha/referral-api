@@ -28,6 +28,8 @@ class BusinessUnit extends Model
         'staff_department_id',
         'outlet_id',
         'is_active',
+        'letterhead',
+        'footer',
     ];
 
     public function forms(): BelongsToMany

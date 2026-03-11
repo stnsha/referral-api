@@ -2279,6 +2279,8 @@ class ReferralController extends Controller
 
         /************************************************** End of Customer *****************************************/
 
+        $assigneeBusinessUnitModel = $firstHierarchy->business_unit;
+
         $data = [
             'is_external' => false,
             'referralId' => $referralId,
@@ -2319,6 +2321,9 @@ class ReferralController extends Controller
             'patientPhone' => $patientPhone,
             'patientAddress' => $patientAddress,
             'patientEmail' => $patientEmail,
+
+            'letterheadPath' => $assigneeBusinessUnitModel->letterhead ?? null,
+            'footerPath' => $assigneeBusinessUnitModel->footer ?? null,
         ];
 
         // Generate PDF with QR code using helper function
