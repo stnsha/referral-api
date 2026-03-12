@@ -7,10 +7,10 @@ use App\Models\BusinessUnit;
 use App\Models\Referral;
 use App\Models\ReferralHierarchy;
 use App\Traits\AccessControl;
+use App\Traits\Octopus;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Exceptions\LaravelExcelException;
@@ -26,6 +26,7 @@ use Throwable;
 class ReportController extends Controller
 {
     use AccessControl;
+    use Octopus;
 
     /**
      * @OA\Post(
@@ -1132,17 +1133,44 @@ class ReportController extends Controller
                 ->get();
         }
 
-        // Build outlet ID -> code lookup (outlet table is in the ODB database)
-        $locationCodes = DB::connection('odb')->table('outlet')->pluck('code', 'id');
-
         $buResults    = [];
         $allLocations = [];
 
+        // Collect all histories first so we can resolve location IDs in one batch
+        $allHistories = [];
         foreach ($businessUnits as $bu) {
             $histories = ReferralHierarchy::with(['referral'])
                 ->where('business_unit_id', $bu->id)
                 ->whereYear('created_at', $year)
                 ->get();
+            $allHistories[$bu->id] = $histories;
+        }
+
+        // Resolve unique location IDs -> codes via ODB API
+        $uniqueLocationIds = collect($allHistories)
+            ->flatten()
+            ->pluck('location')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $locationCodes = [];
+        foreach ($uniqueLocationIds as $locationId) {
+            try {
+                $detail = $this->outletDetails($locationId);
+                if (!blank($detail)) {
+                    $detail = $detail[0] ?? $detail;
+                    if (isset($detail['code'])) {
+                        $locationCodes[$locationId] = $detail['code'];
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to resolve outlet code', ['location_id' => $locationId, 'error' => $e->getMessage()]);
+            }
+        }
+
+        foreach ($businessUnits as $bu) {
+            $histories = $allHistories[$bu->id];
 
             $buData = [
                 'id'        => $bu->id,
