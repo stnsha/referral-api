@@ -94,6 +94,8 @@ Route::middleware('token.auth')->group(function () {
         Route::get('chart', 'chart')->name('report.chart');
         Route::get('dashboard', 'dashboard')->name('report.dashboard');
         Route::get('summary', 'summary')->name('report.summary');
+        Route::get('yearly', 'yearly')->name('report.yearly');
+        Route::get('multi-year', 'multiYear')->name('report.multiYear');
     });
 
     Route::prefix('library')->controller(LibraryController::class)->group(function () {

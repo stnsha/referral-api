@@ -10,6 +10,7 @@ use App\Traits\AccessControl;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Exceptions\LaravelExcelException;
@@ -914,13 +915,26 @@ class ReportController extends Controller
     public function summary(Request $request)
     {
         $jwtPayload = $request->get('jwt_payload');
-        $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+        $businessUnitIdFromJwt = $jwtPayload['business_unit_id'] ?? null;
 
-        // Allow superadmin to bypass business unit validation
-        if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
-            return response()->json([
-                'message' => 'Business unit ID not found in session.',
-            ], 401);
+        // Optional filter params from query string
+        $requestedBusinessUnitId = $request->query('business_unit_id');
+        $month = $request->query('month', Carbon::now()->month);
+        $year = $request->query('year', Carbon::now()->year);
+        $locationFilter = $request->query('location');
+        $statusFilter = $request->query('status');
+        $priorityFilter = $request->query('priority');
+
+        if ($this->isSuperadmin($jwtPayload)) {
+            // Superadmin: filter by requested BU if provided, otherwise show all
+            $businessUnitId = $requestedBusinessUnitId ?: null;
+        } else {
+            $businessUnitId = $businessUnitIdFromJwt;
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
         }
 
         // Get referral hierarchies with all necessary relationships
@@ -930,16 +944,30 @@ class ReportController extends Controller
             'external_referee'
         ]);
 
-        // Apply business unit filter only for non-superadmin users
-        if (!$this->isSuperadmin($jwtPayload)) {
+        if ($businessUnitId) {
             $referralHistories->where('business_unit_id', $businessUnitId);
         }
-        // Superadmin sees ALL business units (no filter applied)
 
-        $referralHistories = $referralHistories
-            ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->get();
+        $referralHistories->whereMonth('created_at', $month)
+            ->whereYear('created_at', $year);
+
+        if ($locationFilter) {
+            $referralHistories->where('location', $locationFilter);
+        }
+
+        if ($statusFilter) {
+            $referralHistories->whereHas('referral', function ($q) use ($statusFilter) {
+                $q->where('status', $statusFilter);
+            });
+        }
+
+        if ($priorityFilter) {
+            $referralHistories->whereHas('referral', function ($q) use ($priorityFilter) {
+                $q->where('priority', $priorityFilter);
+            });
+        }
+
+        $referralHistories = $referralHistories->get();
 
         // Initialize statistics with all possible status values set to 0
         $stats = [
@@ -1063,6 +1091,216 @@ class ReportController extends Controller
 
         return response()->json([
             'statistics' => $stats,
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/report/yearly",
+     *     operationId="getYearlyReport",
+     *     tags={"Reports"},
+     *     summary="Get yearly cross-business-unit comparison data",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         required=false,
+     *         description="Year to summarize (defaults to current year)",
+     *         @OA\Schema(type="integer", example=2025)
+     *     ),
+     *     @OA\Response(response=200, description="Yearly summary data per business unit"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
+     */
+    public function yearly(Request $request)
+    {
+        $jwtPayload = $request->get('jwt_payload');
+        $year = $request->query('year', Carbon::now()->year);
+
+        if ($this->isSuperadmin($jwtPayload)) {
+            $businessUnits = BusinessUnit::where('is_active', true)->orderBy('name')->get();
+        } else {
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+            $businessUnits = BusinessUnit::where('id', $businessUnitId)
+                ->where('is_active', true)
+                ->get();
+        }
+
+        // Build outlet ID -> code lookup (outlet table is in the ODB database)
+        $locationCodes = DB::connection('odb')->table('outlet')->pluck('code', 'id');
+
+        $buResults    = [];
+        $allLocations = [];
+
+        foreach ($businessUnits as $bu) {
+            $histories = ReferralHierarchy::with(['referral'])
+                ->where('business_unit_id', $bu->id)
+                ->whereYear('created_at', $year)
+                ->get();
+
+            $buData = [
+                'id'        => $bu->id,
+                'name'      => $bu->name,
+                'total'     => 0,
+                'sent'      => 0,
+                'received'  => 0,
+                'status'    => [
+                    'Open'        => 0,
+                    'In Progress' => 0,
+                    'Referred'    => 0,
+                    'Closed'      => 0,
+                    'Not Present' => 0,
+                ],
+                'locations' => [],
+            ];
+
+            $countedReferralIds = [];
+
+            foreach ($histories as $history) {
+                $buData['total']++;
+
+                if ($history->sequence == 1) {
+                    $buData['sent']++;
+                } else {
+                    $buData['received']++;
+                }
+
+                if ($history->location) {
+                    $locCode = $locationCodes[$history->location] ?? ('LOC-' . $history->location);
+                    $buData['locations'][$locCode] = ($buData['locations'][$locCode] ?? 0) + 1;
+                    $allLocations[$locCode]        = ($allLocations[$locCode] ?? 0) + 1;
+                }
+
+                if ($history->referral && $history->sequence == 1 && !in_array($history->referral_id, $countedReferralIds)) {
+                    $countedReferralIds[] = $history->referral_id;
+
+                    $statusName = getStatus($history->referral->status);
+                    if (isset($buData['status'][$statusName])) {
+                        $buData['status'][$statusName]++;
+                    }
+                }
+            }
+
+            arsort($buData['locations']);
+            $buData['top_locations'] = array_slice($buData['locations'], 0, 5, true);
+            unset($buData['locations']);
+
+            $buResults[] = $buData;
+        }
+
+        arsort($allLocations);
+        $topLocations = array_slice($allLocations, 0, 10, true);
+
+        return response()->json([
+            'year'           => (int) $year,
+            'business_units' => $buResults,
+            'top_locations'  => $topLocations,
+        ], 200);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/report/multi-year",
+     *     operationId="getMultiYearReport",
+     *     tags={"Reports"},
+     *     summary="Get per-business-unit referral totals from 2025 to present year",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Multi-year BU comparison data"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=500, description="Server error")
+     * )
+     */
+    public function multiYear(Request $request)
+    {
+        $jwtPayload = $request->get('jwt_payload');
+
+        if ($this->isSuperadmin($jwtPayload)) {
+            $businessUnits = BusinessUnit::where('is_active', true)->orderBy('name')->get();
+        } else {
+            $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
+            if (!$businessUnitId) {
+                return response()->json([
+                    'message' => 'Business unit ID not found in session.',
+                ], 401);
+            }
+            $businessUnits = BusinessUnit::where('id', $businessUnitId)
+                ->where('is_active', true)
+                ->get();
+        }
+
+        $startYear = 2025;
+        $currentYear = Carbon::now()->year;
+        $years = range($startYear, $currentYear);
+
+        $emptyStatus = [
+            'Open'        => 0,
+            'In Progress' => 0,
+            'Referred'    => 0,
+            'Closed'      => 0,
+            'Not Present' => 0,
+        ];
+
+        $buResults = [];
+
+        foreach ($businessUnits as $bu) {
+            $yearlyTotals = [];
+            $yearlyData   = [];
+
+            foreach ($years as $year) {
+                $histories = ReferralHierarchy::with(['referral'])
+                    ->where('business_unit_id', $bu->id)
+                    ->whereYear('created_at', $year)
+                    ->get();
+
+                $entry = [
+                    'year'            => $year,
+                    'total'           => $histories->count(),
+                    'sent'            => 0,
+                    'received'        => 0,
+                    'sent_status'     => $emptyStatus,
+                    'received_status' => $emptyStatus,
+                ];
+
+                foreach ($histories as $history) {
+                    $isSent = $history->sequence == 1;
+
+                    if ($isSent) {
+                        $entry['sent']++;
+                    } else {
+                        $entry['received']++;
+                    }
+
+                    if ($history->referral) {
+                        $statusName = getStatus($history->referral->status);
+                        if ($isSent) {
+                            $entry['sent_status'][$statusName]++;
+                        } else {
+                            $entry['received_status'][$statusName]++;
+                        }
+                    }
+                }
+
+                $yearlyTotals[] = $entry['total'];
+                $yearlyData[]   = $entry;
+            }
+
+            $buResults[] = [
+                'id'            => $bu->id,
+                'name'          => $bu->name,
+                'yearly_totals' => $yearlyTotals,
+                'yearly_data'   => $yearlyData,
+            ];
+        }
+
+        return response()->json([
+            'years'          => $years,
+            'business_units' => $buResults,
         ], 200);
     }
 }
