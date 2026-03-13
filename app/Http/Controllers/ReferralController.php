@@ -101,19 +101,13 @@ class ReferralController extends Controller
             'referral_hierarchies.referral_create_form'
         ]);
 
-        // Filter to only referrals where business unit is in the latest 2 sequences
+        // Filter to referrals where any hierarchy matches the user's business unit AND outlet list
         if (!$this->isSuperadmin($jwtPayload)) {
-            $referrals->whereIn('id', function ($subquery) use ($businessUnitId, $listOutlets) {
-                $subquery->select('rh1.referral_id')
-                    ->from('referral_hierarchies as rh1')
-                    ->where('rh1.business_unit_id', $businessUnitId)
-                    ->whereIn('rh1.location', $listOutlets)
-                    ->whereRaw('rh1.sequence >= (
-                        SELECT MAX(rh2.sequence) - 1
-                        FROM referral_hierarchies as rh2
-                        WHERE rh2.referral_id = rh1.referral_id
-                    )')
-                    ->whereRaw('rh1.sequence > 0');
+            $referrals->whereIn('id', function ($subquery) use ($listOutlets, $businessUnitId) {
+                $subquery->select('referral_id')
+                    ->from('referral_hierarchies')
+                    ->where('business_unit_id', $businessUnitId)
+                    ->whereIn('location', $listOutlets);
             });
         }
 
@@ -152,22 +146,20 @@ class ReferralController extends Controller
             $secondToLastSequence = $latestSequence > 1 ? $latestSequence - 1 : 1;
             $secondToLastReferralHierarchy = $ref->referral_hierarchies->where('sequence', $secondToLastSequence)->first();
 
-            // Check if current business unit is involved in this referral
+            // Find the hierarchy with the user's outlet (highest sequence first)
             // Superadmin bypasses this check and sees ALL referrals
             if (!$this->isSuperadmin($jwtPayload)) {
-                $maxSequence = $ref->referral_hierarchies->max('sequence');
-                $minAllowedSequence = max(1, $maxSequence - 1);
-
                 $currentBusinessUnitHierarchy = $ref->referral_hierarchies
-                    ->where('business_unit_id', $businessUnitId)
-                    ->where('sequence', '>=', $minAllowedSequence)
+                    ->filter(function ($rh) use ($listOutlets) {
+                        return in_array($rh->location, $listOutlets);
+                    })
+                    ->sortByDesc('sequence')
                     ->first();
 
                 if (!$currentBusinessUnitHierarchy) {
                     Log::warning('Referral passed query filter but failed in-memory check', [
                         'referral_id' => $ref->id,
-                        'business_unit_id' => $businessUnitId,
-                        'max_sequence' => $maxSequence
+                        'outlets' => $listOutlets,
                     ]);
                     continue;
                 }
@@ -197,7 +189,10 @@ class ReferralController extends Controller
                     'status' => $ref->status,
                     'updated_at' => $latestReferralHierarchy->updated_at->format('j F Y, l'),
                     'ori_updated_at' => $latestReferralHierarchy->updated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
-                    'is_external' => $is_external
+                    'is_external' => $is_external,
+                    'from_location' => $secondToLastReferralHierarchy->location,
+                    'to_location' => $latestReferralHierarchy->location,
+                    'created_at' => $ref->created_at->timezone('Asia/Kuala_Lumpur')->format('d-m-Y'),
                 ];
             } else {
                 $referralData = [
@@ -211,23 +206,29 @@ class ReferralController extends Controller
                     'status' => $ref->status,
                     'updated_at' => $latestReferralHierarchy->updated_at->format('j F Y, l'),
                     'ori_updated_at' => $latestReferralHierarchy->updated_at->timezone('Asia/Kuala_Lumpur')->toDateTimeString(),
-                    'is_external' => $is_external
+                    'is_external' => $is_external,
+                    'from_location' => $secondToLastReferralHierarchy->location,
+                    'to_location' => $latestReferralHierarchy->location,
+                    'created_at' => $ref->created_at->timezone('Asia/Kuala_Lumpur')->format('d-m-Y'),
                 ];
             }
 
             // Add to all category (any referral that has business unit included)
             $all[] = $referralData;
 
-            // Received: business unit is at the LATEST sequence
+            // Received: user's outlet is the current holder (at the latest sequence)
             if (
-                $latestReferralHierarchy->business_unit_id == $businessUnitId &&
+                !$this->isSuperadmin($jwtPayload) &&
                 $currentBusinessUnitHierarchy->sequence == $latestSequence
             ) {
                 $received[] = $referralData;
             }
 
-            // Sent: business unit is at the SECOND-TO-LAST sequence (from position)
-            if ($currentBusinessUnitHierarchy->sequence == $secondToLastSequence) {
+            // Sent: user created or forwarded this referral and it has moved on (not the latest holder)
+            if (
+                !$this->isSuperadmin($jwtPayload) &&
+                $currentBusinessUnitHierarchy->sequence < $latestSequence
+            ) {
                 $sent[] = $referralData;
             }
         }
@@ -358,6 +359,15 @@ class ReferralController extends Controller
                 if (!$this->canAccessBusinessUnit($jwtPayload, $business_unit_id)) {
                     return response()->json([
                         'message' => 'Unauthorized: Cannot create referral for different business unit.',
+                    ], 403);
+                }
+
+                // Validate that the assignee location is in the user's outlet list (skip for superadmin)
+                $listOutlets = $jwtPayload['outlet'] ?? null;
+                $assigneeLocation = $businessUnits['assignee']['location'] ?? null;
+                if (!$this->isSuperadmin($jwtPayload) && ($listOutlets === null || !in_array($assigneeLocation, $listOutlets))) {
+                    return response()->json([
+                        'message' => 'Unauthorized: Assignee location is not in your assigned outlets.',
                     ], 403);
                 }
 
@@ -661,9 +671,13 @@ class ReferralController extends Controller
             // Check view_only parameter
             $viewOnly = $request->query('view_only', false);
 
-            //check if referral accessible by this business unit (skip if view_only or superadmin)
+            //check if referral accessible by this outlet (skip if view_only or superadmin)
             if (!$viewOnly && !$this->isSuperadmin($jwtPayload)) {
-                $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
+                $listOutlets = $jwtPayload['outlet'] ?? [];
+                $exists = $referral->referral_hierarchies
+                    ->filter(function ($rh) use ($listOutlets) {
+                        return in_array($rh->location, $listOutlets);
+                    })->isNotEmpty();
 
                 if (!$exists) {
                     return response()->json(['message' => 'Referral not accessible.'], 403);
@@ -952,6 +966,7 @@ class ReferralController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
             $staffId = $jwtPayload['staff_id'] ?? null;
+            $listOutlets = $jwtPayload['outlet'] ?? null;
 
             $validated = $request->validated();
 
@@ -970,13 +985,13 @@ class ReferralController extends Controller
 
                 $referral_hierarchy_id = null;
 
-                // Find the current business unit's hierarchy (superadmin can update any business unit)
+                // Find the current business unit's hierarchy
+                // Non-superadmin must also have the hierarchy's location in their outlet list
                 foreach ($referral->referral_hierarchies as $rh) {
-                    if ($rh->business_unit_id == $business_unit_id || $this->isSuperadmin($jwtPayload)) {
-                        // For superadmin, only process the hierarchy matching the business_unit_id from request
-                        if ($this->isSuperadmin($jwtPayload) && $rh->business_unit_id != $business_unit_id) {
-                            continue;
-                        }
+                    if (
+                        $rh->business_unit_id == $business_unit_id &&
+                        ($this->isSuperadmin($jwtPayload) || in_array($rh->location, $listOutlets ?? []))
+                    ) {
                         $referral_hierarchy_id = $rh->id;
 
                         // Update staff_id if not set
@@ -1080,7 +1095,7 @@ class ReferralController extends Controller
                                 }
                             }
                         }
-                        break; // Found the business unit, exit loop
+                        break; // Found the hierarchy, exit loop
                     }
                 }
 
@@ -1253,11 +1268,24 @@ class ReferralController extends Controller
                 ], 401);
             }
 
-            $referral = Referral::find($id);
+            $referral = Referral::with('referral_hierarchies')->find($id);
 
             //check if referral exist
             if (!$referral) {
                 return response()->json(['message' => 'Referral not found.'], 404);
+            }
+
+            // Check outlet accessibility (skip for superadmin)
+            $listOutlets = $jwtPayload['outlet'] ?? null;
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $accessible = $referral->referral_hierarchies
+                    ->filter(function ($rh) use ($listOutlets) {
+                        return is_array($listOutlets) && in_array($rh->location, $listOutlets);
+                    })->isNotEmpty();
+
+                if (!$accessible) {
+                    return response()->json(['message' => 'Referral not accessible.'], 403);
+                }
             }
 
             // Get optional sequence parameter
@@ -1419,9 +1447,8 @@ class ReferralController extends Controller
                 ], 401);
             }
 
-            // Fetch unread notifications for the staff (only if business unit is the last sequence)
+            // Fetch unread notifications for the staff (only if outlet is the last sequence)
             $notifications = ReferralHierarchy::with(['referral'])
-                ->where('business_unit_id', $businessUnitId)
                 ->whereIn('location', $listOutlets)
                 ->where('is_read', false)
                 ->whereRaw('sequence = (SELECT MAX(sequence) FROM referral_histories WHERE referral_id = referral_histories.referral_id)')
@@ -1540,7 +1567,6 @@ class ReferralController extends Controller
             }
 
             // Build query based on priority: ref_id takes precedence
-            // PUBLIC SEARCH - No business unit filtering
             $query = Referral::with([
                 'referral_hierarchies.business_unit',
                 'referral_hierarchies.external_referee',
@@ -1555,6 +1581,16 @@ class ReferralController extends Controller
             } else {
                 // Search by customer_id
                 $query->where('customer_id', $customerId);
+            }
+
+            // Filter by outlet - only show referrals where any hierarchy has a location in the user's outlets
+            $listOutlets = $jwtPayload['outlet'] ?? null;
+            if (!$this->isSuperadmin($jwtPayload) && is_array($listOutlets)) {
+                $query->whereIn('id', function ($subquery) use ($listOutlets) {
+                    $subquery->select('referral_id')
+                        ->from('referral_hierarchies')
+                        ->whereIn('location', $listOutlets);
+                });
             }
 
             $referrals = $query->orderByDesc('updated_at')->get();
@@ -1682,11 +1718,24 @@ class ReferralController extends Controller
                 ], 401);
             }
 
-            $referral = Referral::find($id);
+            $referral = Referral::with('referral_hierarchies')->find($id);
 
             //check if referral exist
             if (!$referral) {
                 return response()->json(['message' => 'Referral not found.'], 404);
+            }
+
+            // Check outlet accessibility (skip for superadmin)
+            $listOutlets = $jwtPayload['outlet'] ?? null;
+            if (!$this->isSuperadmin($jwtPayload)) {
+                $accessible = $referral->referral_hierarchies
+                    ->filter(function ($rh) use ($listOutlets) {
+                        return is_array($listOutlets) && in_array($rh->location, $listOutlets);
+                    })->isNotEmpty();
+
+                if (!$accessible) {
+                    return response()->json(['message' => 'Referral not accessible.'], 403);
+                }
             }
 
             // Get optional sequence parameter
