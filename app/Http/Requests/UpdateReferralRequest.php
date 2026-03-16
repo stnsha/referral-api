@@ -155,17 +155,19 @@ class UpdateReferralRequest extends FormRequest
             $forms = Form::whereHas('business_units', function ($q) use ($buId) {
                 $q->where('business_units.id', $buId);
             })->where('display_on', '!=', 'creation')
-              ->with('form_details')
+              ->with(['form_details', 'conditions'])
               ->get();
 
             foreach ($forms as $form) {
+                $hasConditions = $form->conditions->isNotEmpty();
+
                 foreach ($form->form_details as $detail) {
                     $field = $detail->field_name;
                     $label = ucwords(str_replace('_', ' ', $field));
                     $type = $detail->field_type;
                     $path = "form_data.$buId.$field";
 
-                    if ($detail->is_required) {
+                    if (!$hasConditions && $detail->is_required) {
                         $messages["$path.required"] = "$label is required.";
                     }
 

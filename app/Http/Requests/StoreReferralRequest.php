@@ -104,13 +104,17 @@ class StoreReferralRequest extends FormRequest
         if (!empty($formData) && is_array($formData)) {
             $forms = Form::whereHas('business_units', function ($q) use ($buId) {
                 $q->where('business_units.id', $buId);
-            })->with('form_details')->get();
+            })->with(['form_details', 'conditions'])->get();
 
             foreach ($forms as $form) {
+                $hasConditions = $form->conditions->isNotEmpty();
+
                 foreach ($form->form_details as $detail) {
                     $field = $detail->field_name;
                     $type = $detail->field_type;
-                    $isRequired = $detail->is_required;
+                    // Conditioned forms may not be shown depending on other answers;
+                    // their required fields are enforced client-side only.
+                    $isRequired = !$hasConditions && $detail->is_required;
 
                     $rules = [];
                     $rules[] = $isRequired ? 'required' : 'nullable';
@@ -158,16 +162,18 @@ class StoreReferralRequest extends FormRequest
         if (!empty($formData) && is_array($formData)) {
             $forms = Form::whereHas('business_units', function ($q) use ($buId) {
                 $q->where('business_units.id', $buId);
-            })->with('form_details')->get();
+            })->with(['form_details', 'conditions'])->get();
 
             foreach ($forms as $form) {
+                $hasConditions = $form->conditions->isNotEmpty();
+
                 foreach ($form->form_details as $detail) {
                     $field = $detail->field_name;
                     $label = ucwords(str_replace('_', ' ', $field));
                     $type = $detail->field_type;
                     $path = "form_data.$buId.$field";
 
-                    if ($detail->is_required) {
+                    if (!$hasConditions && $detail->is_required) {
                         $messages["$path.required"] = "$label is required.";
                     }
 
