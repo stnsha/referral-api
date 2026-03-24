@@ -98,13 +98,11 @@ class StoreReferralRequest extends FormRequest
         $dynamicRules = [];
 
         $buId = $this->input('business_units.assignee.business_unit_id');
-        $formData = $this->input("form_data.$buId");
 
-        // Only apply dynamic rules if form_data for this business unit is not empty
-        if (!empty($formData) && is_array($formData)) {
+        if ($buId) {
             $forms = Form::whereHas('business_units', function ($q) use ($buId) {
                 $q->where('business_units.id', $buId);
-            })->with(['form_details', 'conditions'])->get();
+            })->where('display_on', 'creation')->with(['form_details', 'conditions'])->get();
 
             foreach ($forms as $form) {
                 $hasConditions = $form->conditions->isNotEmpty();
@@ -156,13 +154,11 @@ class StoreReferralRequest extends FormRequest
         $messages = [];
 
         $buId = $this->input('business_units.assignee.business_unit_id');
-        $formData = $this->input("form_data.$buId");
 
-        // Only generate messages if form_data for this business unit is not empty
-        if (!empty($formData) && is_array($formData)) {
+        if ($buId) {
             $forms = Form::whereHas('business_units', function ($q) use ($buId) {
                 $q->where('business_units.id', $buId);
-            })->with(['form_details', 'conditions'])->get();
+            })->where('display_on', 'creation')->with(['form_details', 'conditions'])->get();
 
             foreach ($forms as $form) {
                 $hasConditions = $form->conditions->isNotEmpty();
