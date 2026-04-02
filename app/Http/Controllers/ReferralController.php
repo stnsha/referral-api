@@ -1316,7 +1316,11 @@ class ReferralController extends Controller
 
                 // Always generate PDF on-the-fly for this specific sequence
                 try {
-                    if (!is_null($targetHierarchy->external_organization_id)) {
+                    $isExternalReferral = $referral->referral_hierarchies()
+                        ->whereNotNull('external_organization_id')
+                        ->exists();
+
+                    if ($isExternalReferral) {
                         // Go to exportReferral in ExternalReferralController
                         $externalController = new ExternalReferralController();
                         $pdfBase64 = $externalController->exportReferral($referral, $sequence, true);
@@ -1769,7 +1773,11 @@ class ReferralController extends Controller
 
                 // Always generate PDF on-the-fly for this specific sequence
                 try {
-                    if (!is_null($targetHierarchy->external_organization_id)) {
+                    $isExternalReferral = $referral->referral_hierarchies()
+                        ->whereNotNull('external_organization_id')
+                        ->exists();
+
+                    if ($isExternalReferral) {
                         // Go to exportReferral in ExternalReferralController
                         $externalController = new ExternalReferralController();
                         $pdfBase64 = $externalController->exportReferral($referral, $sequence, true);
