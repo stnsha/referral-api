@@ -407,13 +407,30 @@ class ExternalReferralController extends Controller
 
             // Handle incomplete pair (TO hierarchy doesn't exist yet)
             if (!$lastHierarchy) {
-                Log::info('TO hierarchy not found, using FROM only (incomplete pair)', [
-                    'referral_id' => $referral->id,
-                    'requested_sequence' => $sequence,
-                    'to_sequence' => $toSequence
-                ]);
-                // Use FROM hierarchy for partial PDF
-                $lastHierarchy = $firstHierarchy;
+                // When $sequence is an odd number > 1 and TO doesn't exist, this is a refer_another
+                // destination — the passed $sequence IS the TO, and FROM = $sequence - 1
+                if ($sequence % 2 === 1 && $sequence > 1) {
+                    $altFrom = $referralData->referral_hierarchies->where('sequence', $sequence - 1)->first();
+                    $altTo = $referralData->referral_hierarchies->where('sequence', $sequence)->first();
+                    if ($altFrom && $altTo) {
+                        $firstHierarchy = $altFrom;
+                        $lastHierarchy = $altTo;
+                        Log::info('Refer-another external PDF: adjusted FROM/TO', [
+                            'referral_id' => $referral->id,
+                            'from_sequence' => $sequence - 1,
+                            'to_sequence' => $sequence,
+                        ]);
+                    } else {
+                        $lastHierarchy = $firstHierarchy;
+                    }
+                } else {
+                    Log::info('TO hierarchy not found, using FROM only (incomplete pair)', [
+                        'referral_id' => $referral->id,
+                        'requested_sequence' => $sequence,
+                        'to_sequence' => $toSequence
+                    ]);
+                    $lastHierarchy = $firstHierarchy;
+                }
             }
 
             // Store PDF in TO hierarchy

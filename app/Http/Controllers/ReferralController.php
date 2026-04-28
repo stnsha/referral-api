@@ -1194,7 +1194,13 @@ class ReferralController extends Controller
 
                 $referral->save();
                 DB::commit();
-                return response()->json(['message' => 'Referral updated successfully.'], 200);
+
+                $responseData = ['message' => 'Referral updated successfully.'];
+                if (isset($new_sequence)) {
+                    $responseData['new_sequence'] = $new_sequence;
+                    $responseData['referral_id'] = $referral->id;
+                }
+                return response()->json($responseData, 200);
             }
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -1779,8 +1785,9 @@ class ReferralController extends Controller
 
                     if ($isExternalReferral) {
                         // Go to exportReferral in ExternalReferralController
+                        // Pass $toSequence so exportReferral resolves FROM=$toSequence-1, TO=$toSequence
                         $externalController = new ExternalReferralController();
-                        $pdfBase64 = $externalController->exportReferral($referral, $sequence, true);
+                        $pdfBase64 = $externalController->exportReferral($referral, $toSequence, true);
                     } else {
 
                         $pdfBase64 = $this->exportReferral($referral, $sequence, true);
