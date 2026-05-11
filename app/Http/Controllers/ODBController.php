@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class ODBController extends Controller
 {
-    private function generateJWT($payload)
+    public static function generateJWT($payload)
     {
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
         $payload = json_encode($payload);
@@ -229,7 +229,7 @@ class ODBController extends Controller
                 'referral' => $validated['staff_department_id'] == 16 ? 1 : ($validated['referral'] ?? 2)
             ];
 
-            $token = $this->generateJWT($payload);
+            $token = self::generateJWT($payload);
 
             return response()->json([
                 'token' => $token,
