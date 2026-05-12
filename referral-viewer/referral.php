@@ -47,19 +47,41 @@ function env_require(array $config, string $key): string
     return (string) $config[$key];
 }
 
-function decode_referral_id(string $encoded): int
+function generate_referral_token(int $id, string $secret): string
+{
+    $timestamp = time();
+    $hmac      = substr(hash_hmac('sha256', $id . ':' . $timestamp, $secret), 0, 16);
+    return base64_encode($id . ':' . $timestamp . ':' . $hmac);
+}
+
+function decode_referral_token(string $encoded, string $secret, int $expiryDays): int
 {
     if ($encoded === '') {
         abort(400, 'Missing referral ID.');
     }
     $decoded = base64_decode(string: $encoded, strict: true);
     if ($decoded === false) {
-        abort(400, 'Invalid referral ID encoding.');
+        abort(400, 'Invalid referral token encoding.');
     }
-    if (!ctype_digit($decoded) || (int) $decoded <= 0) {
-        abort(400, 'Referral ID must be a positive integer.');
+    $parts = explode(':', $decoded);
+    if (count($parts) !== 3) {
+        abort(400, 'Invalid referral token format.');
     }
-    return (int) $decoded;
+    [$id, $timestamp, $hmac] = $parts;
+    if (!ctype_digit($id) || (int) $id <= 0) {
+        abort(400, 'Invalid referral ID in token.');
+    }
+    if (!ctype_digit($timestamp) || (int) $timestamp <= 0) {
+        abort(400, 'Invalid timestamp in token.');
+    }
+    $expected = substr(hash_hmac('sha256', $id . ':' . $timestamp, $secret), 0, 16);
+    if (!hash_equals($expected, $hmac)) {
+        abort(403, 'Invalid referral token signature.');
+    }
+    if (time() - (int) $timestamp > $expiryDays * 86400) {
+        abort(403, 'Referral token has expired.');
+    }
+    return (int) $id;
 }
 
 /**
@@ -282,7 +304,9 @@ if ($encoded === '') {
     abort(400, 'Missing required parameter: id');
 }
 
-$referralId = decode_referral_id($encoded);
+$secret     = env_require($config, 'TOKEN_SECRET');
+$expiryDays = (int) ($config['TOKEN_EXPIRY_DAYS'] ?? 365);
+$referralId = decode_referral_token($encoded, $secret, $expiryDays);
 $apiHost    = env_require($config, 'API_HOST');
 $token      = get_jwt($config);
 $data       = fetch_referral($referralId, $token, $apiHost);

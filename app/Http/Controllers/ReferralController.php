@@ -1789,7 +1789,6 @@ class ReferralController extends Controller
                         $externalController = new ExternalReferralController();
                         $pdfBase64 = $externalController->exportReferral($referral, $toSequence, true);
                     } else {
-
                         $pdfBase64 = $this->exportReferral($referral, $sequence, true);
                     }
 
