@@ -12,6 +12,7 @@ use App\Http\Controllers\ExternalRefereeController;
 use App\Http\Controllers\ExternalReferralController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthODBController;
 use App\Http\Controllers\ODBController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
@@ -38,6 +39,7 @@ Route::prefix('auth')->controller(ODBController::class)->group(function () {
 });
 
 Route::post('auth/token', [AuthController::class, 'tokenAuth'])->name('auth.token');
+Route::post('auth/referral', [AuthODBController::class, 'auth'])->name('auth.referral');
 
 Route::middleware('token.auth')->group(function () {
     Route::resource('business-units', BusinessUnitController::class)->only(['index', 'store', 'update']);
