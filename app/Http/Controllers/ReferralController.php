@@ -101,12 +101,16 @@ class ReferralController extends Controller
             'referral_hierarchies.referral_create_form'
         ]);
 
-        // Filter to referrals where any hierarchy matches the user's business unit AND outlet list
+        // Filter to referrals where any hierarchy matches the user's business unit AND outlet list.
+        // orWhereNull includes old records created before BU resolution was in place (business_unit_id was null).
         if (!$this->isSuperadmin($jwtPayload)) {
             $referrals->whereIn('id', function ($subquery) use ($listOutlets, $businessUnitId) {
                 $subquery->select('referral_id')
                     ->from('referral_hierarchies')
-                    ->where('business_unit_id', $businessUnitId)
+                    ->where(function ($q) use ($businessUnitId) {
+                        $q->where('business_unit_id', $businessUnitId)
+                          ->orWhereNull('business_unit_id');
+                    })
                     ->whereIn('location', $listOutlets);
             });
         }
