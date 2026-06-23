@@ -45,7 +45,7 @@ trait Octopus
 
         // EXECUTE:
         $result = curl_exec($curl);
-        if (!$result) {
+        if ($result === false) {
             $error = curl_error($curl);
             $errno = curl_errno($curl);
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
