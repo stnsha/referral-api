@@ -383,6 +383,7 @@ class ReferralController extends Controller
                 $referral = Referral::create([
                     'customer_id' => $customerId,
                     'priority' => $validated['referral']['priority'],
+                    'consult_call_id' => $validated['referral']['consult_call_id'] ?? null,
                     'status' => 1, //Open
                 ]);
 

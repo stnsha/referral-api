@@ -64,6 +64,7 @@ class StoreReferralRequest extends FormRequest
             // customer_id required only for internal referrals
             'referral.customer_id' => 'required|integer|gt:0',
             'referral.priority' => 'required|integer',
+            'referral.consult_call_id' => 'nullable|integer|gt:0',
 
             'attachments' => 'nullable|array',
 
