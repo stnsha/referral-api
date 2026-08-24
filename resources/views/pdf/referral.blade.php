@@ -107,6 +107,8 @@
                     style="text-transform: uppercase;">{{ $patientName }}</span></span>
             <span style="font-weight: bold;">Patient's Identification Number: <span
                     class="patient">{{ $patientIcNo }}</span></span>
+            <span style="font-weight: bold;">Patient's Contact No: <span
+                    class="patient">{{ $patientPhone }}</span></span>
         </div>
         <div style="margin: 15px 0px;">
             <div><span style="font-weight: bold;">Purpose of Referral</span></div>
