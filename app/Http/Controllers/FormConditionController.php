@@ -18,9 +18,10 @@ class FormConditionController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
 
-            if (!$this->canWrite($jwtPayload)) {
+            // Admin Panel (form management) is SuperAdmin-only; HQ Admin is excluded
+            if (!$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can manage conditions.',
+                    'message' => 'Unauthorized: Only SuperAdmin can access the Admin Panel.',
                 ], 403);
             }
 
@@ -54,9 +55,10 @@ class FormConditionController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
 
-            if (!$this->canWrite($jwtPayload)) {
+            // Admin Panel (form management) is SuperAdmin-only; HQ Admin is excluded
+            if (!$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can manage conditions.',
+                    'message' => 'Unauthorized: Only SuperAdmin can access the Admin Panel.',
                 ], 403);
             }
 

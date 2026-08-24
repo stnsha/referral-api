@@ -153,8 +153,8 @@ class ODBController extends Controller
      *             @OA\Property(
      *                 property="referral",
      *                 type="integer",
-     *                 example=2,
-     *                 description="Referral level: 0=normal user, 1=superadmin, 2=admin of dept",
+     *                 example=0,
+     *                 description="Referral level: 0=normal user, 1=superadmin, 2=HQ admin (same as superadmin except Admin Panel)",
      *                 enum={0, 1, 2},
      *                 nullable=true
      *             )
@@ -226,7 +226,7 @@ class ODBController extends Controller
                 'business_unit_id' => $businessUnitId,
                 'status_semasa' => $validated['status_semasa'],
                 'outlet' => $validated['outlet'],
-                'referral' => $validated['staff_department_id'] == 16 ? 1 : ($validated['referral'] ?? 2)
+                'referral' => $validated['staff_department_id'] == 16 ? 1 : ($validated['referral'] ?? 0)
             ];
 
             $token = self::generateJWT($payload);

@@ -129,13 +129,6 @@ class ExternalRefereeController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
 
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can create external referees.',
-                ], 403);
-            }
-
             DB::beginTransaction();
             $validated = $request->validated();
 
@@ -251,13 +244,6 @@ class ExternalRefereeController extends Controller
         try {
             $jwtPayload = $request->get('jwt_payload');
 
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can update external referees.',
-                ], 403);
-            }
-
             DB::beginTransaction();
             $validated = $request->validated();
 
@@ -335,13 +321,6 @@ class ExternalRefereeController extends Controller
     {
         try {
             $jwtPayload = request()->get('jwt_payload');
-
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can delete external referees.',
-                ], 403);
-            }
 
             // Check if external referee has any referrals
             $referralCount = $externalReferee->referral_histories()->count();

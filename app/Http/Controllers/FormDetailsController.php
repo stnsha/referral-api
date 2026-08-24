@@ -66,19 +66,20 @@ class FormDetailsController extends Controller
     {
         try {
             $jwtPayload = $request->get('jwt_payload');
+
+            // Admin Panel (form management) is SuperAdmin-only; HQ Admin is excluded
+            if (!$this->isSuperadmin($jwtPayload)) {
+                return response()->json([
+                    'message' => 'Unauthorized: Only SuperAdmin can access the Admin Panel.',
+                ], 403);
+            }
+
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
             if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
-            }
-
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can create form details.',
-                ], 403);
             }
 
             DB::beginTransaction();
@@ -252,13 +253,6 @@ class FormDetailsController extends Controller
                 ], 401);
             }
 
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can delete form details.',
-                ], 403);
-            }
-
             // Check if form detail belongs to user's business unit
             $form = $formDetail->form;
             if (!$form || !$this->canAccessBusinessUnit($jwtPayload, $form->business_unit_id)) {
@@ -343,13 +337,6 @@ class FormDetailsController extends Controller
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
-            }
-
-            // Check if user has write permission (referral 1 or 2 only)
-            if (!$this->canWrite($jwtPayload)) {
-                return response()->json([
-                    'message' => 'Unauthorized: Read-only access. Only admin and superadmin can update form details.',
-                ], 403);
             }
 
             // Check if form detail belongs to user's business unit

@@ -80,14 +80,14 @@ class ReferralController extends Controller
         $listOutlets = $jwtPayload['outlet'] ?? null;
 
         // Only validate for non-superadmin users
-        if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+        if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
             return response()->json([
                 'message' => 'Business unit ID not found in session.',
                 'data' => [],
             ], 401);
         }
 
-        if ((!$listOutlets || !is_array($listOutlets)) && !$this->isSuperadmin($jwtPayload)) {
+        if ((!$listOutlets || !is_array($listOutlets)) && !$this->isElevated($jwtPayload)) {
             return response()->json([
                 'message' => 'Outlet list not found in session.',
                 'data' => [],
@@ -103,7 +103,7 @@ class ReferralController extends Controller
 
         // Filter to referrals where any hierarchy matches the user's business unit AND outlet list.
         // orWhereNull includes old records created before BU resolution was in place (business_unit_id was null).
-        if (!$this->isSuperadmin($jwtPayload)) {
+        if (!$this->isElevated($jwtPayload)) {
             $referrals->whereIn('id', function ($subquery) use ($listOutlets, $businessUnitId) {
                 $subquery->select('referral_id')
                     ->from('referral_hierarchies')
@@ -152,7 +152,7 @@ class ReferralController extends Controller
 
             // Find the hierarchy with the user's outlet (highest sequence first)
             // Superadmin bypasses this check and sees ALL referrals
-            if (!$this->isSuperadmin($jwtPayload)) {
+            if (!$this->isElevated($jwtPayload)) {
                 $currentBusinessUnitHierarchy = $ref->referral_hierarchies
                     ->filter(function ($rh) use ($listOutlets) {
                         return in_array($rh->location, $listOutlets);
@@ -222,7 +222,7 @@ class ReferralController extends Controller
 
             // Received: user's outlet is the current holder (at the latest sequence)
             if (
-                !$this->isSuperadmin($jwtPayload) &&
+                !$this->isElevated($jwtPayload) &&
                 $currentBusinessUnitHierarchy->sequence == $latestSequence
             ) {
                 $received[] = $referralData;
@@ -230,7 +230,7 @@ class ReferralController extends Controller
 
             // Sent: user created or forwarded this referral and it has moved on (not the latest holder)
             if (
-                !$this->isSuperadmin($jwtPayload) &&
+                !$this->isElevated($jwtPayload) &&
                 $currentBusinessUnitHierarchy->sequence < $latestSequence
             ) {
                 $sent[] = $referralData;
@@ -342,7 +342,7 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -369,7 +369,7 @@ class ReferralController extends Controller
                 // Validate that the assignee location is in the user's outlet list (skip for superadmin)
                 $listOutlets = $jwtPayload['outlet'] ?? null;
                 $assigneeLocation = $businessUnits['assignee']['location'] ?? null;
-                if (!$this->isSuperadmin($jwtPayload) && ($listOutlets === null || !in_array($assigneeLocation, $listOutlets))) {
+                if (!$this->isElevated($jwtPayload) && ($listOutlets === null || !in_array($assigneeLocation, $listOutlets))) {
                     return response()->json([
                         'message' => 'Unauthorized: Assignee location is not in your assigned outlets.',
                     ], 403);
@@ -645,7 +645,7 @@ class ReferralController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
             // Only validate for non-superadmin users
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -677,7 +677,7 @@ class ReferralController extends Controller
             $viewOnly = $request->query('view_only', false);
 
             //check if referral accessible by this outlet (skip if view_only or superadmin)
-            if (!$viewOnly && !$this->isSuperadmin($jwtPayload)) {
+            if (!$viewOnly && !$this->isElevated($jwtPayload)) {
                 $listOutlets = $jwtPayload['outlet'] ?? [];
                 $exists = $referral->referral_hierarchies
                     ->filter(function ($rh) use ($listOutlets) {
@@ -995,7 +995,7 @@ class ReferralController extends Controller
                 foreach ($referral->referral_hierarchies as $rh) {
                     if (
                         $rh->business_unit_id == $business_unit_id &&
-                        ($this->isSuperadmin($jwtPayload) || in_array($rh->location, $listOutlets ?? []))
+                        ($this->isElevated($jwtPayload) || in_array($rh->location, $listOutlets ?? []))
                     ) {
                         $referral_hierarchy_id = $rh->id;
 
@@ -1272,7 +1272,7 @@ class ReferralController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
             // Only validate business_unit_id for non-superadmin users
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1288,7 +1288,7 @@ class ReferralController extends Controller
 
             // Check outlet accessibility (skip for superadmin)
             $listOutlets = $jwtPayload['outlet'] ?? null;
-            if (!$this->isSuperadmin($jwtPayload)) {
+            if (!$this->isElevated($jwtPayload)) {
                 $accessible = $referral->referral_hierarchies
                     ->filter(function ($rh) use ($listOutlets) {
                         return is_array($listOutlets) && in_array($rh->location, $listOutlets);
@@ -1347,7 +1347,7 @@ class ReferralController extends Controller
                     }
 
                     // Log superadmin access for audit trail
-                    if ($this->isSuperadmin($jwtPayload)) {
+                    if ($this->isElevated($jwtPayload)) {
                         Log::info('Superadmin downloaded referral PDF', [
                             'referral_id' => $referral->id,
                             'sequence' => $sequence,
@@ -1380,7 +1380,7 @@ class ReferralController extends Controller
                     }
 
                     // Log superadmin access for audit trail
-                    if ($this->isSuperadmin($jwtPayload)) {
+                    if ($this->isElevated($jwtPayload)) {
                         Log::info('Superadmin downloaded referral PDF', [
                             'referral_id' => $referral->id,
                             'staff_id' => $jwtPayload['staff_id'] ?? null
@@ -1448,14 +1448,14 @@ class ReferralController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
             $listOutlets = $jwtPayload['outlet'] ?? null;
 
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
                 ], 401);
             }
 
-            if ((!$listOutlets || !is_array($listOutlets)) && !$this->isSuperadmin($jwtPayload)) {
+            if ((!$listOutlets || !is_array($listOutlets)) && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Outlet list not found in session.',
                     'data' => [],
@@ -1563,7 +1563,7 @@ class ReferralController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
             // Only validate for non-superadmin users (basic JWT validation)
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1600,7 +1600,7 @@ class ReferralController extends Controller
 
             // Filter by outlet - only show referrals where any hierarchy has a location in the user's outlets
             $listOutlets = $jwtPayload['outlet'] ?? null;
-            if (!$this->isSuperadmin($jwtPayload) && is_array($listOutlets)) {
+            if (!$this->isElevated($jwtPayload) && is_array($listOutlets)) {
                 $query->whereIn('id', function ($subquery) use ($listOutlets) {
                     $subquery->select('referral_id')
                         ->from('referral_hierarchies')
@@ -1726,7 +1726,7 @@ class ReferralController extends Controller
             $jwtPayload = $request->get('jwt_payload');
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                     'data' => [],
@@ -1742,7 +1742,7 @@ class ReferralController extends Controller
 
             // Check outlet accessibility (skip for superadmin)
             $listOutlets = $jwtPayload['outlet'] ?? null;
-            if (!$this->isSuperadmin($jwtPayload)) {
+            if (!$this->isElevated($jwtPayload)) {
                 $accessible = $referral->referral_hierarchies
                     ->filter(function ($rh) use ($listOutlets) {
                         return is_array($listOutlets) && in_array($rh->location, $listOutlets);

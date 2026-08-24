@@ -64,7 +64,7 @@ class ReferralAttachmentController extends Controller
             $businessUnitId = $jwtPayload['business_unit_id'] ?? null;
 
             // Only validate business_unit_id for non-superadmin users
-            if (!$businessUnitId && !$this->isSuperadmin($jwtPayload)) {
+            if (!$businessUnitId && !$this->isElevated($jwtPayload)) {
                 return response()->json([
                     'message' => 'Business unit ID not found in session.',
                 ], 401);
@@ -81,7 +81,7 @@ class ReferralAttachmentController extends Controller
             }
 
             // Check if current business unit is involved in this referral (skip for superadmin)
-            if (!$this->isSuperadmin($jwtPayload)) {
+            if (!$this->isElevated($jwtPayload)) {
                 $exists = $referral->referral_hierarchies->contains('business_unit_id', $businessUnitId);
 
                 if (!$exists) {
@@ -92,7 +92,7 @@ class ReferralAttachmentController extends Controller
             }
 
             // Log superadmin access for audit trail
-            if ($this->isSuperadmin($jwtPayload)) {
+            if ($this->isElevated($jwtPayload)) {
                 Log::info('Superadmin accessed attachment', [
                     'attachment_id' => $attachment->id,
                     'staff_id' => $jwtPayload['staff_id'] ?? null,
