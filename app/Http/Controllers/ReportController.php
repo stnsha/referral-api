@@ -208,12 +208,20 @@ class ReportController extends Controller
                 // Convert to indexed array
                 $results = array_values($groupedResults);
 
+                // Outlet id => code map, resolved by the frontend against the legacy
+                // odb DB (this API's own DB has no outlet code table) and passed through
+                // so the export can show outlet codes instead of raw ids.
+                $outletCodeMap = $request->input('outlet_code_map', []);
+                if (!is_array($outletCodeMap)) {
+                    $outletCodeMap = [];
+                }
+
                 try {
                     // Generate unique filename
                     $fileName = 'referral_report_' . date('Y-m-d_H-i-s') . '.xlsx';
 
                     // Generate Excel file in memory and get base64 content
-                    $excelContent = Excel::raw(new ReportExport($results), \Maatwebsite\Excel\Excel::XLSX);
+                    $excelContent = Excel::raw(new ReportExport($results, $outletCodeMap), \Maatwebsite\Excel\Excel::XLSX);
                     $base64Content = base64_encode($excelContent);
 
                     // Calculate file size
@@ -269,19 +277,29 @@ class ReportController extends Controller
         $status = $request->input('status');
         $month = $request->input('month');
         $year = $request->input('year');
+        $businessUnitFrom = $request->input('business_unit_from');
+        $businessUnitTo = $request->input('business_unit_to');
+        $outletFrom = $request->input('outlet_from');
+        $outletTo = $request->input('outlet_to');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
 
         // Get business unit from JWT payload
         $jwtPayload = $request->get('jwt_payload');
         $userBusinessUnitId = $this->getBusinessUnitIdForFilter($jwtPayload);
 
         // If userBusinessUnitId is provided (not null), force filter by that business unit
-        // Note: null means superadmin, should see all
+        // Note: null means superadmin/HQ admin, should see all
         if ($userBusinessUnitId !== null) {
             $businessUnitId = $userBusinessUnitId;
+            $businessUnitFrom = $userBusinessUnitId;
+            $businessUnitTo = $userBusinessUnitId;
         }
 
         // Check if all filter parameters are null/false
-        $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status || $month || $year;
+        $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status
+            || $month || $year || $businessUnitFrom || $businessUnitTo || $outletFrom || $outletTo
+            || $dateFrom || $dateTo;
 
         try {
             if (!$hasFilters) {
@@ -307,6 +325,51 @@ class ReportController extends Controller
 
                 if ($locationId) {
                     $rhQuery->where('location', $locationId);
+                }
+
+                // "From" = the referral's first sequence (where it originated)
+                if ($businessUnitFrom || $outletFrom) {
+                    $fromReferralIds = ReferralHierarchy::where('sequence', 1)
+                        ->when($businessUnitFrom, function ($q) use ($businessUnitFrom) {
+                            $q->where('business_unit_id', $businessUnitFrom);
+                        })
+                        ->when($outletFrom, function ($q) use ($outletFrom) {
+                            is_array($outletFrom) ? $q->whereIn('location', $outletFrom) : $q->where('location', $outletFrom);
+                        })
+                        ->pluck('referral_id');
+                    $rhQuery->whereIn('referral_id', $fromReferralIds);
+                }
+
+                // "To" = the referral's latest sequence (current/final destination)
+                if ($businessUnitTo || $outletTo) {
+                    $lastSequenceSub = ReferralHierarchy::selectRaw('referral_id, MAX(sequence) as max_seq')
+                        ->groupBy('referral_id');
+                    $toReferralIds = ReferralHierarchy::query()
+                        ->joinSub($lastSequenceSub, 'last_seq', function ($join) {
+                            $join->on('referral_hierarchies.referral_id', '=', 'last_seq.referral_id')
+                                ->on('referral_hierarchies.sequence', '=', 'last_seq.max_seq');
+                        })
+                        ->when($businessUnitTo, function ($q) use ($businessUnitTo) {
+                            $q->where('referral_hierarchies.business_unit_id', $businessUnitTo);
+                        })
+                        ->when($outletTo, function ($q) use ($outletTo) {
+                            is_array($outletTo)
+                                ? $q->whereIn('referral_hierarchies.location', $outletTo)
+                                : $q->where('referral_hierarchies.location', $outletTo);
+                        })
+                        ->pluck('referral_hierarchies.referral_id');
+                    $rhQuery->whereIn('referral_id', $toReferralIds);
+                }
+
+                if ($dateFrom || $dateTo) {
+                    $rhQuery->whereHas('referral', function ($query) use ($dateFrom, $dateTo) {
+                        if ($dateFrom) {
+                            $query->whereDate('created_at', '>=', $dateFrom);
+                        }
+                        if ($dateTo) {
+                            $query->whereDate('created_at', '<=', $dateTo);
+                        }
+                    });
                 }
 
                 if ($isExternal) {
@@ -407,6 +470,7 @@ class ReportController extends Controller
                             $processedReferralDetails[] = [
                                 'form_name' => $form ? $form->label_name : null,
                                 'value' => $actualValue,
+                                'display_on' => $form ? $form->display_on : null,
                             ];
                         } catch (Throwable $e) {
                             Log::warning('Error processing referral detail: ' . $e->getMessage());
@@ -769,7 +833,7 @@ class ReportController extends Controller
             ], 204);
         }
 
-        $referrals = Referral::with(['referral_hierarchies.business_unit'])
+        $referrals = Referral::with(['referral_hierarchies.business_unit', 'referral_hierarchies.referral_details.form.form_details'])
             ->whereHas('referral_hierarchies', function ($query) use ($userBusinessUnitId, $listOutlets, $jwtPayload) {
                 // Apply business unit filter only for non-superadmin users
                 if (!$this->isElevated($jwtPayload)) {
@@ -831,6 +895,11 @@ class ReportController extends Controller
             ];
         }
 
+        // Count referrals by "Type of Referral" (admin-configured Form named
+        // "Type of Referral"), taken from the same creation-side hierarchy as
+        // the referral reason. Defaults to "General" when not set.
+        $typeOfReferralCounts = [];
+
         foreach ($referrals as $referral) {
             // Count by status (1=Open, 2=In Progress, 3=Referred, 4=Closed)
             switch ($referral->status) {
@@ -874,13 +943,48 @@ class ReportController extends Controller
                     }
                 }
             }
+
+            // Count by Type of Referral (from the creation-side hierarchy, same
+            // convention as ReferralController::index()'s referral reason)
+            $hierarchies = $referral->referral_hierarchies;
+            $latestSeq = $hierarchies->max('sequence');
+            $creationSeq = $latestSeq > 1 ? $latestSeq - 1 : 1;
+            $creationHierarchy = $hierarchies->where('sequence', $creationSeq)->first();
+
+            $typeOfReferral = null;
+            if ($creationHierarchy) {
+                foreach ($creationHierarchy->referral_details as $detail) {
+                    $form = $detail->form;
+                    if ($form && $form->label_name === 'Type of Referral') {
+                        $selectedDetail = $form->form_details->firstWhere('id', $detail->value);
+                        $typeOfReferral = $selectedDetail ? $selectedDetail->field_value : $detail->value;
+                        break;
+                    }
+                }
+            }
+            $typeOfReferral = $typeOfReferral ?: 'General';
+
+            if (!isset($typeOfReferralCounts[$typeOfReferral])) {
+                $typeOfReferralCounts[$typeOfReferral] = 0;
+            }
+            $typeOfReferralCounts[$typeOfReferral]++;
         }
+
+        $typeOfReferralList = [];
+        foreach ($typeOfReferralCounts as $name => $count) {
+            $typeOfReferralList[] = ['name' => $name, 'count' => $count];
+        }
+        usort($typeOfReferralList, function ($a, $b) {
+            return $b['count'] <=> $a['count'];
+        });
 
         return response()->json([
             'total_referral' => $referrals->count(),
             'status_count' => $statusCounts,
             'priority_count' => $priorityCounts,
             'total_priority' => array_sum($priorityCounts),
+            'total_type_of_referral' => array_sum($typeOfReferralCounts),
+            'type_of_referral' => $typeOfReferralList,
             'total_business_unit' => $businessUnits->count(),
             'business_units' => array_values($businessUnitCounts)
         ], 200);

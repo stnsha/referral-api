@@ -10,11 +10,25 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $data;
     protected $flattenedData = [];
+    protected $outletCodeMap;
 
-    public function __construct($data)
+    public function __construct($data, $outletCodeMap = [])
     {
         $this->data = $data;
+        $this->outletCodeMap = $outletCodeMap;
         $this->flattenData();
+    }
+
+    /**
+     * Resolve an outlet id to its code via the map passed in from the frontend,
+     * falling back to the raw id if the outlet isn't in the map.
+     */
+    private function resolveOutlet($outletId)
+    {
+        if (empty($outletId)) {
+            return '';
+        }
+        return $this->outletCodeMap[$outletId] ?? $this->outletCodeMap[(string)$outletId] ?? $outletId;
     }
 
     /**
@@ -26,6 +40,11 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
             $referralHistories = $referral['referral_histories'] ?? [];
             $statusName = $referral['referral']['status_name'] ?? '';
 
+            // Outlet From = first sequence's location (where the referral originated)
+            // Outlet To = latest sequence's location (current/final destination)
+            $outletFrom = $referralHistories[0]['location'] ?? null;
+            $outletTo = $referralHistories[count($referralHistories) - 1]['location'] ?? null;
+
             if (empty($referralHistories)) {
                 // If no histories, create one row with referral data only
                 $this->flattenedData[] = [
@@ -33,7 +52,9 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
                     'referral' => $referral['referral'],
                     'history' => null,
                     'is_first_row' => true,
-                    'total_histories' => 0
+                    'total_histories' => 0,
+                    'outlet_from' => $outletFrom,
+                    'outlet_to' => $outletTo,
                 ];
             } else {
                 $totalHistories = count($referralHistories);
@@ -47,7 +68,9 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
                         'history' => $history,
                         'is_first_row' => $index === 0,
                         'total_histories' => $totalHistories,
-                        'role' => $this->getRoleBySequence($sequence, $statusName, $isLastEntry)
+                        'role' => $this->getRoleBySequence($sequence, $statusName, $isLastEntry),
+                        'outlet_from' => $outletFrom,
+                        'outlet_to' => $outletTo,
                     ];
                 }
             }
@@ -91,24 +114,44 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             'Referral ID',
-            'Customer ID',
             'Priority',
             'Status',
             'Status Note',
             'Created At',
             'Updated At',
             'Role',
-            'Staff ID',
             'Business Unit',
-            'Location',
-            'Sequence',
+            'Outlet From',
+            'Outlet To',
             'Referral Reason',
             'Referral Condition',
             'Medical History',
+            'Diagnosis',
+            'Outcome',
+            'Feedback',
             'Additional Remarks',
             'Form Completion',
-            'Form Details'
+            'Type of Referral',
+            'Reply Form'
         ];
+    }
+
+    /**
+     * Join dynamic referral_details entries whose form is shown on the given
+     * side ('creation' or 'reply') into a single "value | value" string
+     * (just the values, no form label). Forms with display_on 'both' show
+     * up on both sides.
+     */
+    private function joinDetailsFor($referralDetails, $side)
+    {
+        $lines = [];
+        foreach ($referralDetails as $detail) {
+            $displayOn = $detail['display_on'] ?? null;
+            if ($displayOn === $side || $displayOn === 'both') {
+                $lines[] = $detail['value'];
+            }
+        }
+        return implode(' | ', $lines);
     }
 
     /**
@@ -119,17 +162,10 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
     {
         $referral = $row['referral'] ?? [];
         $history = $row['history'] ?? [];
-        $isFirstRow = $row['is_first_row'] ?? false;
+        $referralDetails = $history['referral_details'] ?? [];
 
-        // Format referral details as a string
-        $formDetails = '';
-        if (!empty($history['referral_details'])) {
-            $details = [];
-            foreach ($history['referral_details'] as $detail) {
-                $details[] = $detail['form_name'] . ': ' . $detail['value'];
-            }
-            $formDetails = implode(' | ', $details);
-        }
+        $typeOfReferral = $this->joinDetailsFor($referralDetails, 'creation');
+        $replyFormDetails = $this->joinDetailsFor($referralDetails, 'reply');
 
         // Convert is_filled to Yes/No
         $formCompleted = '';
@@ -140,7 +176,6 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
         return [
             // Referral data (repeated on every row for easy VLOOKUP and filtering)
             $row['referral_id'],
-            $referral['customer_id'] ?? '',
             $referral['priority'] ?? '',
             $referral['status_name'] ?? '',
             $referral['status_note'] ?? '',
@@ -149,16 +184,19 @@ class ReportExport implements FromCollection, WithHeadings, WithMapping
 
             // History data (show on every row)
             $row['role'] ?? '',
-            $history['staff_id'] ?? '',
             $history['business_unit'] ?? '',
-            $history['location'] ?? '',
-            $history['sequence'] ?? '',
+            $this->resolveOutlet($row['outlet_from'] ?? null),
+            $this->resolveOutlet($row['outlet_to'] ?? null),
             $history['create_form']['referral_reason'] ?? '',
             $history['create_form']['referral_condition'] ?? '',
             $history['create_form']['medical_history'] ?? '',
+            $history['reply_form']['post_diagnosis'] ?? '',
+            $history['reply_form']['outcome'] ?? '',
+            $history['reply_form']['feedback'] ?? '',
             $history['additional_remarks'] ?? '',
             $formCompleted,
-            $formDetails
+            $typeOfReferral,
+            $replyFormDetails
         ];
     }
 }

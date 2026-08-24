@@ -98,7 +98,8 @@ class ReferralController extends Controller
             'referral_hierarchies.business_unit',
             'referral_hierarchies.external_referee',
             'referral_hierarchies.external_organization',
-            'referral_hierarchies.referral_create_form'
+            'referral_hierarchies.referral_create_form',
+            'referral_hierarchies.referral_details.form.form_details'
         ]);
 
         // Filter to referrals where any hierarchy matches the user's business unit AND outlet list.
@@ -180,12 +181,28 @@ class ReferralController extends Controller
                 $referralReason = $secondToLastReferralHierarchy->referral_create_form->referral_reason ?? null;
             }
 
+            // Get "Type of Referral" (admin-configured Form named "Type of Referral",
+            // e.g. General / Blood Test / ConsultCall / Vaccination) from the same
+            // creation-side hierarchy's dynamic referral_details.
+            $typeOfReferral = null;
+            if ($secondToLastReferralHierarchy) {
+                foreach ($secondToLastReferralHierarchy->referral_details as $detail) {
+                    $form = $detail->form;
+                    if ($form && $form->label_name === 'Type of Referral') {
+                        $selectedDetail = $form->form_details->firstWhere('id', $detail->value);
+                        $typeOfReferral = $selectedDetail ? $selectedDetail->field_value : $detail->value;
+                        break;
+                    }
+                }
+            }
+
             $referralData = [];
             if ($latestReferralHierarchy && $secondToLastReferralHierarchy && !$is_external) {
                 $referralData = [
                     'id' => $ref->id,
                     'ref_id' => createRefId($ref->id),
                     'reason' => $referralReason,
+                    'type_of_referral' => $typeOfReferral,
                     'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
                     'from_sequence' => $secondToLastReferralHierarchy->sequence,
                     'to_business_unit' => $latestReferralHierarchy->business_unit->name,
@@ -203,6 +220,7 @@ class ReferralController extends Controller
                     'id' => $ref->id,
                     'ref_id' => createRefId($ref->id),
                     'reason' => $referralReason,
+                    'type_of_referral' => $typeOfReferral,
                     'from_business_unit' => $secondToLastReferralHierarchy->business_unit->name,
                     'from_sequence' => $secondToLastReferralHierarchy->sequence,
                     'to_business_unit' => $latestReferralHierarchy->external_referee ? $latestReferralHierarchy->external_referee->name : ($latestReferralHierarchy->external_organization ? $latestReferralHierarchy->external_organization->name : null),

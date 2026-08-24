@@ -142,7 +142,7 @@ class BusinessUnitController extends Controller
             $jwtPayload = $request->get('jwt_payload');
 
             // Check if user is superadmin (referral 1 only)
-            if (!$this->isElevated($jwtPayload)) {
+            if (!$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Unauthorized: Only superadmin can create business units.',
                 ], 403);
@@ -181,7 +181,7 @@ class BusinessUnitController extends Controller
             $jwtPayload = $request->get('jwt_payload');
 
             // Check if user is superadmin (referral 1 only)
-            if (!$this->isElevated($jwtPayload)) {
+            if (!$this->isSuperadmin($jwtPayload)) {
                 return response()->json([
                     'message' => 'Unauthorized: Only superadmin can create business units.',
                 ], 403);
