@@ -16,6 +16,7 @@ class Referral extends Model
         'customer_id',
         'priority',
         'consult_call_id',
+        'consult_call_detail_id',
         'status',
         'status_note',
         'encoded_base'
