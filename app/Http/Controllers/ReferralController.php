@@ -2512,4 +2512,53 @@ class ReferralController extends Controller
             ]);
         }
     }
+
+    /**
+     * Set the consult call / consultation-detail pointers on an existing
+     * referral. Used by the ConsultCall referral flow to backfill
+     * consult_call_detail_id after the referral has been linked to a follow-up
+     * (the manual entry path only collects a consult call id up front).
+     *
+     * PATCH /api/referral/{id}/consultation-link
+     */
+    public function linkConsultation(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'consult_call_id' => 'nullable|integer|gt:0',
+            'consult_call_detail_id' => 'nullable|integer|gt:0',
+        ]);
+
+        try {
+            $referral = Referral::findOrFail($id);
+
+            if (!empty($validated['consult_call_id'])) {
+                $referral->consult_call_id = $validated['consult_call_id'];
+            }
+            if (!empty($validated['consult_call_detail_id'])) {
+                $referral->consult_call_detail_id = $validated['consult_call_detail_id'];
+            }
+            $referral->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => $referral->only(['id', 'consult_call_id', 'consult_call_detail_id']),
+                'message' => 'Referral consultation link updated.',
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Referral not found.',
+            ], 404);
+        } catch (QueryException $e) {
+            Log::error('ReferralController linkConsultation: failed', [
+                'referral_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update referral consultation link.',
+            ], 500);
+        }
+    }
 }

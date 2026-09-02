@@ -70,6 +70,7 @@ Route::middleware('token.auth')->group(function () {
 
     Route::prefix('referral')->controller(ReferralController::class)->group(function () {
         Route::put('', 'update')->name('referral.update');
+        Route::patch('{id}/consultation-link', 'linkConsultation')->name('referral.consultation-link');
         // Download referral PDF - supports optional ?sequence={number} query parameter
         // Example: /api/referral/download/123 (default: seq 1 to last)
         //          /api/referral/download/123?sequence=1 (seq 1 to 2)
