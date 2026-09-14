@@ -573,13 +573,24 @@ class ReportController extends Controller
             }
 
             if ($typeOfReferralFilter) {
+                // Match the same hierarchy row the table's type_of_referral column
+                // comes from: the second-to-last sequence (the creation side of the
+                // current/latest hop), not just any hop in the referral's history -
+                // otherwise a referral that was re-referred under a different type
+                // matches on its earlier type too.
                 $groupedResults = array_filter($groupedResults, function ($group) use ($typeOfReferralFilter) {
-                    foreach ($group['referral_histories'] as $history) {
-                        foreach ($history['referral_details'] as $detail) {
-                            if (($detail['form_name'] ?? null) === 'Type of Referral'
-                                && ($detail['value'] ?? null) === $typeOfReferralFilter) {
-                                return true;
-                            }
+                    $histories = $group['referral_histories'];
+                    $count = count($histories);
+                    if ($count === 0) {
+                        return false;
+                    }
+                    $targetIndex = $count > 1 ? $count - 2 : 0;
+                    $targetHistory = $histories[$targetIndex];
+
+                    foreach ($targetHistory['referral_details'] as $detail) {
+                        if (($detail['form_name'] ?? null) === 'Type of Referral'
+                            && ($detail['value'] ?? null) === $typeOfReferralFilter) {
+                            return true;
                         }
                     }
                     return false;
