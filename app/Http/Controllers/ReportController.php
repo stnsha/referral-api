@@ -283,6 +283,8 @@ class ReportController extends Controller
         $outletTo = $request->input('outlet_to');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
+        $referralIdInput = $request->input('referral_id');
+        $typeOfReferralFilter = $request->input('type_of_referral');
 
         // Get business unit from JWT payload
         $jwtPayload = $request->get('jwt_payload');
@@ -299,7 +301,7 @@ class ReportController extends Controller
         // Check if all filter parameters are null/false
         $hasFilters = $businessUnitId || $locationId || $isExternal || $priority || $isReferred || $status
             || $month || $year || $businessUnitFrom || $businessUnitTo || $outletFrom || $outletTo
-            || $dateFrom || $dateTo;
+            || $dateFrom || $dateTo || $referralIdInput || $typeOfReferralFilter;
 
         try {
             if (!$hasFilters) {
@@ -395,6 +397,10 @@ class ReportController extends Controller
                     $rhQuery->whereHas('referral', function ($query) use ($status) {
                         $query->where('status', $status);
                     });
+                }
+
+                if ($referralIdInput) {
+                    $rhQuery->where('referral_id', parseRefId($referralIdInput));
                 }
 
                 // Add month and year filtering on referral table
@@ -564,6 +570,24 @@ class ReportController extends Controller
                 }
 
                 $groupedResults[$rh->referral_id]['referral_histories'][] = $historyData;
+            }
+
+            if ($typeOfReferralFilter) {
+                $groupedResults = array_filter($groupedResults, function ($group) use ($typeOfReferralFilter) {
+                    foreach ($group['referral_histories'] as $history) {
+                        foreach ($history['referral_details'] as $detail) {
+                            if (($detail['form_name'] ?? null) === 'Type of Referral'
+                                && ($detail['value'] ?? null) === $typeOfReferralFilter) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                });
+
+                if (empty($groupedResults)) {
+                    return null;
+                }
             }
 
             return $groupedResults;
