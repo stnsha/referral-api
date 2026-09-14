@@ -320,13 +320,22 @@ class ReportController extends Controller
             } else {
                 // Apply filters when parameters are provided
                 $rhQuery = ReferralHierarchy::with(['referral']);
+                // Tracks whether $rhQuery received an actual SQL-level condition.
+                // type_of_referral doesn't narrow $rhQuery (it's post-filtered
+                // below), so a request with only that set would otherwise pluck
+                // referral_id for literally every row and whereIn() the full list
+                // back in - this breaks on production once that list approaches
+                // the full referral count, so skip the round trip entirely instead.
+                $queryHasCondition = false;
 
                 if ($businessUnitId) {
                     $rhQuery->where('business_unit_id', $businessUnitId);
+                    $queryHasCondition = true;
                 }
 
                 if ($locationId) {
                     $rhQuery->where('location', $locationId);
+                    $queryHasCondition = true;
                 }
 
                 // "From" = the referral's first sequence (where it originated)
@@ -340,6 +349,7 @@ class ReportController extends Controller
                         })
                         ->pluck('referral_id');
                     $rhQuery->whereIn('referral_id', $fromReferralIds);
+                    $queryHasCondition = true;
                 }
 
                 // "To" = the referral's latest sequence (current/final destination)
@@ -361,6 +371,7 @@ class ReportController extends Controller
                         })
                         ->pluck('referral_hierarchies.referral_id');
                     $rhQuery->whereIn('referral_id', $toReferralIds);
+                    $queryHasCondition = true;
                 }
 
                 if ($dateFrom || $dateTo) {
@@ -372,16 +383,19 @@ class ReportController extends Controller
                             $query->whereDate('created_at', '<=', $dateTo);
                         }
                     });
+                    $queryHasCondition = true;
                 }
 
                 if ($isExternal) {
                     $rhQuery->whereNotNull('external_referee_id');
+                    $queryHasCondition = true;
                 }
 
                 if ($priority) {
                     $rhQuery->whereHas('referral', function ($query) use ($priority) {
                         $query->where('priority', $priority);
                     });
+                    $queryHasCondition = true;
                 }
 
                 if ($isReferred) {
@@ -391,16 +405,19 @@ class ReportController extends Controller
                             ->groupBy('referral_id')
                             ->havingRaw('COUNT(*) > 2');
                     });
+                    $queryHasCondition = true;
                 }
 
                 if ($status) {
                     $rhQuery->whereHas('referral', function ($query) use ($status) {
                         $query->where('status', $status);
                     });
+                    $queryHasCondition = true;
                 }
 
                 if ($referralIdInput) {
                     $rhQuery->where('referral_id', parseRefId($referralIdInput));
+                    $queryHasCondition = true;
                 }
 
                 // Add month and year filtering on referral table
@@ -413,28 +430,45 @@ class ReportController extends Controller
                             $query->whereYear('created_at', (int) $year);
                         }
                     });
+                    $queryHasCondition = true;
                 }
 
                 Log::info('Main query SQL: ' . $rhQuery->toSql());
                 Log::info('Main query Bindings: ' . json_encode($rhQuery->getBindings()));
 
+                if ($queryHasCondition) {
+                    // Get the referral_ids that match the criteria
+                    $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
 
-                // Get the referral_ids that match the criteria
-                $matchingReferralIds = $rhQuery->pluck('referral_id')->unique();
-
-                // Now get ALL ReferralHierarchy records for those referral_ids
-                $allReferralHistories = ReferralHierarchy::with([
-                    'referral',
-                    'business_unit',
-                    'referral_details.form.form_details',
-                    'referral_create_form',
-                    'referral_reply_form'
-                ])
-                    ->whereIn('referral_id', $matchingReferralIds)
-                    ->orderBy('referral_id')
-                    ->orderBy('sequence')
-                    ->get()
-                    ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
+                    // Now get ALL ReferralHierarchy records for those referral_ids
+                    $allReferralHistories = ReferralHierarchy::with([
+                        'referral',
+                        'business_unit',
+                        'referral_details.form.form_details',
+                        'referral_create_form',
+                        'referral_reply_form'
+                    ])
+                        ->whereIn('referral_id', $matchingReferralIds)
+                        ->orderBy('referral_id')
+                        ->orderBy('sequence')
+                        ->get()
+                        ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
+                } else {
+                    // Only a post-filter (type_of_referral) is set - no SQL-level
+                    // condition narrows $rhQuery, so pluck+whereIn would just round
+                    // trip the full referral_id list. Load everything directly instead.
+                    $allReferralHistories = ReferralHierarchy::with([
+                        'referral',
+                        'business_unit',
+                        'referral_details.form.form_details',
+                        'referral_create_form',
+                        'referral_reply_form'
+                    ])
+                        ->orderBy('referral_id')
+                        ->orderBy('sequence')
+                        ->get()
+                        ->makeHidden(['deleted_at', 'updated_at', 'created_at']);
+                }
             }
         } catch (QueryException $e) {
             Log::error('Database query error in ReportController: ' . $e->getMessage());
