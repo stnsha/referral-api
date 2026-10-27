@@ -377,6 +377,13 @@ class ReferralController extends Controller
                 //get business unit id
                 $business_unit_id = $businessUnits['assignee']['business_unit_id'];
 
+                // Creation form answers are posted under the sender BU but may belong to
+                // forms attached to either the sender or the recipient BU
+                $formBusinessUnitIds = array_values(array_unique(array_filter([
+                    $business_unit_id,
+                    $businessUnits['recipient']['business_unit_id'] ?? null,
+                ])));
+
                 // Validate that the assignee business unit matches JWT business unit (skip for superadmin)
                 if (!$this->canAccessBusinessUnit($jwtPayload, $business_unit_id)) {
                     return response()->json([
@@ -465,10 +472,11 @@ class ReferralController extends Controller
                             foreach ($formFields as $field => $value) {
                                 //get data from form details
                                 $form_detail = FormDetails::where('field_name', $field)
-                                    ->whereHas('form', function ($query) use ($business_unit_id) {
-                                        $query->whereHas('business_units', function ($q) use ($business_unit_id) {
-                                            $q->where('business_units.id', $business_unit_id);
-                                        });
+                                    ->whereHas('form', function ($query) use ($formBusinessUnitIds) {
+                                        $query->where('display_on', '!=', 'reply')
+                                            ->whereHas('business_units', function ($q) use ($formBusinessUnitIds) {
+                                                $q->whereIn('business_units.id', $formBusinessUnitIds);
+                                            });
                                     })
                                     ->first();
 

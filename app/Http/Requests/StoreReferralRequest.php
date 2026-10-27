@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Form;
 use App\Models\FormDetails;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreReferralRequest extends FormRequest
@@ -102,9 +103,7 @@ class StoreReferralRequest extends FormRequest
         $buId = $this->input('business_units.assignee.business_unit_id');
 
         if ($buId) {
-            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
-                $q->where('business_units.id', $buId);
-            })->where('display_on', 'creation')->with(['form_details', 'conditions'])->get();
+            $forms = $this->creationForms();
 
             foreach ($forms as $form) {
                 $hasConditions = $form->conditions->isNotEmpty();
@@ -158,9 +157,7 @@ class StoreReferralRequest extends FormRequest
         $buId = $this->input('business_units.assignee.business_unit_id');
 
         if ($buId) {
-            $forms = Form::whereHas('business_units', function ($q) use ($buId) {
-                $q->where('business_units.id', $buId);
-            })->where('display_on', 'creation')->with(['form_details', 'conditions'])->get();
+            $forms = $this->creationForms();
 
             foreach ($forms as $form) {
                 $hasConditions = $form->conditions->isNotEmpty();
@@ -223,5 +220,23 @@ class StoreReferralRequest extends FormRequest
         }
 
         return $messages;
+    }
+
+    /**
+     * Creation forms that can be filled when creating this referral: those
+     * attached to the sender (assignee) business unit plus those attached to
+     * the recipient business unit. Answers for both are posted under
+     * form_data.{assignee business_unit_id}.
+     */
+    private function creationForms(): Collection
+    {
+        $buIds = array_values(array_unique(array_filter([
+            $this->input('business_units.assignee.business_unit_id'),
+            $this->input('business_units.recipient.business_unit_id'),
+        ])));
+
+        return Form::whereHas('business_units', function ($q) use ($buIds) {
+            $q->whereIn('business_units.id', $buIds);
+        })->where('display_on', 'creation')->with(['form_details', 'conditions'])->get();
     }
 }
